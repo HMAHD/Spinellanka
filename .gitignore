@@ -31,3 +31,6 @@ pnpm-debug.log*
 .idea/
 .vscode/
 *.swp
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
