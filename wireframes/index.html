@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Sri Lanka Travel Mobility — Low-fidelity UX walkthrough</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to review content</a>
+
+  <div class="review-layout">
+    <aside class="review-rail" aria-label="Walkthrough navigation">
+      <h2 class="rail-title">UX review map</h2>
+      <span class="rail-status">Draft 1 · 2026-11-16<br>Low fidelity · Not final UI</span>
+      <nav aria-label="Review sections">
+        <ul>
+          <li><a href="#contract"><span class="rail-index">00</span><span>Product contract</span></a></li>
+          <li><a href="#entry"><span class="rail-index">01</span><span>Customer entry</span></a></li>
+          <li><a href="#services"><span class="rail-index">02</span><span>Four service forms</span></a></li>
+          <li><a href="#selection"><span class="rail-index">03</span><span>Vehicle and checkout</span></a></li>
+          <li><a href="#guest"><span class="rail-index">04</span><span>Private booking</span></a></li>
+          <li><a href="#recovery"><span class="rail-index">05</span><span>Recovery states</span></a></li>
+          <li><a href="#operations"><span class="rail-index">06</span><span>Admin operations</span></a></li>
+          <li><a href="#field"><span class="rail-index">07</span><span>Handover and driver</span></a></li>
+          <li><a href="#inputs"><span class="rail-index">08</span><span>Client inputs</span></a></li>
+        </ul>
+      </nav>
+      <div class="rail-links">
+        <a href="../docs/ux/01-product-requirements.md">Requirements</a>
+        <a href="../docs/ux/04-screen-and-state-inventory.md">Screen inventory</a>
+        <a href="../docs/ux/08-acceptance-and-signoff.md">Sign-off</a>
+      </div>
+    </aside>
+
+    <main class="review-main" id="main">
+      <section class="review-section cover" id="contract" aria-labelledby="contract-title">
+        <div class="cover-meta">
+          <span>Sri Lanka Travel Mobility · Working title</span>
+          <span class="scope-marker">Low-fidelity / Not final UI</span>
+          <span>Client-review draft 1</span>
+        </div>
+
+        <h1 id="contract-title">Plan the journey before arrival.</h1>
+        <p class="cover-summary">
+          This walkthrough validates structure, information, states, and operations for a no-login transport booking website. It deliberately contains no final brand, invented vehicle data, real prices, legal claims, or visual styling direction.
+        </p>
+
+        <div class="service-contract" aria-label="Four confirmed service definitions">
+          <article class="contract-cell">
+            <h2>Airport Pickup</h2>
+            <p>Supported arrival airport to one destination, with flight and meet-and-greet context.</p>
+            <span class="contract-fact">Driver included · Route based</span>
+          </article>
+          <article class="contract-cell">
+            <h2>Airport Transfer</h2>
+            <p>Selected origin to departure airport, with a guided pickup-time recommendation.</p>
+            <span class="contract-fact">Driver included · Route based</span>
+          </article>
+          <article class="contract-cell">
+            <h2>Ride</h2>
+            <p>Scheduled pickup, ordered stops, planned waiting, final destination, and optional return.</p>
+            <span class="contract-fact">Driver included · Itinerary based</span>
+          </article>
+          <article class="contract-cell">
+            <h2>Rent</h2>
+            <p>One exact self-drive vehicle reserved in 24-hour periods with collection and return checks.</p>
+            <span class="contract-fact">No driver · Time based</span>
+          </article>
+        </div>
+
+        <div class="booking-spine" aria-label="Shared booking lifecycle">
+          <div class="spine-step"><b>01</b><strong>Tailored details</strong></div>
+          <div class="spine-step"><b>02</b><strong>Check availability</strong></div>
+          <div class="spine-step"><b>03</b><strong>Exact vehicle</strong></div>
+          <div class="spine-step"><b>04</b><strong>Traveler and extras</strong></div>
+          <div class="spine-step"><b>05</b><strong>Estimate and terms</strong></div>
+          <div class="spine-step"><b>06</b><strong>Request submitted</strong></div>
+          <div class="spine-step"><b>07</b><strong>Staff proposal</strong></div>
+          <div class="spine-step"><b>08</b><strong>Allowed payment</strong></div>
+          <div class="spine-step"><b>09</b><strong>Confirmed</strong></div>
+        </div>
+
+        <div class="review-start">
+          <a class="button" href="#entry">Start review</a>
+          <p class="review-note">Approval means the workflow is right. It does not approve a final visual design, real rates, policies, or implementation.</p>
+        </div>
+      </section>
+
+      <section class="review-section" id="entry" aria-labelledby="entry-title">
+        <header class="section-heading">
+          <span class="number">01</span>
+          <h2 id="entry-title">Customer entry</h2>
+        </header>
+        <p class="section-intro">An international visitor chooses a service before seeing a form. The page states advance booking, exact-vehicle choice, staff confirmation, Sri Lanka time, and WhatsApp support before the visitor commits effort.</p>
+
+        <div class="frame-grid">
+          <article class="frame-block wide">
+            <div class="frame-label"><span>WF-01A · Desktop home</span><span>Choose service first</span></div>
+            <div class="wireframe">
+              <div class="browser-bar">
+                <span class="browser-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span>Public · Home</span>
+                <span>1440 width study</span>
+              </div>
+              <header class="mock-header">
+                <strong class="mock-brand">[PRODUCT NAME]</strong>
+                <nav class="mock-nav" aria-label="Mock public navigation">
+                  <span>Book</span><span>Fleet</span><span>How it works</span><span>Help</span>
+                </nav>
+                <span class="micro-action">WhatsApp support</span>
+              </header>
+              <div class="mock-content">
+                <div class="mock-hero">
+                  <div>
+                    <h3>Choose how you want to travel in Sri Lanka.</h3>
+                    <p>Plan before arrival. Check the real five-vehicle schedule, choose an exact vehicle, and receive staff confirmation through a private booking link.</p>
+                    <div class="actions"><span class="button">Choose a service</span><span class="button secondary">How confirmation works</span></div>
+                  </div>
+                  <aside class="mock-aside">
+                    <b>Before you begin</b>
+                    <span>All times are Sri Lanka time.</span>
+                    <span>USD shown with approximate LKR.</span>
+                    <span>A WhatsApp/mobile number is required; no account is created.</span>
+                  </aside>
+                </div>
+                <section class="mock-section" aria-label="Service choices">
+                  <h3>Four ways to book</h3>
+                  <div class="service-rows">
+                    <div class="service-row"><span class="row-id">A</span><strong>Airport Pickup</strong><p>Arriving flight to your destination. Driver and meet-and-greet context included.</p><span class="micro-action">Start pickup</span></div>
+                    <div class="service-row"><span class="row-id">B</span><strong>Airport Transfer</strong><p>Your origin to the airport. We recommend a safe pickup time from your flight.</p><span class="micro-action">Start transfer</span></div>
+                    <div class="service-row"><span class="row-id">C</span><strong>Ride</strong><p>A scheduled route with multiple stops, waiting, and an optional return leg.</p><span class="micro-action">Plan a ride</span></div>
+                    <div class="service-row"><span class="row-id">D</span><strong>Rent</strong><p>Reserve an exact self-drive vehicle by time. Driver not included.</p><span class="micro-action">Find a rental</span></div>
+                  </div>
+                </section>
+              </div>
+            </div>
+            <div class="annotation"><b>Decision check</b><ul><li>Advance booking is visible before service selection.</li><li>Services are defined by trip need, not generic vehicle category.</li><li>No invented ratings or fleet claims appear.</li></ul></div>
+          </article>
+
+          <article class="frame-block narrow">
+            <div class="frame-label"><span>WF-01B · Mobile home</span><span>390 width study</span></div>
+            <div class="wireframe mobile">
+              <div class="phone-bar"><span>9:41</span><span>Low-fidelity</span><span>Menu</span></div>
+              <header class="mock-header"><strong class="mock-brand">[NAME]</strong><span class="micro-action">Support</span></header>
+              <div class="mock-content">
+                <div class="mock-section">
+                  <h3>Plan transport before you arrive.</h3>
+                  <p>Check exact-vehicle availability and receive staff confirmation without creating an account.</p>
+                </div>
+                <div class="service-rows">
+                  <div class="service-row"><span class="row-id">A</span><strong>Airport Pickup</strong><p>Arrival airport to destination · Driver included</p><span class="micro-action">Choose</span></div>
+                  <div class="service-row"><span class="row-id">B</span><strong>Airport Transfer</strong><p>Origin to airport · Driver included</p><span class="micro-action">Choose</span></div>
+                  <div class="service-row"><span class="row-id">C</span><strong>Ride</strong><p>Scheduled multi-stop route · Driver included</p><span class="micro-action">Choose</span></div>
+                  <div class="service-row"><span class="row-id">D</span><strong>Rent</strong><p>Self-drive by time · No driver</p><span class="micro-action">Choose</span></div>
+                </div>
+                <div class="inline-note">All entered booking times use Sri Lanka time. Your local equivalent may be shown for guidance.</div>
+              </div>
+            </div>
+            <div class="annotation"><b>A1 · Mobile rule</b> Service rows stack with full definitions rather than using a cramped four-column grid or hover-only detail.</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="review-section" id="services" aria-labelledby="services-title">
+        <header class="section-heading">
+          <span class="number">02</span>
+          <h2 id="services-title">Four tailored forms</h2>
+        </header>
+        <p class="section-intro">The shared progress model stays familiar, but each service gathers only the information needed for availability, suitability, pricing, and fulfillment.</p>
+
+        <div class="frame-grid">
+          <article class="frame-block half">
+            <div class="frame-label"><span>WF-03 · Airport Pickup</span><span>Arrival service</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>Airport Pickup</span><span>Sri Lanka time</span></div>
+              <div class="progress-line"><span class="active">Service details</span><span>Vehicles</span><span>Traveler</span><span>Review</span></div>
+              <div class="form-layout single">
+                <div>
+                  <h3 class="form-title">Tell us about your arrival</h3>
+                  <div class="form-grid">
+                    <div class="field"><label>Arrival airport</label><div class="fake-input">Select supported airport</div></div>
+                    <div class="field"><label>Flight number</label><div class="fake-input">Airline + flight number</div></div>
+                    <div class="field"><label>Scheduled arrival</label><div class="fake-input">Date · Time · Sri Lanka time</div></div>
+                    <div class="field"><label>Destination</label><div class="fake-input">Search hotel, landmark, or address</div></div>
+                    <div class="field full"><label>Map pin and arrival instructions</label><div class="fake-input">Optional pin · entrance · contact instructions</div></div>
+                    <div class="field"><label>Travelers</label><div class="fake-input">Adults · children</div></div>
+                    <div class="field"><label>Luggage</label><div class="fake-input">Cabin · checked · special equipment</div></div>
+                    <div class="field"><label>Name-board text</label><div class="fake-input">Name to display</div></div>
+                    <div class="field"><label>Assistance and extras</label><div class="fake-input">Structured needs + compatible extras</div></div>
+                  </div>
+                  <div class="inline-note"><strong>Flight delays and waiting</strong><br><span class="client-tag">Client policy required</span> Staff monitors the supplied flight manually. Included waiting, extra waiting, contact, and no-show rules appear here.</div>
+                  <div class="actions"><span class="button">Check available vehicles</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>R · Availability input</b> Flight/arrival/destination changes invalidate stale availability. Automatic flight tracking is not part of phase one.</div>
+          </article>
+
+          <article class="frame-block half">
+            <div class="frame-label"><span>WF-04 · Airport Transfer</span><span>Departure service</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>Airport Transfer</span><span>Sri Lanka time</span></div>
+              <div class="progress-line"><span class="active">Service details</span><span>Vehicles</span><span>Traveler</span><span>Review</span></div>
+              <div class="form-layout single">
+                <div>
+                  <h3 class="form-title">Plan a safe airport departure</h3>
+                  <div class="form-grid">
+                    <div class="field"><label>Pickup place</label><div class="fake-input">Search hotel, landmark, or address</div></div>
+                    <div class="field"><label>Departure airport</label><div class="fake-input">Select supported airport</div></div>
+                    <div class="field"><label>Flight</label><div class="fake-input">Number · departure date/time</div></div>
+                    <div class="field"><label>Travelers and luggage</label><div class="fake-input">Counts and special equipment</div></div>
+                  </div>
+                  <div class="next-action">
+                    <h3>Recommended pickup: [time] Sri Lanka time</h3>
+                    <p>Based on estimated route time + [client-approved airport arrival buffer]. This is not a flight guarantee.</p>
+                    <div class="actions"><span class="button secondary">Use recommended time</span><span class="button secondary">Choose another time</span></div>
+                  </div>
+                  <div class="inline-warning"><strong>Later than recommended</strong><br>Your selected time may not leave enough airport time. You may continue, but staff must review and approve it.</div>
+                  <div class="actions"><span class="button">Check available vehicles</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>S · Warning, not silent acceptance</b> The traveler can adjust the recommendation. A risky choice remains visible to staff and may result in a safer-time proposal.</div>
+          </article>
+
+          <article class="frame-block wide">
+            <div class="frame-label"><span>WF-05 · Ride route builder</span><span>Ordered itinerary</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>Ride</span><span>Scheduled · Driver included</span><span>Sri Lanka time</span></div>
+              <div class="progress-line"><span class="active">Service details</span><span>Vehicles</span><span>Traveler</span><span>Review</span></div>
+              <div class="form-layout">
+                <div>
+                  <h3 class="form-title">Build your route in order</h3>
+                  <div class="route-list">
+                    <div class="route-stop"><div class="field"><label>Pickup</label><div class="fake-input">Search place or add map pin</div></div><div class="field"><label>Start</label><div class="fake-input">Date · time</div></div><span class="micro-action">Fixed</span></div>
+                    <div class="route-stop"><div class="field"><label>Stop 1</label><div class="fake-input">Destination or activity</div></div><div class="field"><label>Wait</label><div class="fake-input">[duration]</div></div><span class="micro-action">Move / remove</span></div>
+                    <div class="route-stop"><div class="field"><label>Stop 2</label><div class="fake-input">Destination or activity</div></div><div class="field"><label>Wait</label><div class="fake-input">[duration]</div></div><span class="micro-action">Move / remove</span></div>
+                    <div class="route-stop"><div class="field"><label>Final destination</label><div class="fake-input">Search place or add map pin</div></div><div class="field"><label>Arrival</label><div class="fake-input">Estimated</div></div><span class="micro-action">Fixed</span></div>
+                  </div>
+                  <div class="actions"><span class="button secondary">Add another stop</span><span class="button secondary">Add separately timed return</span></div>
+                  <div class="inline-note">A return is another timed leg in this booking. The vehicle is not held between legs unless planned waiting is added and priced.</div>
+                </div>
+                <aside class="summary-panel">
+                  <h3>Route summary</h3>
+                  <dl class="summary-list"><div><dt>Distance</dt><dd>[calculated]</dd></div><div><dt>Travel time</dt><dd>[calculated]</dd></div><div><dt>Planned waiting</dt><dd>[total]</dd></div><div><dt>Service windows</dt><dd>Outbound + return</dd></div><div><dt>Travelers</dt><dd>[count]</dd></div></dl>
+                  <div class="actions vertical"><span class="button">Check availability</span></div>
+                </aside>
+              </div>
+            </div>
+            <div class="annotation"><b>A · Reordering</b> High-fidelity design must provide keyboard and button-based Move up/Move down, not drag-only interaction.</div>
+          </article>
+
+          <article class="frame-block narrow">
+            <div class="frame-label"><span>WF-06 · Rent mobile</span><span>Self-drive emphasis</span></div>
+            <div class="wireframe mobile">
+              <div class="phone-bar"><span>Rent</span><span>Sri Lanka time</span><span>Support</span></div>
+              <div class="inline-success"><strong>SELF-DRIVE</strong><br>Driver is not included.</div>
+              <div class="mock-content">
+                <h3 class="form-title">Reserve a vehicle by time</h3>
+                <div class="field"><label>Pickup place and time</label><div class="fake-input">Supported handover point · date · time</div></div>
+                <div class="field"><label>Return place and time</label><div class="fake-input">Supported handover point · date · time</div></div>
+                <div class="duration-strip"><div><b>[n]</b><span>24-hour periods</span></div><div><b>[n]</b><span>extra hours</span></div><div><b>[value]</b><span>late threshold</span></div></div>
+                <div class="field"><label>Primary driver eligibility</label><div class="fake-input">Age · nationality · licence country</div></div>
+                <div class="field"><label>Expected distance</label><div class="fake-input">Estimated kilometres</div></div>
+                <div class="field"><label>Delivery, collection, and extras</label><div class="fake-input">Only supported options</div></div>
+                <div class="inline-note"><span class="client-tag">Client values required</span><br>Mileage, excess, fuel, insurance/excess, deposit, age/licence, late return, and cancellation summary.</div>
+                <div class="check-row"><span class="check-box"></span><span>I understand that original identity and driving documents are checked at handover instead of uploaded online.</span></div>
+                <div class="actions vertical"><span class="button">Check available vehicles</span></div>
+              </div>
+            </div>
+            <div class="annotation"><b>D · Rent definition</b> Rent provides the selected self-drive vehicle without its permanent chauffeur.</div>
+          </article>
+
+          <article class="frame-block wide">
+            <div class="frame-label"><span>WF-02 · Shared spine detail</span><span>All services converge here</span></div>
+            <div class="wireframe">
+              <div class="mock-content">
+                <div class="booking-spine">
+                  <div class="spine-step"><b>Customer</b><strong>Tailored form</strong><span>Service-specific facts</span></div>
+                  <div class="spine-step"><b>System</b><strong>Suitability</strong><span>Capacity and needs</span></div>
+                  <div class="spine-step"><b>System</b><strong>Availability</strong><span>Schedule + buffers</span></div>
+                  <div class="spine-step"><b>Customer</b><strong>Exact vehicle</strong><span>15-minute hold</span></div>
+                  <div class="spine-step"><b>Customer</b><strong>Request</strong><span>Estimate, not final</span></div>
+                  <div class="spine-step"><b>Staff</b><strong>Review</strong><span>May revise details</span></div>
+                  <div class="spine-step"><b>Customer</b><strong>Accept</strong><span>Version + deadline</span></div>
+                  <div class="spine-step"><b>Customer</b><strong>Payment</strong><span>Only allowed choices</span></div>
+                  <div class="spine-step"><b>System</b><strong>Confirmed</strong><span>Traveler + operations notified</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>Core distinction</b> Real website availability improves confidence, but only staff confirmation creates a confirmed booking.</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="review-section" id="selection" aria-labelledby="selection-title">
+        <header class="section-heading">
+          <span class="number">03</span>
+          <h2 id="selection-title">Vehicle and checkout</h2>
+        </header>
+        <p class="section-intro">Only suitable vehicles are selectable. The traveler sees exact fleet facts, a transparent estimate, a visible temporary hold, and language that never confuses request submission with confirmation.</p>
+
+        <div class="frame-grid">
+          <article class="frame-block full">
+            <div class="frame-label"><span>WF-07 · Exact vehicle results</span><span>Detailed comparison</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>Available vehicles</span><span>[Service] · [Date/time] · [route/period]</span><span>Edit search</span></div>
+              <div class="mock-content">
+                <div class="admin-top"><div><h3>Choose one exact suitable vehicle</h3><small>[n] of 5 vehicles match passengers, luggage, needs, and schedule.</small></div><span class="micro-action">Why other vehicles are not shown</span></div>
+                <div class="vehicle-list">
+                  <article class="vehicle-row">
+                    <div class="asset-placeholder">CLIENT<br>Real Vehicle 01 photos</div>
+                    <div class="vehicle-copy"><h3>Vehicle 01 · [make / model / year]</h3><p class="spec-line"><span>[seats] travelers</span><span>[luggage]</span><span>[transmission]</span><span>A/C</span></p><p class="spec-line"><span>[verified feature]</span><span>[verified feature]</span><span>Driver included / Self-drive</span></p><span class="decision-tag">Fits entered needs</span></div>
+                    <div class="vehicle-price"><div><div class="price-big">[USD estimate]</div><div class="price-small">Approx. [LKR] · final after staff review</div><div class="price-small">Refundable deposit: [if relevant]</div></div><div class="actions vertical"><span class="button">Choose Vehicle 01</span><span class="button secondary">View details</span></div></div>
+                  </article>
+                  <article class="vehicle-row">
+                    <div class="asset-placeholder">CLIENT<br>Real Vehicle 02 photos</div>
+                    <div class="vehicle-copy"><h3>Vehicle 02 · [make / model / year]</h3><p class="spec-line"><span>[seats] travelers</span><span>[luggage]</span><span>[transmission]</span><span>A/C</span></p><p class="spec-line"><span>[verified feature]</span><span>[verified feature]</span><span>Driver included / Self-drive</span></p><span class="decision-tag">Fits entered needs</span></div>
+                    <div class="vehicle-price"><div><div class="price-big">[USD estimate]</div><div class="price-small">Approx. [LKR] · final after staff review</div><div class="price-small">Refundable deposit: [if relevant]</div></div><div class="actions vertical"><span class="button">Choose Vehicle 02</span><span class="button secondary">View details</span></div></div>
+                  </article>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>CLIENT</b> Replace all five placeholders with verified vehicle facts, real current photos, exact capacity assumptions, service eligibility, rates, and deposit rules.</div>
+          </article>
+
+          <article class="frame-block narrow">
+            <div class="frame-label"><span>WF-08 · Checkout hold</span><span>Mobile</span></div>
+            <div class="wireframe mobile">
+              <div class="phone-bar"><span>[Service]</span><span>Step 3 of 4</span><span>Support</span></div>
+              <div class="hold-banner"><span>Vehicle 01 held while you finish</span><b>14:32</b></div>
+              <div class="mock-content">
+                <div class="asset-placeholder">Selected Vehicle 01</div>
+                <div class="field"><label>Your name</label><div class="fake-input">Booker name</div></div>
+                <div class="field"><label>WhatsApp / mobile</label><div class="fake-input">Country code + number</div><small>Required for booking updates.</small></div>
+                <div class="field"><label>Email</label><div class="fake-input">Optional email</div></div>
+                <div class="check-row"><span class="check-box"></span><span>I am booking for someone else</span></div>
+                <div class="field"><label>Lead traveler / Rent driver</label><div class="fake-input">Separate identity and contact</div></div>
+                <div class="field"><label>Assistance and extras</label><div class="fake-input">Only compatible options</div></div>
+                <div class="inline-warning">The hold will expire before submission. Your safe form progress stays; availability must be checked again.</div>
+                <div class="actions vertical"><span class="button">Continue to review</span></div>
+              </div>
+            </div>
+            <div class="annotation"><b>A · Timeout</b> Warn accessibly before expiry; do not rely on changing numerals alone.</div>
+          </article>
+
+          <article class="frame-block wide">
+            <div class="frame-label"><span>WF-09 · Review and estimate</span><span>Provisional before staff review</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>Review booking request</span><span>Vehicle hold: [remaining]</span><span>Sri Lanka time</span></div>
+              <div class="form-layout">
+                <div>
+                  <section class="mock-section"><h3>Service and schedule</h3><dl class="data-list"><div><dt>Service</dt><dd>[Airport Pickup / Transfer / Ride / Rent]</dd></div><div><dt>Time</dt><dd>[date and time] Sri Lanka time</dd></div><div><dt>Route / period</dt><dd>[complete summary]</dd></div><div><dt>Exact vehicle</dt><dd>Vehicle 01</dd></div></dl></section>
+                  <section class="mock-section"><h3>Booker and traveler</h3><dl class="data-list"><div><dt>Booker</dt><dd>[name] · [WhatsApp]</dd></div><div><dt>Lead traveler</dt><dd>[same / separate person]</dd></div><div><dt>Travelers / luggage</dt><dd>[counts]</dd></div><div><dt>Needs / extras</dt><dd>[structured summary]</dd></div></dl></section>
+                  <section class="mock-section"><h3>Terms to review</h3><div class="check-row"><span class="check-box"></span><span>I accept the relevant booking, cancellation, privacy, and service terms.</span></div><div class="check-row"><span class="check-box"></span><span>Optional: send me marketing updates. This is not required to book.</span></div></section>
+                </div>
+                <aside class="summary-panel sticky">
+                  <h3>Itemized estimate</h3>
+                  <table class="estimate-table"><tbody><tr><td>Vehicle / base</td><td>[USD]</td></tr><tr><td>Route / duration</td><td>[USD]</td></tr><tr><td>Waiting / stops</td><td>[USD]</td></tr><tr><td>Extras</td><td>[USD]</td></tr><tr><td>Taxes / fees</td><td>[USD]</td></tr><tr class="total"><td>Estimated total</td><td>[USD]</td></tr><tr><td>Approximate value</td><td>[LKR]</td></tr><tr class="deposit"><td>Refundable deposit</td><td>[USD, if any]</td></tr></tbody></table>
+                  <p class="price-small">Estimate only. Staff confirms final details, amount, settlement currency, and available payment choices.</p>
+                  <div class="actions vertical"><span class="button">Submit booking request</span><span class="button secondary">Edit details</span></div>
+                </aside>
+              </div>
+            </div>
+            <div class="annotation"><b>R · Price clarity</b> USD is primary. LKR is explicitly approximate. Refundable security deposits never merge into the service total.</div>
+          </article>
+
+          <article class="frame-block narrow">
+            <div class="frame-label"><span>WF-10 · Request success</span><span>Not confirmed</span></div>
+            <div class="wireframe mobile">
+              <div class="phone-bar"><span>Request received</span><span>Support</span></div>
+              <div class="mock-content">
+                <span class="decision-tag">Pending staff review</span>
+                <h3>We received your request.</h3>
+                <p>This is not yet a confirmed booking. Staff will check the details and send your proposal.</p>
+                <div class="next-action"><h3>Reference: REF-[value]</h3><p>Keep this reference. Your private link lets you track the request without an account.</p><span class="button">Open private booking page</span></div>
+                <div class="timeline"><div class="timeline-row"><time>Now</time><span>Request recorded</span></div><div class="timeline-row"><time>Now</time><span>WhatsApp sent</span></div><div class="timeline-row"><time>Optional</time><span>Email [sent / not supplied / failed]</span></div><div class="timeline-row"><time>[CLIENT]</time><span>Expected staff response</span></div></div>
+                <div class="actions vertical"><span class="button secondary">Resend available message</span><span class="button secondary">Contact support with reference</span></div>
+              </div>
+            </div>
+            <div class="annotation"><b>S · Delivery failure</b> The reference and private link remain available on-screen even if WhatsApp or email fails.</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="review-section" id="guest" aria-labelledby="guest-title">
+        <header class="section-heading">
+          <span class="number">04</span>
+          <h2 id="guest-title">Private booking</h2>
+        </header>
+        <p class="section-intro">The private booking page provides account-like control without registration. Status and one next action lead; operational detail remains accessible below.</p>
+
+        <div class="frame-grid">
+          <article class="frame-block full">
+            <div class="frame-label"><span>WF-11 · Booking under review</span><span>Guest private link</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>Private booking · REF-[value]</span><span>Secure link</span><span>Support</span></div>
+              <div class="mock-content">
+                <div class="status-strip"><span>Request received</span><span class="current">Under review</span><span>Proposal</span><span>Payment</span><span>Confirmed</span></div>
+                <div class="private-layout">
+                  <aside>
+                    <div class="next-action"><h3>No action needed yet</h3><p>Staff is checking your itinerary, exact vehicle, and final amount. We will contact you through WhatsApp and optional email.</p><span class="button secondary">Contact support</span></div>
+                    <div class="timeline"><div class="timeline-row"><time>[time]</time><span>Request received</span></div><div class="timeline-row"><time>[time]</time><span>Staff review started</span></div><div class="timeline-row"><time>Next</time><span>Proposal or information request</span></div></div>
+                  </aside>
+                  <div>
+                    <section class="mock-section"><h3>[Service] details</h3><dl class="data-list"><div><dt>Date/time</dt><dd>[Sri Lanka time]</dd></div><div><dt>Route / period</dt><dd>[summary]</dd></div><div><dt>Vehicle requested</dt><dd>Vehicle 01</dd></div><div><dt>Travelers / needs</dt><dd>[summary]</dd></div></dl></section>
+                    <section class="mock-section"><h3>Estimate</h3><dl class="data-list"><div><dt>Estimated total</dt><dd>[USD]</dd></div><div><dt>Approximate LKR</dt><dd>[LKR]</dd></div><div><dt>Final amount</dt><dd>Pending staff proposal</dd></div></dl></section>
+                    <section class="mock-section"><h3>Available actions</h3><div class="actions"><span class="button secondary">Request a change</span><span class="button secondary">Request cancellation</span><span class="button secondary">View accepted terms</span></div></section>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>D · No account</b> Private token + reference provide status and actions. Internal notes and unrelated data never appear.</div>
+          </article>
+
+          <article class="frame-block wide">
+            <div class="frame-label"><span>WF-12 · Proposal and payment choices</span><span>Traveler action required</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>Proposal ready · Version 2</span><span>Accept by [deadline]</span><span>REF-[value]</span></div>
+              <div class="private-layout">
+                <div>
+                  <div class="next-action"><h3>Review the revised offer</h3><p>Staff adjusted details after checking availability. Your original confirmed booking, if one exists, remains active until you accept this revision.</p></div>
+                  <div class="proposal-change"><strong>Vehicle</strong><span>changed to</span><strong>Vehicle 02</strong></div>
+                  <div class="proposal-change"><strong>Pickup [time]</strong><span>changed to</span><strong>[new time]</strong></div>
+                  <div class="proposal-change"><strong>[USD estimate]</strong><span>final offer</span><strong>[USD final]</strong></div>
+                  <div class="actions"><span class="button">Accept this proposal</span><span class="button secondary">Request another change</span><span class="button secondary">Decline</span></div>
+                </div>
+                <div>
+                  <h3 class="form-title">Payment choices enabled for this booking</h3>
+                  <div class="payment-choice"><span class="radio-dot"></span><div><strong>Pay in full</strong><p>Secure hosted checkout · [settlement currency]</p></div><strong>[amount]</strong></div>
+                  <div class="payment-choice"><span class="radio-dot"></span><div><strong>Pay deposit</strong><p>Remaining balance: [amount and due rule]</p></div><strong>[amount]</strong></div>
+                  <div class="payment-choice"><span class="radio-dot"></span><div><strong>Pay later</strong><p>Only shown when this booking’s policy permits it.</p></div><strong>[terms]</strong></div>
+                  <div class="inline-note">The next screen is a payment-provider hosted page. This product does not collect raw card details.</div>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>D · Controlled flexibility</b> Staff or policy enables the options. The interface does not promise all three to every traveler.</div>
+          </article>
+
+          <article class="frame-block full" id="wf-payment-return">
+            <div class="frame-label"><span>WF-12A · Hosted payment return</span><span>Success · pending · failed</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>Returned from secure payment provider</span><span>REF-[value]</span><span>Do not charge twice</span></div>
+              <div class="mock-content">
+                <div class="approval-grid">
+                  <section class="approval-option"><span class="state-code">PAYMENT SUCCEEDED</span><h3>Payment recorded.</h3><p>Show amount, currency, transaction reference, remaining balance, receipt, and resulting booking status.</p><div class="actions"><span class="button">Return to booking</span></div></section>
+                  <section class="approval-option"><span class="state-code">PAYMENT PENDING</span><h3>Provider confirmation is pending.</h3><p>Keep the booking state accurate, prevent a duplicate charge, and offer a status recheck or support.</p><div class="actions"><span class="button secondary">Check status</span></div></section>
+                  <section class="approval-option"><span class="state-code">PAYMENT FAILED / CANCELLED</span><h3>No successful payment was recorded.</h3><p>Explain whether the vehicle hold remains, show the deadline, and allow another permitted option.</p><div class="actions"><span class="button secondary">Try an allowed option</span></div></section>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>S · Provider boundary</b> The private page owns booking status and recovery; the hosted provider owns card entry.</div>
+          </article>
+
+          <article class="frame-block full" id="wf-guest-actions">
+            <div class="frame-label"><span>WF-12B · Guest change, cancellation, and Rent extension</span><span>Original commitment protected</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>Manage booking · REF-[value]</span><span>Confirmed details remain active</span><span>Support</span></div>
+              <div class="mock-content">
+                <div class="approval-grid">
+                  <section class="approval-option"><span class="state-code">CHANGE REQUEST</span><h3>Request a different detail.</h3><p>Select date/time, route, stop, traveler, extra, or other supported change. Staff rechecks availability and price.</p><div class="field"><label>Requested change</label><div class="fake-input">Choose fields + explain</div></div><div class="actions"><span class="button secondary">Submit change request</span></div></section>
+                  <section class="approval-option"><span class="state-code">CANCELLATION</span><h3>Review the applicable outcome.</h3><p>Show the approved cutoff, estimated fee/refund, released schedule effect, and whether staff review is required.</p><div class="field"><label>Reason</label><div class="fake-input">Select or explain</div></div><div class="actions"><span class="button secondary">Request cancellation</span></div></section>
+                  <section class="approval-option"><span class="state-code">RENT EXTENSION</span><h3>Request a later return.</h3><p>The existing return time remains binding until future availability, revised charges, staff approval, and required payment are complete.</p><div class="field"><label>Requested return</label><div class="fake-input">Date · time · Sri Lanka time</div></div><div class="actions"><span class="button secondary">Check extension request</span></div></section>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>D · Preserve original</b> A proposed revision never cancels or replaces an accepted booking until the traveler accepts the new version.</div>
+          </article>
+
+          <article class="frame-block narrow">
+            <div class="frame-label"><span>WF-13 · Confirmed service day</span><span>Mobile</span></div>
+            <div class="wireframe mobile">
+              <div class="phone-bar"><span>Confirmed</span><span>REF-[value]</span><span>Support</span></div>
+              <div class="mock-content">
+                <span class="decision-tag">Booking confirmed</span>
+                <h3>[Service] · [date/time]</h3>
+                <div class="asset-placeholder">CLIENT<br>Driver + Vehicle 01</div>
+                <dl class="data-list"><div><dt>Driver</dt><dd>Driver for Vehicle 01</dd></div><div><dt>Verified contact</dt><dd>[WhatsApp / phone]</dd></div><div><dt>Vehicle / plate</dt><dd>Vehicle 01 · [approved value]</dd></div><div><dt>Meeting point</dt><dd>[instructions]</dd></div><div><dt>Balance</dt><dd>[amount / due]</dd></div></dl>
+                <div class="actions vertical"><span class="button">Urgent service-day support</span><span class="button secondary">View route and documents</span><span class="button secondary">Request a change</span></div>
+              </div>
+            </div>
+            <div class="annotation"><b>Conditional content</b> Rent replaces driver details with handover appointment, original-document checklist, deposit, and extension action.</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="review-section" id="recovery" aria-labelledby="recovery-title">
+        <header class="section-heading">
+          <span class="number">05</span>
+          <h2 id="recovery-title">Recovery states</h2>
+        </header>
+        <p class="section-intro">A simple product is not a happy-path-only product. Each state says what happened, what remains valid, and what the traveler can do next.</p>
+
+        <article class="frame-block">
+          <div class="frame-label"><span>WF-14 · Reusable state board</span><span>No dead ends</span></div>
+          <div class="wireframe">
+            <div class="recovery-grid">
+              <section class="recovery-case"><span class="state-code">NO AVAILABILITY</span><h3>No exact vehicle fits this window.</h3><p>Show nearby times/dates and other suitable exact vehicles. Do not reveal another customer’s booking.</p><div class="actions"><span class="button secondary">Try suggested time</span><span class="button secondary">Ask staff</span></div></section>
+              <section class="recovery-case"><span class="state-code">CUSTOM QUOTE</span><h3>We cannot calculate this route reliably.</h3><p>Keep all entered details, remove the misleading estimate, and explain when staff will respond.</p><div class="actions"><span class="button secondary">Request custom quote</span></div></section>
+              <section class="recovery-case"><span class="state-code">HOLD EXPIRED</span><h3>Your checkout hold ended.</h3><p>Safe form progress remains. Recheck the same vehicle; if unavailable, show valid alternatives.</p><div class="actions"><span class="button secondary">Recheck availability</span></div></section>
+              <section class="recovery-case"><span class="state-code">STALE RESULT</span><h3>Details changed after the last check.</h3><p>Name the changed information and require a fresh price and availability check before submission.</p><div class="actions"><span class="button secondary">Update result</span></div></section>
+              <section class="recovery-case"><span class="state-code">PAYMENT PENDING</span><h3>The provider has not confirmed payment yet.</h3><p>Do not charge again automatically. Recheck status, show the booking impact, and provide support.</p><div class="actions"><span class="button secondary">Check payment status</span></div></section>
+              <section class="recovery-case"><span class="state-code">MESSAGE FAILED</span><h3>Your request is still recorded.</h3><p>Show the reference and private link, retry the failed channel, and alert staff where needed.</p><div class="actions"><span class="button secondary">Resend</span><span class="button secondary">Copy reference</span></div></section>
+              <section class="recovery-case"><span class="state-code">LINK EXPIRED</span><h3>This secure link is no longer valid.</h3><p>Reveal no booking data. Offer a safe recovery route using the reference and verified contact.</p><div class="actions"><span class="button secondary">Recover access</span></div></section>
+              <section class="recovery-case"><span class="state-code">VEHICLE DISRUPTION</span><h3>Your selected vehicle needs replacing.</h3><p>Show the equal/better alternative and price effect. The traveler accepts it or chooses cancellation/refund.</p><div class="actions"><span class="button secondary">Review replacement</span></div></section>
+            </div>
+          </div>
+          <div class="annotation"><b>A · State language</b> Never use color alone. The status code, plain-language heading, explanation, and recovery action carry meaning together.</div>
+        </article>
+      </section>
+
+      <section class="review-section" id="operations" aria-labelledby="operations-title">
+        <header class="section-heading">
+          <span class="number">06</span>
+          <h2 id="operations-title">Admin operations</h2>
+        </header>
+        <p class="section-intro">Owner/Admin and Staff use individual MFA-protected accounts. The dashboard prioritizes attention, the review workspace turns requests into versioned proposals, and one fleet calendar protects availability.</p>
+
+        <div class="frame-grid">
+          <article class="frame-block full">
+            <div class="frame-label"><span>WF-15 · Operations dashboard</span><span>Desktop primary · Mobile critical tasks</span></div>
+            <div class="wireframe">
+              <div class="admin-shell">
+                <nav class="admin-nav" aria-label="Mock admin navigation"><b>[ADMIN]</b><span>Dashboard</span><span>Bookings</span><span>Calendar</span><span>Fleet</span><span>Drivers</span><span>Handovers</span><span>Payments</span><span>Incidents</span><span>Settings</span><span>Audit</span></nav>
+                <div class="admin-main">
+                  <div class="admin-top"><div><h3>What needs attention</h3><small>[Current Sri Lanka date/time] · Staff role</small></div><span class="micro-action">New manual booking</span></div>
+                  <div class="kpi-line"><div><b>[n]</b><span>New reviews</span></div><div><b>[n]</b><span>Expiring actions</span></div><div><b>[n]</b><span>Today’s services</span></div><div><b>[n]</b><span>Open incidents</span></div></div>
+                  <div class="attention-list" role="table" aria-label="Operational work list">
+                    <div class="attention-row" role="row"><span class="status">Urgent</span><strong>REF-[value]</strong><span>Vehicle schedule conflict requires resolution</span><span>[deadline]</span></div>
+                    <div class="attention-row" role="row"><span class="status">Review</span><strong>REF-[value]</strong><span>New Airport Pickup request · Vehicle 01</span><span>[age]</span></div>
+                    <div class="attention-row" role="row"><span class="status">Action</span><strong>REF-[value]</strong><span>Traveler requested revised Ride return time</span><span>[deadline]</span></div>
+                    <div class="attention-row" role="row"><span class="status">Handover</span><strong>REF-[value]</strong><span>Rent collection · eligibility check pending</span><span>[time]</span></div>
+                    <div class="attention-row" role="row"><span class="status">Payment</span><strong>REF-[value]</strong><span>Gateway status pending reconciliation</span><span>[age]</span></div>
+                  </div>
+                  <section class="mock-section"><h3>Five-vehicle snapshot</h3><div class="spec-line"><span>Vehicle 01 · Confirmed</span><span>Vehicle 02 · Available</span><span>Vehicle 03 · Rent handover</span><span>Vehicle 04 · Maintenance</span><span>Vehicle 05 · Pending hold</span></div></section>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>Operational focus</b> Every count and row links to work; revenue, conversion, and utilization analytics are deferred.</div>
+          </article>
+
+          <article class="frame-block full" id="wf-admin-work-queues">
+            <div class="frame-label"><span>WF-15A · Booking inbox, manual booking, and incident</span><span>Three operational entry points</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>Bookings and exceptions</span><span>Role-permitted actions</span><span>All changes audited</span></div>
+              <div class="mock-content">
+                <div class="review-workspace">
+                  <section class="workspace-column"><h3>Booking inbox</h3><div class="field"><label>Search and filters</label><div class="fake-input">Reference · service · date · vehicle · status · deadline</div></div><div class="attention-list"><div class="attention-row"><span class="status">Review</span><strong>REF-[value]</strong><span>Airport Pickup · new request</span><span>[age]</span></div><div class="attention-row"><span class="status">Action</span><strong>REF-[value]</strong><span>Traveler replied to proposal</span><span>[deadline]</span></div><div class="attention-row"><span class="status">Issue</span><strong>REF-[value]</strong><span>Payment or message requires recovery</span><span>[age]</span></div></div><div class="actions"><span class="button secondary">Open selected booking</span></div></section>
+                  <section class="workspace-column"><h3>New manual booking</h3><p>Phone, email, and WhatsApp bookings use the same availability authority.</p><div class="field"><label>Source and service</label><div class="fake-input">Source · Airport Pickup / Transfer / Ride / Rent</div></div><div class="field"><label>Schedule and exact vehicle</label><div class="fake-input">Sri Lanka time · locations · availability check</div></div><div class="field"><label>Booker and traveler</label><div class="fake-input">Contact · consent basis · passenger/eligibility</div></div><div class="field"><label>Price, payment, and policy</label><div class="fake-input">Recorded terms and transaction state</div></div><div class="actions"><span class="button">Check and save booking</span></div></section>
+                  <section class="workspace-column"><h3>Incident record</h3><div class="field"><label>Type and severity</label><div class="fake-input">Breakdown · accident · no-show · damage · dispute</div></div><div class="field"><label>Facts and people</label><div class="fake-input">Occurred/reported times · booking · vehicle · driver</div></div><div class="field"><label>Actions and evidence</label><div class="fake-input">Attachments · communication · charges · external references</div></div><div class="field"><label>Owner and resolution</label><div class="fake-input">Assignee · status · next action · outcome</div></div><div class="actions"><span class="button secondary">Save incident and alert staff</span></div></section>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>Operational integrity</b> A manual booking blocks online availability immediately; incident details remain access-controlled and connected to the booking audit.</div>
+          </article>
+
+          <article class="frame-block full">
+            <div class="frame-label"><span>WF-16 · Booking review workspace</span><span>Request · Operations · Proposal</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>REF-[value] · Under review</span><span>[Service] · [date/time]</span><span>Assigned to [staff]</span></div>
+              <div class="mock-content">
+                <div class="inline-warning"><strong>Review flags</strong> [Timing warning] · [Eligibility check] · [Message status] · [Conflict status]</div>
+                <div class="review-workspace">
+                  <section class="workspace-column"><h3>Requested</h3><dl class="data-list"><div><dt>Route / period</dt><dd>[full details]</dd></div><div><dt>Booker</dt><dd>[contact]</dd></div><div><dt>Lead traveler</dt><dd>[identity]</dd></div><div><dt>Travelers/luggage</dt><dd>[counts]</dd></div><div><dt>Needs/extras</dt><dd>[details]</dd></div><div><dt>Estimate</dt><dd>[USD / approx LKR]</dd></div></dl><div class="actions vertical"><span class="button secondary">Request information</span><span class="button secondary">Open messages</span></div></section>
+                  <section class="workspace-column"><h3>Operations</h3><div class="asset-placeholder">Vehicle 01 schedule window<br>Previous booking · buffer · request · next booking</div><dl class="data-list"><div><dt>Exact vehicle</dt><dd>Vehicle 01</dd></div><div><dt>Permanent driver</dt><dd>Driver for Vehicle 01</dd></div><div><dt>Suitability</dt><dd>Pass / explain</dd></div><div><dt>Availability</dt><dd>Pass / conflict</dd></div><div><dt>Policy checks</dt><dd>[status]</dd></div></dl><div class="actions vertical"><span class="button secondary">Choose alternative vehicle/time</span><span class="button secondary">Open fleet calendar</span></div></section>
+                  <section class="workspace-column"><h3>Final proposal</h3><table class="estimate-table"><tbody><tr><td>Vehicle/base</td><td>[USD]</td></tr><tr><td>Route/duration</td><td>[USD]</td></tr><tr><td>Extras/fees</td><td>[USD]</td></tr><tr class="total"><td>Final total</td><td>[USD]</td></tr><tr class="deposit"><td>Refundable deposit</td><td>[USD]</td></tr></tbody></table><div class="field"><label>Allowed payment choices</label><div class="fake-input">Full · deposit · pay later [select]</div></div><div class="field"><label>Acceptance/payment deadline</label><div class="fake-input">Date · time · Sri Lanka time</div></div><div class="field"><label>Customer explanation</label><div class="fake-input">Why details or price changed</div></div><div class="actions vertical"><span class="button">Send versioned proposal</span><span class="button secondary">Decline with reason</span></div></section>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>Audit boundary</b> Any override, discount, schedule conflict, or policy exception requires actor, reason, timestamp, and before/after values.</div>
+          </article>
+
+          <article class="frame-block full">
+            <div class="frame-label"><span>WF-17 · Unified fleet calendar</span><span>Operational centerpiece</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>Fleet calendar · Week / Day / Month</span><span>Filters: all 5 vehicles · all services · active states</span><span>New booking / block</span></div>
+              <div class="mock-content">
+                <div class="legend"><span><i></i> Confirmed</span><span><i style="border-style:dashed"></i> Pending</span><span><i style="border-style:dotted"></i> Checkout hold</span><span><i style="border-style:double;border-width:3px;background:#e3e3e3"></i> Maintenance</span><span><i style="border-width:1px"></i> Buffer</span></div>
+                <div class="calendar-wrap" tabindex="0" aria-label="Scrollable fleet timeline study">
+                  <div class="fleet-calendar">
+                    <div class="cal-cell cal-head">Vehicle / driver</div><div class="cal-cell cal-head">06</div><div class="cal-cell cal-head">07</div><div class="cal-cell cal-head">08</div><div class="cal-cell cal-head">09</div><div class="cal-cell cal-head">10</div><div class="cal-cell cal-head">11</div><div class="cal-cell cal-head">12</div><div class="cal-cell cal-head">13</div><div class="cal-cell cal-head">14</div><div class="cal-cell cal-head">15</div><div class="cal-cell cal-head">16</div><div class="cal-cell cal-head">17</div>
+
+                    <div class="cal-cell cal-label">Vehicle 01<br><small>Driver 01</small></div><div class="cal-cell"><div class="cal-block buffer">Prep</div></div><div class="cal-cell"><div class="cal-block">Pickup<br>REF-…</div></div><div class="cal-cell"><div class="cal-block">Pickup</div></div><div class="cal-cell"><div class="cal-block buffer">Turn</div></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"><div class="cal-block pending">Ride<br>pending</div></div><div class="cal-cell"><div class="cal-block pending">Ride</div></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+
+                    <div class="cal-cell cal-label">Vehicle 02<br><small>Driver 02</small></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"><div class="cal-block hold">15m hold</div></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"><div class="cal-block">Transfer</div></div><div class="cal-cell"><div class="cal-block">Transfer</div></div><div class="cal-cell"><div class="cal-block buffer">Turn</div></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+
+                    <div class="cal-cell cal-label">Vehicle 03<br><small>Driver 03 / Rent no driver</small></div><div class="cal-cell"><div class="cal-block">Rent handover</div></div><div class="cal-cell"><div class="cal-block">Rent</div></div><div class="cal-cell"><div class="cal-block">Rent</div></div><div class="cal-cell"><div class="cal-block">Rent</div></div><div class="cal-cell"><div class="cal-block">Rent</div></div><div class="cal-cell"><div class="cal-block">Rent</div></div><div class="cal-cell"><div class="cal-block">Rent</div></div><div class="cal-cell"><div class="cal-block">Rent</div></div><div class="cal-cell"><div class="cal-block">Return</div></div><div class="cal-cell"><div class="cal-block buffer">Inspect</div></div><div class="cal-cell"></div><div class="cal-cell"></div>
+
+                    <div class="cal-cell cal-label">Vehicle 04<br><small>Driver 04</small></div><div class="cal-cell"><div class="cal-block maintenance">Maintenance</div></div><div class="cal-cell"><div class="cal-block maintenance">Maintenance</div></div><div class="cal-cell"><div class="cal-block maintenance">Maintenance</div></div><div class="cal-cell"><div class="cal-block maintenance">Maintenance</div></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+
+                    <div class="cal-cell cal-label">Vehicle 05<br><small>Driver 05</small></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"><div class="cal-block">Manual booking</div></div><div class="cal-cell"><div class="cal-block">Manual</div></div><div class="cal-cell"><div class="cal-block buffer">Turn</div></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"><div class="cal-block pending">Transfer</div></div><div class="cal-cell"><div class="cal-block pending">Transfer</div></div><div class="cal-cell"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>Memorable mechanism</b> The exact-vehicle schedule makes online availability credible. Mobile defaults to an agenda rather than squeezing this desktop timeline.</div>
+          </article>
+
+          <article class="frame-block full" id="wf-mobile-agenda">
+            <div class="frame-label"><span>WF-17A · Five-vehicle mobile agenda</span><span>Chronological work · Conflict-aware</span></div>
+            <div class="wireframe mobile">
+              <div class="phone-bar"><span>Fleet agenda</span><span>[Sri Lanka date]</span><span>Filters</span></div>
+              <div class="mock-content">
+                <div class="agenda-toolbar"><div class="fake-input">All 5 vehicles · All services · Blocking states</div><div class="actions"><span class="button secondary">New booking</span><span class="button secondary">Add block</span></div></div>
+                <div class="fleet-agenda">
+                  <section class="agenda-vehicle">
+                    <div class="agenda-vehicle-head"><span><strong>Vehicle 01</strong><small>Driver 01 · permanently tied</small></span><span class="state-tag">Confirmed</span></div>
+                    <div class="agenda-entry"><time>06:00–10:15</time><span><strong>Prep → Airport Pickup → turn</strong><small>REF-[value] · traveler details permissioned</small></span></div>
+                    <div class="agenda-entry pending"><time>13:00–15:00</time><span><strong>Ride · pending proposal</strong><small>Deadline [time]</small></span></div>
+                  </section>
+                  <section class="agenda-vehicle">
+                    <div class="agenda-vehicle-head"><span><strong>Vehicle 02</strong><small>Driver 02 · permanently tied</small></span><span class="state-tag">Held</span></div>
+                    <div class="agenda-entry hold"><time>09:00–09:15</time><span><strong>Checkout hold · 15 minutes</strong><small>Releases automatically if checkout expires</small></span></div>
+                    <div class="agenda-entry"><time>13:00–16:00</time><span><strong>Airport Transfer · confirmed</strong><small>Includes post-service buffer</small></span></div>
+                  </section>
+                  <section class="agenda-vehicle">
+                    <div class="agenda-vehicle-head"><span><strong>Vehicle 03</strong><small>Rent · no driver assigned</small></span><span class="state-tag">Rented</span></div>
+                    <div class="agenda-entry"><time>06:00–15:30</time><span><strong>Rent in progress</strong><small>Return 14:00 · inspection buffer to 15:30</small></span></div>
+                  </section>
+                  <section class="agenda-vehicle conflict">
+                    <div class="agenda-vehicle-head"><span><strong>Vehicle 04</strong><small>Driver 04 · unavailable with vehicle</small></span><span class="state-tag">Conflict</span></div>
+                    <div class="agenda-entry maintenance"><time>06:00–10:00</time><span><strong>Maintenance block</strong><small>Reason and actor recorded</small></span></div>
+                    <div class="agenda-alert"><strong>Conflict</strong> New request at 08:30 overlaps this block. Change time, choose another vehicle, or decline.</div>
+                  </section>
+                  <section class="agenda-vehicle">
+                    <div class="agenda-vehicle-head"><span><strong>Vehicle 05</strong><small>Driver 05 · permanently tied</small></span><span class="state-tag">Manual</span></div>
+                    <div class="agenda-entry"><time>09:00–12:30</time><span><strong>Ride · phone booking</strong><small>Saved to the same availability schedule</small></span></div>
+                  </section>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>Mobile operations</b> Staff can scan every exact vehicle, tied-driver context, blocking window, deadline, and conflict without interpreting color. Filters never hide active conflicts by default.</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="review-section" id="field" aria-labelledby="field-title">
+        <header class="section-heading">
+          <span class="number">07</span>
+          <h2 id="field-title">Handover and driver</h2>
+        </header>
+        <p class="section-intro">Critical field work is mobile-first. Rent staff verify original documents and vehicle condition; permanent drivers receive only the information needed for their assigned chauffeured trip.</p>
+
+        <div class="frame-grid">
+          <article class="frame-block half">
+            <div class="frame-label"><span>WF-18 · Rent collection</span><span>Staff mobile checklist</span></div>
+            <div class="wireframe mobile">
+              <div class="phone-bar"><span>Rent handover</span><span>REF-[value]</span><span>Incident</span></div>
+              <div class="mock-content">
+                <span class="decision-tag">Collection · [time]</span>
+                <h3>Vehicle 03 · [handover place]</h3>
+                <div class="checklist">
+                  <div class="checklist-row"><span class="box"></span><span><strong>Match renter to booking</strong><br><small>Lead Rent driver identity</small></span><span>Required</span></div>
+                  <div class="checklist-row"><span class="box"></span><span><strong>Inspect original passport</strong><br><small>Do not upload/copy in phase one unless later policy changes</small></span><span>Required</span></div>
+                  <div class="checklist-row"><span class="box"></span><span><strong>Inspect licence and required permit</strong><br><small>Apply approved eligibility rules</small></span><span>Required</span></div>
+                  <div class="checklist-row"><span class="box"></span><span><strong>Contract and payment/deposit</strong><br><small>Record accepted version and status</small></span><span>Required</span></div>
+                  <div class="checklist-row"><span class="box"></span><span><strong>Odometer and fuel</strong><br><small>Enter values and attach permitted photos</small></span><span>Required</span></div>
+                  <div class="checklist-row"><span class="box"></span><span><strong>Existing condition and accessories</strong><br><small>Damage map, photos, equipment</small></span><span>Required</span></div>
+                  <div class="checklist-row"><span class="box"></span><span><strong>Staff and renter signatures</strong></span><span>Required</span></div>
+                </div>
+                <div class="actions vertical"><span class="button disabled">Release vehicle after all checks</span><span class="button secondary">Stop and escalate eligibility</span></div>
+              </div>
+            </div>
+            <div class="annotation"><b>S · Blocked release</b> Missing eligibility or condition checks prevent handover unless policy explicitly permits an authorized, audited exception.</div>
+          </article>
+
+          <article class="frame-block half">
+            <div class="frame-label"><span>WF-18B · Rent return</span><span>Condition comparison</span></div>
+            <div class="wireframe mobile">
+              <div class="phone-bar"><span>Rent return</span><span>REF-[value]</span><span>Incident</span></div>
+              <div class="mock-content">
+                <span class="state-tag">Return in progress</span>
+                <h3>Compare against collection record</h3>
+                <dl class="data-list"><div><dt>Scheduled</dt><dd>[time]</dd></div><div><dt>Actual</dt><dd>[time]</dd></div><div><dt>Extension</dt><dd>[approved / none]</dd></div></dl>
+                <div class="checklist">
+                  <div class="checklist-row"><span class="box"></span><span><strong>Return odometer / mileage</strong></span><span>[value]</span></div>
+                  <div class="checklist-row"><span class="box"></span><span><strong>Fuel comparison</strong></span><span>[value]</span></div>
+                  <div class="checklist-row"><span class="box"></span><span><strong>Damage and accessories</strong><br><small>Side-by-side collection reference</small></span><span>[status]</span></div>
+                  <div class="checklist-row"><span class="box"></span><span><strong>Additional charges explained</strong></span><span>[amount]</span></div>
+                  <div class="checklist-row"><span class="box"></span><span><strong>Deposit/refund outcome</strong></span><span>[status]</span></div>
+                  <div class="checklist-row"><span class="box"></span><span><strong>Signatures / acknowledgment</strong></span><span>Required</span></div>
+                </div>
+                <div class="actions vertical"><span class="button">Complete and issue final invoice</span><span class="button secondary">Open incident</span></div>
+              </div>
+            </div>
+            <div class="annotation"><b>R · Extension</b> A later return must have passed availability, staff approval, traveler acceptance, and payment rules before this screen treats it as authorized.</div>
+          </article>
+
+          <article class="frame-block narrow">
+            <div class="frame-label"><span>WF-19 · Driver trip link</span><span>Permanent tied driver</span></div>
+            <div class="wireframe mobile">
+              <div class="phone-bar"><span>Assigned trip</span><span>Secure link</span><span>Support</span></div>
+              <div class="mock-content">
+                <span class="decision-tag">Airport Pickup · [date]</span>
+                <h3>[pickup time] Sri Lanka time</h3>
+                <div class="trip-status"><span>Acknowledge</span><span class="active">En route</span><span>Arrived</span><span>Started</span><span>Completed</span></div>
+                <section class="mock-section"><h3>Vehicle</h3><p>Vehicle 01 · [approved plate/details]</p></section>
+                <section class="mock-section"><h3>Pickup and route</h3><div class="route-list"><div class="route-stop"><strong>[airport / meeting point]</strong><span>[time]</span></div><div class="route-stop"><strong>[final destination]</strong><span>[estimate]</span></div></div></section>
+                <section class="mock-section"><h3>Traveler information needed for service</h3><dl class="data-list"><div><dt>Lead traveler</dt><dd>[name]</dd></div><div><dt>Contact</dt><dd>[verified phone]</dd></div><div><dt>Meeting</dt><dd>[instructions]</dd></div><div><dt>Assistance</dt><dd>[necessary details]</dd></div></dl></section>
+                <div class="actions vertical"><span class="button">Mark arrived</span><span class="button secondary">Contact traveler</span><span class="button secondary">Report issue / call support</span></div>
+              </div>
+            </div>
+            <div class="annotation"><b>Privacy boundary</b> No prices, payments, internal notes, other trips, or unrelated customer data.</div>
+          </article>
+
+          <article class="frame-block wide" id="wf-driver-link-recovery">
+            <div class="frame-label"><span>WF-19A · Driver-link recovery</span><span>Invalid · Expired · Revoked</span></div>
+            <div class="wireframe">
+              <div class="phone-bar"><span>Assigned trip</span><span>Secure link</span><span>Support</span></div>
+              <div class="recovery-grid">
+                <section class="recovery-case"><span class="state-code">INVALID LINK</span><h3>This trip link is not valid.</h3><p>No booking or traveler data is shown. Check that the complete link was opened from the latest staff message.</p><div class="actions vertical"><span class="button secondary">Contact dispatch</span><span class="button secondary">Open latest message</span></div></section>
+                <section class="recovery-case"><span class="state-code">EXPIRED LINK</span><h3>This trip link has expired.</h3><p>Trip access ended at its configured expiry. Dispatch can verify the assignment and issue a new scoped link when appropriate.</p><div class="actions vertical"><span class="button secondary">Call dispatch</span><span class="button secondary">Request replacement link</span></div></section>
+                <section class="recovery-case"><span class="state-code">REVOKED LINK</span><h3>This trip link is no longer active.</h3><p>Access may have changed with the assignment. Do not continue from cached details; contact dispatch for current instructions.</p><div class="actions vertical"><span class="button secondary">Contact dispatch</span></div></section>
+              </div>
+            </div>
+            <div class="annotation"><b>Safe recovery</b> All failure states reveal zero trip data, distinguish the reason where safe, and provide verified dispatch contact paths without exposing whether a booking exists.</div>
+          </article>
+
+          <article class="frame-block full">
+            <div class="frame-label"><span>WF-20 · Admin configuration map</span><span>Values must not be hard-coded</span></div>
+            <div class="wireframe">
+              <div class="browser-bar"><span>Owner/Admin configuration</span><span>MFA + role protected</span><span>All changes audited</span></div>
+              <div class="mock-content">
+                <div class="service-rows">
+                  <div class="service-row"><span class="row-id">A</span><strong>Fleet and tied drivers</strong><p>Five exact profiles, real photos, capacities, features, eligibility, status, permanent driver.</p><span class="micro-action">Manage</span></div>
+                  <div class="service-row"><span class="row-id">B</span><strong>Pricing and extras</strong><p>Service/vehicle components, deposits, taxes/fees, effective dates, compatibility, test calculation.</p><span class="micro-action">Manage</span></div>
+                  <div class="service-row"><span class="row-id">C</span><strong>Availability rules</strong><p>Lead times, booking horizon, buffers, supported airports/locations, handover points.</p><span class="micro-action">Manage</span></div>
+                  <div class="service-row"><span class="row-id">D</span><strong>Policies and messages</strong><p>Versioned terms, waiting/no-show, cancellation/refund, Rent, templates, support contacts.</p><span class="micro-action">Manage</span></div>
+                  <div class="service-row"><span class="row-id">E</span><strong>Currency and documents</strong><p>USD/LKR basis, settlement currency, invoice identity, financial document settings.</p><span class="micro-action">Manage</span></div>
+                  <div class="service-row"><span class="row-id">F</span><strong>Security and data</strong><p>Users/roles, retention, data requests, private-link expiry, audited exports.</p><span class="micro-action">Manage</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="annotation"><b>Historical integrity</b> Configuration changes affect future calculations; accepted historical proposals retain recorded values and policy versions.</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="review-section" id="inputs" aria-labelledby="inputs-title">
+        <header class="section-heading">
+          <span class="number">08</span>
+          <h2 id="inputs-title">Client inputs</h2>
+        </header>
+        <p class="section-intro">Structure can be approved now. Real business values must be supplied before final design and implementation; placeholders are not permission to invent them.</p>
+
+        <article class="frame-block">
+          <div class="frame-label"><span>WF-20B · Input ownership board</span><span>See full checklist document</span></div>
+          <div class="wireframe">
+            <div class="mock-content">
+              <table class="client-input-table">
+                <thead><tr><th>Input group</th><th>What is needed</th><th>Blocks</th><th>Status</th><th>Client owner</th></tr></thead>
+                <tbody>
+                  <tr><td>Identity and brand</td><td>Actual name, logo, support details, legal business identity</td><td>High-fidelity UI, documents</td><td class="status-open">Open</td><td>[assign]</td></tr>
+                  <tr><td>Five vehicles</td><td>Make/model/year, capacity, luggage, features, eligibility, photos, permanent driver</td><td>Final UI, availability, operations</td><td class="status-open">Open</td><td>[assign]</td></tr>
+                  <tr><td>Rates and currency</td><td>Every component, deposit, tax/fee, LKR basis, settlement currency, examples</td><td>Pricing implementation</td><td class="status-open">Open</td><td>[assign]</td></tr>
+                  <tr><td>Service policies</td><td>Lead time, buffer, waiting/no-show, cancellation/refund, deadlines</td><td>Final flow and operations</td><td class="status-open">Open</td><td>[assign]</td></tr>
+                  <tr><td>Rent terms</td><td>Eligibility, insurance/excess, mileage, fuel, damage, late return, handover</td><td>Rent final design/development</td><td class="status-open">Open</td><td>[assign]</td></tr>
+                  <tr><td>Legal and privacy</td><td>Terms, privacy, cookies, retention, consent, data-request process</td><td>Launch</td><td class="status-open">Open</td><td>[assign]</td></tr>
+                  <tr><td>Trust and content</td><td>Verified claims, licences/insurance facts, reviews/consent, final English copy</td><td>High-fidelity content</td><td class="status-open">Open</td><td>[assign]</td></tr>
+                  <tr><td>Providers</td><td>Maps, payment, WhatsApp, email, exchange rate</td><td>Technical planning</td><td>Deferred</td><td>[later phase]</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="annotation"><b>Source</b> Complete <a href="../docs/ux/07-client-input-checklist.md">07-client-input-checklist.md</a> with owner, proof/source, status, approver, and effective date.</div>
+        </article>
+      </section>
+
+      <footer class="footer-note">
+        <strong>Review artifact only.</strong> The detailed functional authority is <a href="../docs/ux/01-product-requirements.md">01-product-requirements.md</a>. Missing client data is deliberately labeled rather than invented. Use the browser’s print function to export this walkthrough to PDF after review comments are resolved.
+      </footer>
+    </main>
+  </div>
+</body>
+</html>
