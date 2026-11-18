@@ -1,4 +1,4 @@
-# Product
+# Spinellanka — Product
 
 <!-- impeccable:product-schema 1 -->
 
@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Product implementation stack is deliberately undecided until technical planning. The current browser-based walkthrough is a static review artifact, not the production application.
+Laravel 13 modular monolith on cPanel/LAMP. PHP 8.4 is preferred and PHP 8.3 is the minimum. The customer application uses Blade, Livewire 4, Alpine.js, Tailwind CSS 4, and Vite; staff operations use Filament 5 with custom workflow pages. Database-backed queues, cache, and sessions keep the runtime compatible with shared cPanel, while GitHub Actions builds and tests release artifacts. The browser-based walkthrough remains a static review artifact, not the production application.
 
 ## Users
 
@@ -60,7 +60,7 @@ Staff operate a small fleet where an overlapping booking, maintenance block, pre
 - English-first and localization-ready.
 - Provider-neutral integration boundaries for maps/routes, payments, WhatsApp Business, transactional email, and exchange rates.
 - Live flight tracking, live vehicle tracking, accounting sync, customer loyalty, referrals, promo codes, and digital tipping are deferred.
-- Actual product name, fleet data, rates, policy values, legal wording, proof-backed claims, and final imagery remain client-supplied inputs.
+- Product name: **Spinellanka**. Fleet data, rates, policy values, legal wording, proof-backed claims, final logo/brand assets, and final imagery remain client-supplied inputs.
 
 ## Evidence on Hand
 
