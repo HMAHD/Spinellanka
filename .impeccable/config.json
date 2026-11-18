@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-11-18T13:53:37.958Z",
+        "reason": "Approved production direction in docs/planning/06-production-design-direction.md and the public-shell surface brief specifies self-hosted Inter Variable."
+      }
+    ]
+  }
+}

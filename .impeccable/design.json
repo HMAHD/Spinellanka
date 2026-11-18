@@ -1,98 +1,144 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-16T18:29:53Z",
-  "title": "Design System: Sri Lanka Travel Mobility Review Artifact",
+  "generatedAt": "2026-11-18T13:46:49Z",
+  "title": "Design System: Spinellanka Public Shell",
   "extensions": {
     "colorMeta": {
+      "cloud-canvas": {
+        "role": "neutral",
+        "displayName": "Cloud Canvas",
+        "canonical": "#f8fafc",
+        "tonalRamp": ["#202329", "#3d424b", "#5f6672", "#858c98", "#aeb4bd", "#d2d6dc", "#e8ebef", "#f8fafc"]
+      },
+      "cloud-step": {
+        "role": "neutral",
+        "displayName": "Cloud Step",
+        "canonical": "#eef2f7",
+        "tonalRamp": ["#1f2328", "#3b4149", "#5c646e", "#818994", "#a9b0ba", "#cdd2d9", "#e1e5ea", "#eef2f7"]
+      },
+      "spinel-navy": {
+        "role": "primary",
+        "displayName": "Spinel Navy",
+        "canonical": "#0c1445",
+        "tonalRamp": ["#070b28", "#0c1445", "#18235d", "#2c3975", "#526092", "#7e89ad", "#b2bad0", "#eceef5"]
+      },
+      "spinel-navy-soft": {
+        "role": "primary",
+        "displayName": "Soft Spinel Navy",
+        "canonical": "#18235d",
+        "tonalRamp": ["#090e2b", "#111943", "#18235d", "#303b73", "#56618e", "#818aaa", "#b4bacd", "#eceef4"]
+      },
+      "ceylon-amber": {
+        "role": "secondary",
+        "displayName": "Ceylon Amber",
+        "canonical": "#fbbf24",
+        "tonalRamp": ["#2f2103", "#5a3d05", "#895d08", "#b9800d", "#e6a800", "#fbbf24", "#fbd879", "#fff3d2"]
+      },
+      "ceylon-amber-strong": {
+        "role": "secondary",
+        "displayName": "Strong Ceylon Amber",
+        "canonical": "#e6a800",
+        "tonalRamp": ["#2c2002", "#553b03", "#805a05", "#ad7c07", "#d49c00", "#e6a800", "#f2cf66", "#fff1cb"]
+      },
+      "primary-ink": {
+        "role": "neutral",
+        "displayName": "Primary Ink",
+        "canonical": "#0f172a",
+        "tonalRamp": ["#0f172a", "#293245", "#485163", "#6c7483", "#9399a5", "#bbc0c8", "#dcdfe3", "#f1f3f5"]
+      },
+      "muted-ink": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#475569",
+        "tonalRamp": ["#151a21", "#2d3745", "#475569", "#687588", "#8d98a7", "#b4bcc7", "#d7dbe0", "#f0f2f4"]
+      },
+      "quiet-line": {
+        "role": "neutral",
+        "displayName": "Quiet Line",
+        "canonical": "#cbd5e1",
+        "tonalRamp": ["#1d2228", "#38414b", "#586472", "#7c8997", "#a2adb9", "#c0c9d3", "#d8dfe7", "#f1f4f7"]
+      },
       "paper": {
-        "role": "primary",
-        "displayName": "Paper White",
+        "role": "neutral",
+        "displayName": "Paper",
         "canonical": "#ffffff",
-        "tonalRamp": ["#262626", "#494949", "#6d6d6d", "#929292", "#b7b7b7", "#d5d5d5", "#eeeeee", "#ffffff"]
+        "tonalRamp": ["#242424", "#444444", "#666666", "#8a8a8a", "#b0b0b0", "#d1d1d1", "#ebebeb", "#ffffff"]
       },
-      "paper-soft": {
+      "navy-reading": {
         "role": "neutral",
-        "displayName": "Soft Paper",
-        "canonical": "#f3f3f3",
-        "tonalRamp": ["#242424", "#474747", "#696969", "#8c8c8c", "#b0b0b0", "#cecece", "#e6e6e6", "#f3f3f3"]
+        "displayName": "Navy Reading",
+        "canonical": "#dbe4ff",
+        "tonalRamp": ["#182039", "#303c5a", "#4d5d7e", "#7181a4", "#9aa8c9", "#bec9e7", "#dbe4ff", "#f1f4ff"]
       },
-      "paper-mid": {
+      "navy-muted": {
         "role": "neutral",
-        "displayName": "Mid Paper",
-        "canonical": "#e3e3e3",
-        "tonalRamp": ["#222222", "#424242", "#626262", "#838383", "#a4a4a4", "#c0c0c0", "#d6d6d6", "#e3e3e3"]
-      },
-      "ink": {
-        "role": "primary",
-        "displayName": "Graphite Ink",
-        "canonical": "#111111",
-        "tonalRamp": ["#111111", "#303030", "#505050", "#717171", "#929292", "#b4b4b4", "#d6d6d6", "#f2f2f2"]
-      },
-      "ink-soft": {
-        "role": "neutral",
-        "displayName": "Soft Ink",
-        "canonical": "#4b4b4b",
-        "tonalRamp": ["#171717", "#303030", "#4b4b4b", "#6d6d6d", "#919191", "#b6b6b6", "#dadada", "#f3f3f3"]
-      },
-      "rule": {
-        "role": "neutral",
-        "displayName": "Hard Rule",
-        "canonical": "#181818",
-        "tonalRamp": ["#181818", "#343434", "#535353", "#747474", "#969696", "#b8b8b8", "#d9d9d9", "#f3f3f3"]
-      },
-      "rule-soft": {
-        "role": "neutral",
-        "displayName": "Soft Rule",
-        "canonical": "#9a9a9a",
-        "tonalRamp": ["#202020", "#404040", "#626262", "#808080", "#9a9a9a", "#bababa", "#d9d9d9", "#f2f2f2"]
-      },
-      "focus": {
-        "role": "primary",
-        "displayName": "Focus Graphite",
-        "canonical": "#111111",
-        "tonalRamp": ["#111111", "#303030", "#505050", "#717171", "#929292", "#b4b4b4", "#d6d6d6", "#f2f2f2"]
+        "displayName": "Navy Muted",
+        "canonical": "#c7d2fe",
+        "tonalRamp": ["#151d39", "#2c3859", "#47587c", "#697ba3", "#91a0c8", "#b2bee7", "#c7d2fe", "#eef1ff"]
       }
     },
     "typographyMeta": {
       "display": {
-        "displayName": "Cover Display",
-        "purpose": "The short cover thesis only."
+        "displayName": "First-View Display",
+        "purpose": "Home titles and major service names."
       },
       "headline": {
-        "displayName": "Numbered Section Headline",
-        "purpose": "Major walkthrough chapters."
+        "displayName": "Section Headline",
+        "purpose": "Major public-shell sections and service-desk prompts."
       },
       "title": {
-        "displayName": "Study Title",
-        "purpose": "Frame, form, and decision headings."
+        "displayName": "Service Title",
+        "purpose": "Service rows and compact content titles."
       },
       "body": {
-        "displayName": "Review Body",
-        "purpose": "Explanations and walkthrough copy."
+        "displayName": "Reading Body",
+        "purpose": "Default explanatory and factual copy."
       },
       "label": {
-        "displayName": "Operational Label",
-        "purpose": "Frame IDs, references, times, state codes, indices, and annotation keys."
+        "displayName": "Interface Label",
+        "purpose": "Navigation, persistent form labels, and compact actions."
       }
     },
     "shadows": [],
-    "motion": [],
+    "motion": [
+      {
+        "name": "press",
+        "value": "140ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Primary and navigation action press feedback."
+      },
+      {
+        "name": "hover",
+        "value": "180ms ease",
+        "purpose": "Color and underline state changes."
+      },
+      {
+        "name": "interface",
+        "value": "240ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Skip-link and mobile-menu entrances."
+      },
+      {
+        "name": "reveal",
+        "value": "800ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "One-time section reveals when reduced motion is not requested."
+      },
+      {
+        "name": "view-arrival",
+        "value": "360ms cubic-bezier(0.22, 1, 0.36, 1) 40ms",
+        "purpose": "Cross-document view arrival when supported and motion is allowed."
+      }
+    ],
     "breakpoints": [
       {
-        "name": "wide-stack",
-        "value": "76rem"
+        "name": "content-collapse",
+        "value": "64rem"
       },
       {
-        "name": "mobile-document",
-        "value": "58rem"
+        "name": "mobile-shell",
+        "value": "51.99rem"
       },
       {
-        "name": "compact-mobile",
-        "value": "38rem"
-      },
-      {
-        "name": "very-tall-cover",
-        "value": "min-height: 2000px"
+        "name": "compact-action",
+        "value": "29rem"
       }
     ]
   },
@@ -101,131 +147,127 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "High-emphasis review action with square geometry and reversible black-and-white hover state.",
-      "html": "<button class=\"ds-btn-primary\" type=\"button\">START REVIEW</button>",
-      "css": ".ds-btn-primary { min-height: 2.75rem; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .65rem 1rem; color: var(--paper, #fff); background: var(--ink, #111); border: 2px solid var(--ink, #111); border-radius: 0; font: 700 1rem/1.55 \"Avenir Next\", Avenir, \"Helvetica Neue\", Helvetica, Arial, sans-serif; cursor: pointer; } .ds-btn-primary:hover { color: var(--ink, #111); background: var(--paper, #fff); } .ds-btn-primary:focus-visible { outline: 3px solid var(--focus, #111); outline-offset: 3px; }"
+      "description": "The amber action used for the next meaningful service decision.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">View service</button>",
+      "css": ".ds-btn-primary { min-height: 3.25rem; display: inline-flex; align-items: center; justify-content: center; padding: 0 1.25rem; border: 0; border-radius: var(--radius, .75rem); background: var(--amber, #fbbf24); color: var(--navy, #0c1445); font: 750 .9375rem/1.6 \"Inter Variable\", Inter, ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: background-color 180ms ease, transform 140ms cubic-bezier(.22,1,.36,1); } .ds-btn-primary:hover { background: var(--amber-strong, #e6a800); } .ds-btn-primary:active { transform: scale(.97); } .ds-btn-primary:focus-visible { outline: 3px solid var(--amber, #fbbf24); outline-offset: 4px; }"
     },
     {
-      "name": "Secondary Button",
+      "name": "Navigation Action",
       "kind": "button",
-      "refersTo": "button-secondary",
-      "description": "Outlined paper action for secondary choices and recovery paths.",
-      "html": "<button class=\"ds-btn-secondary\" type=\"button\">EDIT DETAILS</button>",
-      "css": ".ds-btn-secondary { min-height: 2.75rem; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .65rem 1rem; color: var(--ink, #111); background: var(--paper, #fff); border: 2px solid var(--ink, #111); border-radius: 0; font: 700 1rem/1.55 \"Avenir Next\", Avenir, \"Helvetica Neue\", Helvetica, Arial, sans-serif; cursor: pointer; } .ds-btn-secondary:hover { background: var(--paper-mid, #e3e3e3); } .ds-btn-secondary:focus-visible { outline: 3px solid var(--focus, #111); outline-offset: 3px; }"
+      "refersTo": "button-navigation",
+      "description": "A compact navy action for the public header on light surfaces.",
+      "html": "<a class=\"ds-btn-nav\" href=\"#\">Choose service</a>",
+      "css": ".ds-btn-nav { min-height: 2.75rem; display: inline-flex; align-items: center; justify-content: center; padding: 0 1rem; border-radius: var(--radius, .75rem); background: var(--navy, #0c1445); color: var(--white, #fff); font: 620 .9375rem/1.6 \"Inter Variable\", Inter, ui-sans-serif, system-ui, sans-serif; text-decoration: none; transition: background-color 180ms ease, transform 140ms cubic-bezier(.22,1,.36,1); } .ds-btn-nav:hover { background: var(--navy-soft, #18235d); } .ds-btn-nav:active { transform: scale(.97); } .ds-btn-nav:focus-visible { outline: 3px solid var(--amber, #fbbf24); outline-offset: 4px; }"
     },
     {
-      "name": "Review Field",
+      "name": "Service Select",
       "kind": "input",
-      "refersTo": "input",
-      "description": "Square ruled field for schematic form studies.",
-      "html": "<label class=\"ds-field\"><span>Flight number</span><input type=\"text\" placeholder=\"Airline + flight number\"></label>",
-      "css": ".ds-field { display: block; color: var(--ink, #111); font-family: \"Avenir Next\", Avenir, \"Helvetica Neue\", Helvetica, Arial, sans-serif; } .ds-field > span { display: block; margin-bottom: .25rem; font-size: .8rem; font-weight: 750; } .ds-field input { width: 100%; min-height: 2.6rem; padding: .55rem .65rem; color: var(--ink-soft, #4b4b4b); background: var(--paper, #fff); border: 1px solid var(--rule, #181818); border-radius: 0; font: .8125rem/1.55 inherit; } .ds-field input:focus-visible { outline: 3px solid var(--focus, #111); outline-offset: 3px; }"
+      "refersTo": "select-service",
+      "description": "The persistent labeled chooser embedded in the navy service desk.",
+      "html": "<label class=\"ds-service-field\"><span>Service</span><select><option>Airport Pickup</option><option>Airport Transfer</option><option>Ride</option><option>Rent</option></select></label>",
+      "css": ".ds-service-field { display: grid; gap: .75rem; color: var(--white, #fff); font: 650 .9375rem/1.6 \"Inter Variable\", Inter, ui-sans-serif, system-ui, sans-serif; } .ds-service-field select { width: 100%; min-height: 3.25rem; padding: 0 2.5rem 0 1rem; border: 2px solid #7180bf; border-radius: var(--radius, .75rem); background: var(--navy-soft, #18235d); color: var(--white, #fff); font: 400 1.0625rem/1.6 \"Inter Variable\", Inter, ui-sans-serif, system-ui, sans-serif; } .ds-service-field select:focus-visible { outline: 3px solid var(--amber, #fbbf24); outline-offset: 4px; }"
     },
     {
-      "name": "State Tag",
-      "kind": "chip",
-      "refersTo": "tag",
-      "description": "Text-first operational state with a double rule as a redundant cue.",
-      "html": "<span class=\"ds-state-tag\">CONFIRMED</span>",
-      "css": ".ds-state-tag { display: inline-block; padding: .12rem .35rem; color: var(--ink, #111); background: var(--paper, #fff); border: 3px double var(--rule, #181818); border-radius: 0; font: 700 .8125rem/1.4 SFMono-Regular, Consolas, \"Liberation Mono\", monospace; text-transform: uppercase; }"
-    },
-    {
-      "name": "Review Rail Link",
-      "kind": "nav",
-      "description": "Indexed navigation row from the persistent black review rail.",
-      "html": "<a class=\"ds-rail-link\" href=\"#\"><span>06</span><strong>Admin operations</strong></a>",
-      "css": ".ds-rail-link { display: grid; grid-template-columns: 2.2rem 1fr; padding: .55rem 0; color: #efefef; background: var(--ink, #111); border-bottom: 1px solid #3f3f3f; font: .86rem/1.55 \"Avenir Next\", Avenir, \"Helvetica Neue\", Helvetica, Arial, sans-serif; text-decoration: none; } .ds-rail-link > span { font-family: SFMono-Regular, Consolas, \"Liberation Mono\", monospace; font-variant-numeric: tabular-nums; } .ds-rail-link:hover { padding-inline: .5rem; color: var(--ink, #111); background: var(--paper, #fff); } .ds-rail-link:focus-visible { outline: 3px solid var(--paper, #fff); outline-offset: 3px; }"
-    },
-    {
-      "name": "Ruled Review Frame",
+      "name": "Request Fact Tile",
       "kind": "card",
-      "description": "A labeled screen-study frame paired with its decision annotation.",
-      "html": "<article class=\"ds-review-frame\"><header><span>WF-17 · FLEET CALENDAR</span><span>OPERATIONAL CENTERPIECE</span></header><div class=\"ds-review-canvas\">SCREEN STUDY</div><p><strong>DECISION</strong> Keep state and conflict information inspectable.</p></article>",
-      "css": ".ds-review-frame { color: var(--ink, #111); font-family: \"Avenir Next\", Avenir, \"Helvetica Neue\", Helvetica, Arial, sans-serif; } .ds-review-frame > header { display: flex; justify-content: space-between; gap: .75rem; margin-bottom: .5rem; font: .8rem/1.4 SFMono-Regular, Consolas, \"Liberation Mono\", monospace; text-transform: uppercase; } .ds-review-frame > header span:last-child { color: var(--ink-soft, #4b4b4b); text-align: right; } .ds-review-canvas { min-height: 8rem; display: grid; place-items: center; padding: .5rem; background: var(--paper, #fff); border: .5rem solid var(--paper-soft, #f3f3f3); outline: 2px solid var(--rule, #181818); font: .8125rem/1.4 SFMono-Regular, Consolas, \"Liberation Mono\", monospace; } .ds-review-frame > p { margin: .75rem 0 0; padding: .75rem; background: var(--paper-mid, #e3e3e3); border-top: 2px solid var(--rule, #181818); font-size: .8rem; } .ds-review-frame > p strong { font-family: SFMono-Regular, Consolas, \"Liberation Mono\", monospace; }"
+      "refersTo": "fact-tile",
+      "description": "A quiet first-viewport fact that states a booking condition without promotional framing.",
+      "html": "<dl class=\"ds-fact-tile\"><dt>Confirmation</dt><dd>Every request remains pending until staff confirms it.</dd></dl>",
+      "css": ".ds-fact-tile { min-height: 9rem; margin: 0; padding: 1.5rem; border-radius: var(--radius, .75rem); background: var(--cloud-step, #eef2f7); color: var(--ink, #0f172a); font-family: \"Inter Variable\", Inter, ui-sans-serif, system-ui, sans-serif; } .ds-fact-tile dt { color: var(--muted, #475569); font-size: .875rem; font-weight: 650; } .ds-fact-tile dd { margin: 1.25rem 0 0; font-size: 1.0625rem; line-height: 1.45; }"
     },
     {
-      "name": "Client Asset Placeholder",
-      "kind": "custom",
-      "description": "Skeletal field that reserves space while naming the missing evidence owner.",
-      "html": "<div class=\"ds-asset-placeholder\">CLIENT<br>REAL VEHICLE PHOTO</div>",
-      "css": ".ds-asset-placeholder { min-height: 7rem; display: grid; place-items: center; padding: .75rem; color: var(--ink-soft, #4b4b4b); background: var(--paper-soft, #f3f3f3); border: 1px dashed var(--rule, #181818); border-radius: 0; font: .8125rem/1.4 SFMono-Regular, Consolas, \"Liberation Mono\", monospace; text-align: center; text-transform: uppercase; }"
+      "name": "Service Row",
+      "kind": "card",
+      "description": "A broad square paper slip that keeps service explanation and action together.",
+      "html": "<article class=\"ds-service-row\"><div><h3>Airport Pickup</h3><p>Arrival airport to destination with a driver and meet-and-greet support.</p></div><a href=\"#\">View service</a></article>",
+      "css": ".ds-service-row { min-height: 13rem; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 2rem; padding: clamp(1.5rem,3vw,2.5rem); background: var(--cloud-step, #eef2f7); color: var(--ink, #0f172a); font-family: \"Inter Variable\", Inter, ui-sans-serif, system-ui, sans-serif; } .ds-service-row h3 { margin: 0; font-size: clamp(1.75rem,2.5vw,2.5rem); font-weight: 680; line-height: .98; letter-spacing: -.035em; } .ds-service-row p { max-width: 42ch; margin: 1rem 0 0; color: var(--muted, #475569); line-height: 1.6; } .ds-service-row a { min-height: 2.75rem; display: inline-flex; align-items: center; color: var(--navy, #0c1445); font-weight: 700; text-decoration-color: var(--amber-strong, #e6a800); text-underline-offset: .22em; } .ds-service-row a:hover { color: var(--muted, #475569); text-decoration-color: currentColor; } .ds-service-row a:focus-visible { outline: 3px solid var(--amber, #fbbf24); outline-offset: 4px; }"
     },
     {
-      "name": "Fleet Schedule State",
+      "name": "Primary Navigation",
+      "kind": "nav",
+      "description": "A short text-first navigation ending in a contained decision action.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Primary navigation\"><a class=\"ds-nav-current\" href=\"#\">Services</a><a href=\"#\">Process</a><a class=\"ds-nav-action\" href=\"#\">Choose service</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; justify-content: flex-end; gap: clamp(1.25rem,2.4vw,2.5rem); color: var(--navy, #0c1445); font: 620 .9375rem/1.6 \"Inter Variable\", Inter, ui-sans-serif, system-ui, sans-serif; } .ds-nav a { min-height: 2.75rem; display: inline-flex; align-items: center; color: inherit; text-decoration-color: transparent; text-underline-offset: .22em; transition: color 180ms ease, text-decoration-color 180ms ease; } .ds-nav a:hover, .ds-nav .ds-nav-current { text-decoration-color: currentColor; } .ds-nav .ds-nav-action { padding: 0 1rem; border-radius: var(--radius, .75rem); background: var(--navy, #0c1445); color: var(--white, #fff); text-decoration: none; } .ds-nav .ds-nav-action:hover { background: var(--navy-soft, #18235d); } .ds-nav a:focus-visible { outline: 3px solid var(--amber, #fbbf24); outline-offset: 4px; }"
+    },
+    {
+      "name": "Public Service Desk",
       "kind": "custom",
-      "description": "A compact sample of confirmed, pending, hold, maintenance, and buffer line grammar.",
-      "html": "<div class=\"ds-schedule\"><span class=\"ds-confirmed\">CONFIRMED</span><span class=\"ds-pending\">PENDING</span><span class=\"ds-hold\">15M HOLD</span><span class=\"ds-maintenance\">MAINTENANCE</span><span class=\"ds-buffer\">BUFFER</span></div>",
-      "css": ".ds-schedule { display: grid; grid-template-columns: repeat(5, minmax(6rem, 1fr)); gap: .5rem; color: var(--ink, #111); font: .75rem/1.2 SFMono-Regular, Consolas, \"Liberation Mono\", monospace; } .ds-schedule span { min-height: 2.3rem; display: grid; place-items: center; padding: .25rem; background: var(--paper, #fff); border: 2px solid var(--rule, #181818); text-align: center; } .ds-schedule .ds-pending { border-style: dashed; } .ds-schedule .ds-hold { border-style: dotted; } .ds-schedule .ds-maintenance { background: var(--paper-mid, #e3e3e3); border-style: double; border-width: 3px; } .ds-schedule .ds-buffer { color: var(--ink-soft, #4b4b4b); border-width: 1px; }"
+      "description": "The signature navy decision surface with an amber wordmark fallback and concise service choice.",
+      "html": "<section class=\"ds-desk\"><strong class=\"ds-desk-mark\">Spinellanka</strong><div><h2>Choose your service</h2><p>Arrival airport to destination with a driver and meet-and-greet support.</p><a href=\"#\">View service</a></div></section>",
+      "css": ".ds-desk { min-height: 32rem; display: flex; flex-direction: column; justify-content: space-between; padding: 2rem; border-radius: var(--radius, .75rem); background: var(--navy, #0c1445); color: var(--white, #fff); font-family: \"Inter Variable\", Inter, ui-sans-serif, system-ui, sans-serif; } .ds-desk-mark { color: var(--amber, #fbbf24); font-size: clamp(2.5rem,8vw,5rem); font-weight: 720; line-height: .86; letter-spacing: -.055em; } .ds-desk h2 { max-width: 10ch; margin: 0; font-size: clamp(2.5rem,4.2vw,4.25rem); font-weight: 680; line-height: .98; letter-spacing: -.035em; } .ds-desk p { max-width: 42ch; margin: 1.5rem 0 0; color: var(--navy-reading, #dbe4ff); line-height: 1.6; } .ds-desk a { min-height: 3.25rem; display: inline-flex; align-items: center; justify-content: center; margin-top: 2rem; padding: 0 1.25rem; border-radius: var(--radius, .75rem); background: var(--amber, #fbbf24); color: var(--navy, #0c1445); font-weight: 750; text-decoration: none; } .ds-desk a:hover { background: var(--amber-strong, #e6a800); } .ds-desk a:focus-visible { outline: 3px solid var(--amber, #fbbf24); outline-offset: 4px; }"
+    },
+    {
+      "name": "Request Itinerary",
+      "kind": "custom",
+      "refersTo": "itinerary",
+      "description": "A numbered light itinerary ending in a plain navy confirmation statement.",
+      "html": "<section class=\"ds-itinerary\"><ol><li><strong>Choose a service</strong><span>Start with the travel need that matches your plan.</span></li><li><strong>Select an exact vehicle</strong><span>Review the vehicle and estimate before submitting.</span></li><li><strong>Submit the request</strong><span>The request stays pending while staff checks it.</span></li></ol><p>Staff confirmation completes the booking.</p></section>",
+      "css": ".ds-itinerary { padding: clamp(1.5rem,3vw,2.5rem); border-radius: var(--radius, .75rem); background: var(--cloud, #f8fafc); color: var(--ink, #0f172a); font-family: \"Inter Variable\", Inter, ui-sans-serif, system-ui, sans-serif; } .ds-itinerary ol { display: grid; gap: 2.5rem; margin: 0; padding-left: 1.35rem; } .ds-itinerary li { padding-left: .5rem; } .ds-itinerary li::marker { color: var(--amber-strong, #e6a800); font-weight: 750; } .ds-itinerary strong, .ds-itinerary span { display: block; } .ds-itinerary strong { font-size: 1.125rem; } .ds-itinerary span { margin-top: .5rem; color: var(--muted, #475569); line-height: 1.6; } .ds-itinerary > p { margin: 3rem 0 0; padding: 1rem; background: var(--navy, #0c1445); color: var(--white, #fff); font-weight: 680; }"
     }
   ],
   "narrative": {
-    "northStar": "The Ruled Operations Storyboard",
-    "overview": "This system documents a deliberately low-fidelity, code-led client-review artifact. It feels like a working transport-operations document: paper-white planes, graphite text, hard rules, compact identifiers, and inspectable screen frames. Its authority comes from explicit structure and evidence, not polish. The visual language helps stakeholders approve workflows while continuously signaling that branding, commercial values, real fleet content, production components, and final implementation remain unresolved.\n\nThis is not the future customer-facing identity and must not be treated as a production UI design system. It may guide extensions to this review walkthrough and related planning artifacts only. The shipped surface rejects glossy travel imagery, gradients, soft cards, floating pills, decorative icons, and brand color because those devices could make placeholders appear approved.",
+    "northStar": "The Calm Sri Lankan Mobility Desk",
+    "overview": "Spinellanka feels prepared, trustworthy, and internationally legible. Cloud-light reading space and deep navy working surfaces divide information from action; amber appears only where a traveler must choose, focus, or move forward. The result is a measured transport service rather than a live-dispatch interface or a glossy travel campaign.\n\nThe current public shell expresses this world as a split stage: a persistent service desk sits beside a concise reading column on desktop, then follows the title as a contained navy panel on mobile. The system relies on strong scale, open space, tonal fields, and plainly worded facts. It does not use decoration to stand in for unavailable evidence.",
     "keyCharacteristics": [
-      "Neutral grayscale surfaces with black, gray, and white carrying every distinction.",
-      "Square ruled frames, dense annotation, and visible document numbering.",
-      "Humanist sans-serif reading text paired with monospaced identifiers and operational data.",
-      "Responsive studies that preserve meaning by reflowing, stacking, or switching representation.",
-      "Placeholders that announce missing evidence instead of simulating final content.",
-      "A unified five-vehicle schedule whose line styles encode operational state without color."
+      "Deep navy work surfaces set against a quiet cloud canvas.",
+      "Ceylon Amber is a scarce decision color, not general decoration.",
+      "One self-hosted variable sans family carries display, reading, and interface roles.",
+      "Generous vertical rhythm and restrained functional corners keep the shell calm.",
+      "Flat tonal grouping replaces ornamental depth.",
+      "Fleet and business imagery appears only after the client supplies and approves it."
     ],
     "rules": [
       {
-        "name": "The Grayscale Evidence Rule",
-        "body": "Use only the documented achromatic tokens; distinction comes from label, weight, fill, and line pattern, never hue alone.",
+        "name": "The Amber Decision Rule",
+        "body": "Amber marks selection, focus, or the next meaningful action; it never becomes a large background field.",
         "section": "colors"
       },
       {
-        "name": "The Approval Boundary Rule",
-        "body": "Do not introduce brand color, photography, decorative imagery, or polished marketing effects into this review system; they would imply decisions the client has not supplied.",
+        "name": "The Evidence Before Imagery Rule",
+        "body": "Use only client-supplied, approved fleet and business photography; the required launch imagery is a delivery gate, not an invitation to use stock or invented assets.",
         "section": "colors"
       },
       {
-        "name": "The Data Voice Rule",
-        "body": "Use the mono stack for identifiers, state codes, references, times, numeric indices, and annotations—not for ordinary paragraphs.",
+        "name": "The One-Family Rule",
+        "body": "Build hierarchy with the Inter Variable scale, weight, spacing, and tonal contrast; do not introduce a display face to manufacture personality.",
         "section": "typography"
       },
       {
-        "name": "The Scale-Not-Color Rule",
-        "body": "Establish reading hierarchy with type size, weight, spacing, and rules before considering fill reversal.",
+        "name": "The Short-Line Rule",
+        "body": "Keep explanatory copy near the shipped 38–42-character measures and let headings balance naturally rather than stretching either across the field.",
         "section": "typography"
       },
       {
-        "name": "The Representation-Change Rule",
-        "body": "When a desktop mechanism cannot remain legible, preserve its facts and decisions in a mobile-native representation rather than shrinking it.",
+        "name": "The Reorder Without Loss Rule",
+        "body": "Responsive layouts may reorder and stack the shell, but the title, four-service choice, exact-vehicle fact, and pending-confirmation fact remain visible and legible.",
         "section": "layout"
       },
       {
-        "name": "The Ruled-Plane Rule",
-        "body": "Separate levels with background tone and explicit rules; never add drop shadows to these review artifacts.",
+        "name": "The Flat Field Rule",
+        "body": "Separate levels with tonal fields, spacing, and position; do not add shadows merely to make a panel look more finished.",
         "section": "elevation"
       },
       {
-        "name": "The Square Frame Rule",
-        "body": "Keep structural containers and controls square; do not soften the planning artifact into rounded product cards or pills.",
-        "section": "shapes"
-      },
-      {
-        "name": "The Line Carries Meaning Rule",
-        "body": "Preserve established solid, dashed, dotted, and double patterns whenever the corresponding state is shown, and pair every pattern with text.",
+        "name": "The Functional Corner Rule",
+        "body": "Use the shared corner only on controls or contained working surfaces; leave broad rows and section planes square.",
         "section": "shapes"
       }
     ],
     "dos": [
-      "Do keep extensions neutral, square, ruled, and visibly low fidelity.",
-      "Do label every status in text and use fill or line pattern only as a redundant cue.",
-      "Do preserve real responsive behavior: stack, reflow, scroll, or change representation according to the shipped breakpoints.",
-      "Do mark unresolved assets and values with dashed skeletal fields, explicit ownership, and bracketed placeholders.",
-      "Do keep the five exact vehicles, their driver relationship, blocking windows, and conflicts visible in schedule studies.",
-      "Do preserve keyboard focus, skip navigation, reduced-motion behavior, adequate control height, and print-safe section framing."
+      "Do reserve amber for decisions, focus, selection, and small wayfinding details.",
+      "Do keep dark-surface reading text in the dedicated Navy Reading or Navy Muted tones rather than reducing opacity arbitrarily.",
+      "Do use generous section space, compact line measures, and the 8px rhythm to create calm without adding decoration.",
+      "Do preserve the title-first mobile order, accessible menu fallback, visible focus ring, and reduced-motion behavior.",
+      "Do use the text “Spinellanka” until the client supplies and approves a final identity asset.",
+      "Do treat approved, client-supplied fleet and business photography as a launch gate for image-bearing surfaces."
     ],
     "donts": [
-      "Don't treat this artifact as final brand guidance or reuse its wireframe components as production implementation decisions.",
-      "Don't invent a product name, logo, commercial value, rate, policy, claim, review, vehicle fact, provider, or image.",
-      "Don't add brand color, gradients, shadows, decorative imagery, floating pills, or rounded cards to make the artifact feel finished.",
-      "Don't encode status through color, gray tone, or border pattern alone.",
-      "Don't squeeze the desktop fleet timeline into a narrow viewport; use the shipped agenda representation.",
-      "Don't replace explicit placeholders with plausible-looking content before verified client evidence exists."
+      "Don't use stock vehicles, invented fleet details, unverified claims, or decorative travel imagery to fill missing evidence.",
+      "Don't turn amber into a page field, body-text color, or general-purpose decoration.",
+      "Don't add gradients, ornamental shadows, pill containers, or a second display typeface to make the restrained shell feel busier.",
+      "Don't convert the service index into a generic equal-card grid; preserve its broad paper-row character.",
+      "Don't hide the service choice or its four direct links behind JavaScript-only behavior.",
+      "Don't animate essential information; all reveals and transitions must yield to reduced-motion preferences."
     ]
   }
 }
