@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-16T18:29:53Z",
+  "title": "Design System: Sri Lanka Travel Mobility Review Artifact",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "primary",
+        "displayName": "Paper White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#262626", "#494949", "#6d6d6d", "#929292", "#b7b7b7", "#d5d5d5", "#eeeeee", "#ffffff"]
+      },
+      "paper-soft": {
+        "role": "neutral",
+        "displayName": "Soft Paper",
+        "canonical": "#f3f3f3",
+        "tonalRamp": ["#242424", "#474747", "#696969", "#8c8c8c", "#b0b0b0", "#cecece", "#e6e6e6", "#f3f3f3"]
+      },
+      "paper-mid": {
+        "role": "neutral",
+        "displayName": "Mid Paper",
+        "canonical": "#e3e3e3",
+        "tonalRamp": ["#222222", "#424242", "#626262", "#838383", "#a4a4a4", "#c0c0c0", "#d6d6d6", "#e3e3e3"]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Graphite Ink",
+        "canonical": "#111111",
+        "tonalRamp": ["#111111", "#303030", "#505050", "#717171", "#929292", "#b4b4b4", "#d6d6d6", "#f2f2f2"]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "#4b4b4b",
+        "tonalRamp": ["#171717", "#303030", "#4b4b4b", "#6d6d6d", "#919191", "#b6b6b6", "#dadada", "#f3f3f3"]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hard Rule",
+        "canonical": "#181818",
+        "tonalRamp": ["#181818", "#343434", "#535353", "#747474", "#969696", "#b8b8b8", "#d9d9d9", "#f3f3f3"]
+      },
+      "rule-soft": {
+        "role": "neutral",
+        "displayName": "Soft Rule",
+        "canonical": "#9a9a9a",
+        "tonalRamp": ["#202020", "#404040", "#626262", "#808080", "#9a9a9a", "#bababa", "#d9d9d9", "#f2f2f2"]
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "Focus Graphite",
+        "canonical": "#111111",
+        "tonalRamp": ["#111111", "#303030", "#505050", "#717171", "#929292", "#b4b4b4", "#d6d6d6", "#f2f2f2"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Cover Display",
+        "purpose": "The short cover thesis only."
+      },
+      "headline": {
+        "displayName": "Numbered Section Headline",
+        "purpose": "Major walkthrough chapters."
+      },
+      "title": {
+        "displayName": "Study Title",
+        "purpose": "Frame, form, and decision headings."
+      },
+      "body": {
+        "displayName": "Review Body",
+        "purpose": "Explanations and walkthrough copy."
+      },
+      "label": {
+        "displayName": "Operational Label",
+        "purpose": "Frame IDs, references, times, state codes, indices, and annotation keys."
+      }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": [
+      {
+        "name": "wide-stack",
+        "value": "76rem"
+      },
+      {
+        "name": "mobile-document",
+        "value": "58rem"
+      },
+      {
+        "name": "compact-mobile",
+        "value": "38rem"
+      },
+      {
+        "name": "very-tall-cover",
+        "value": "min-height: 2000px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "High-emphasis review action with square geometry and reversible black-and-white hover state.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">START REVIEW</button>",
+      "css": ".ds-btn-primary { min-height: 2.75rem; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .65rem 1rem; color: var(--paper, #fff); background: var(--ink, #111); border: 2px solid var(--ink, #111); border-radius: 0; font: 700 1rem/1.55 \"Avenir Next\", Avenir, \"Helvetica Neue\", Helvetica, Arial, sans-serif; cursor: pointer; } .ds-btn-primary:hover { color: var(--ink, #111); background: var(--paper, #fff); } .ds-btn-primary:focus-visible { outline: 3px solid var(--focus, #111); outline-offset: 3px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Outlined paper action for secondary choices and recovery paths.",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">EDIT DETAILS</button>",
+      "css": ".ds-btn-secondary { min-height: 2.75rem; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .65rem 1rem; color: var(--ink, #111); background: var(--paper, #fff); border: 2px solid var(--ink, #111); border-radius: 0; font: 700 1rem/1.55 \"Avenir Next\", Avenir, \"Helvetica Neue\", Helvetica, Arial, sans-serif; cursor: pointer; } .ds-btn-secondary:hover { background: var(--paper-mid, #e3e3e3); } .ds-btn-secondary:focus-visible { outline: 3px solid var(--focus, #111); outline-offset: 3px; }"
+    },
+    {
+      "name": "Review Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Square ruled field for schematic form studies.",
+      "html": "<label class=\"ds-field\"><span>Flight number</span><input type=\"text\" placeholder=\"Airline + flight number\"></label>",
+      "css": ".ds-field { display: block; color: var(--ink, #111); font-family: \"Avenir Next\", Avenir, \"Helvetica Neue\", Helvetica, Arial, sans-serif; } .ds-field > span { display: block; margin-bottom: .25rem; font-size: .8rem; font-weight: 750; } .ds-field input { width: 100%; min-height: 2.6rem; padding: .55rem .65rem; color: var(--ink-soft, #4b4b4b); background: var(--paper, #fff); border: 1px solid var(--rule, #181818); border-radius: 0; font: .8125rem/1.55 inherit; } .ds-field input:focus-visible { outline: 3px solid var(--focus, #111); outline-offset: 3px; }"
+    },
+    {
+      "name": "State Tag",
+      "kind": "chip",
+      "refersTo": "tag",
+      "description": "Text-first operational state with a double rule as a redundant cue.",
+      "html": "<span class=\"ds-state-tag\">CONFIRMED</span>",
+      "css": ".ds-state-tag { display: inline-block; padding: .12rem .35rem; color: var(--ink, #111); background: var(--paper, #fff); border: 3px double var(--rule, #181818); border-radius: 0; font: 700 .8125rem/1.4 SFMono-Regular, Consolas, \"Liberation Mono\", monospace; text-transform: uppercase; }"
+    },
+    {
+      "name": "Review Rail Link",
+      "kind": "nav",
+      "description": "Indexed navigation row from the persistent black review rail.",
+      "html": "<a class=\"ds-rail-link\" href=\"#\"><span>06</span><strong>Admin operations</strong></a>",
+      "css": ".ds-rail-link { display: grid; grid-template-columns: 2.2rem 1fr; padding: .55rem 0; color: #efefef; background: var(--ink, #111); border-bottom: 1px solid #3f3f3f; font: .86rem/1.55 \"Avenir Next\", Avenir, \"Helvetica Neue\", Helvetica, Arial, sans-serif; text-decoration: none; } .ds-rail-link > span { font-family: SFMono-Regular, Consolas, \"Liberation Mono\", monospace; font-variant-numeric: tabular-nums; } .ds-rail-link:hover { padding-inline: .5rem; color: var(--ink, #111); background: var(--paper, #fff); } .ds-rail-link:focus-visible { outline: 3px solid var(--paper, #fff); outline-offset: 3px; }"
+    },
+    {
+      "name": "Ruled Review Frame",
+      "kind": "card",
+      "description": "A labeled screen-study frame paired with its decision annotation.",
+      "html": "<article class=\"ds-review-frame\"><header><span>WF-17 · FLEET CALENDAR</span><span>OPERATIONAL CENTERPIECE</span></header><div class=\"ds-review-canvas\">SCREEN STUDY</div><p><strong>DECISION</strong> Keep state and conflict information inspectable.</p></article>",
+      "css": ".ds-review-frame { color: var(--ink, #111); font-family: \"Avenir Next\", Avenir, \"Helvetica Neue\", Helvetica, Arial, sans-serif; } .ds-review-frame > header { display: flex; justify-content: space-between; gap: .75rem; margin-bottom: .5rem; font: .8rem/1.4 SFMono-Regular, Consolas, \"Liberation Mono\", monospace; text-transform: uppercase; } .ds-review-frame > header span:last-child { color: var(--ink-soft, #4b4b4b); text-align: right; } .ds-review-canvas { min-height: 8rem; display: grid; place-items: center; padding: .5rem; background: var(--paper, #fff); border: .5rem solid var(--paper-soft, #f3f3f3); outline: 2px solid var(--rule, #181818); font: .8125rem/1.4 SFMono-Regular, Consolas, \"Liberation Mono\", monospace; } .ds-review-frame > p { margin: .75rem 0 0; padding: .75rem; background: var(--paper-mid, #e3e3e3); border-top: 2px solid var(--rule, #181818); font-size: .8rem; } .ds-review-frame > p strong { font-family: SFMono-Regular, Consolas, \"Liberation Mono\", monospace; }"
+    },
+    {
+      "name": "Client Asset Placeholder",
+      "kind": "custom",
+      "description": "Skeletal field that reserves space while naming the missing evidence owner.",
+      "html": "<div class=\"ds-asset-placeholder\">CLIENT<br>REAL VEHICLE PHOTO</div>",
+      "css": ".ds-asset-placeholder { min-height: 7rem; display: grid; place-items: center; padding: .75rem; color: var(--ink-soft, #4b4b4b); background: var(--paper-soft, #f3f3f3); border: 1px dashed var(--rule, #181818); border-radius: 0; font: .8125rem/1.4 SFMono-Regular, Consolas, \"Liberation Mono\", monospace; text-align: center; text-transform: uppercase; }"
+    },
+    {
+      "name": "Fleet Schedule State",
+      "kind": "custom",
+      "description": "A compact sample of confirmed, pending, hold, maintenance, and buffer line grammar.",
+      "html": "<div class=\"ds-schedule\"><span class=\"ds-confirmed\">CONFIRMED</span><span class=\"ds-pending\">PENDING</span><span class=\"ds-hold\">15M HOLD</span><span class=\"ds-maintenance\">MAINTENANCE</span><span class=\"ds-buffer\">BUFFER</span></div>",
+      "css": ".ds-schedule { display: grid; grid-template-columns: repeat(5, minmax(6rem, 1fr)); gap: .5rem; color: var(--ink, #111); font: .75rem/1.2 SFMono-Regular, Consolas, \"Liberation Mono\", monospace; } .ds-schedule span { min-height: 2.3rem; display: grid; place-items: center; padding: .25rem; background: var(--paper, #fff); border: 2px solid var(--rule, #181818); text-align: center; } .ds-schedule .ds-pending { border-style: dashed; } .ds-schedule .ds-hold { border-style: dotted; } .ds-schedule .ds-maintenance { background: var(--paper-mid, #e3e3e3); border-style: double; border-width: 3px; } .ds-schedule .ds-buffer { color: var(--ink-soft, #4b4b4b); border-width: 1px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Ruled Operations Storyboard",
+    "overview": "This system documents a deliberately low-fidelity, code-led client-review artifact. It feels like a working transport-operations document: paper-white planes, graphite text, hard rules, compact identifiers, and inspectable screen frames. Its authority comes from explicit structure and evidence, not polish. The visual language helps stakeholders approve workflows while continuously signaling that branding, commercial values, real fleet content, production components, and final implementation remain unresolved.\n\nThis is not the future customer-facing identity and must not be treated as a production UI design system. It may guide extensions to this review walkthrough and related planning artifacts only. The shipped surface rejects glossy travel imagery, gradients, soft cards, floating pills, decorative icons, and brand color because those devices could make placeholders appear approved.",
+    "keyCharacteristics": [
+      "Neutral grayscale surfaces with black, gray, and white carrying every distinction.",
+      "Square ruled frames, dense annotation, and visible document numbering.",
+      "Humanist sans-serif reading text paired with monospaced identifiers and operational data.",
+      "Responsive studies that preserve meaning by reflowing, stacking, or switching representation.",
+      "Placeholders that announce missing evidence instead of simulating final content.",
+      "A unified five-vehicle schedule whose line styles encode operational state without color."
+    ],
+    "rules": [
+      {
+        "name": "The Grayscale Evidence Rule",
+        "body": "Use only the documented achromatic tokens; distinction comes from label, weight, fill, and line pattern, never hue alone.",
+        "section": "colors"
+      },
+      {
+        "name": "The Approval Boundary Rule",
+        "body": "Do not introduce brand color, photography, decorative imagery, or polished marketing effects into this review system; they would imply decisions the client has not supplied.",
+        "section": "colors"
+      },
+      {
+        "name": "The Data Voice Rule",
+        "body": "Use the mono stack for identifiers, state codes, references, times, numeric indices, and annotations—not for ordinary paragraphs.",
+        "section": "typography"
+      },
+      {
+        "name": "The Scale-Not-Color Rule",
+        "body": "Establish reading hierarchy with type size, weight, spacing, and rules before considering fill reversal.",
+        "section": "typography"
+      },
+      {
+        "name": "The Representation-Change Rule",
+        "body": "When a desktop mechanism cannot remain legible, preserve its facts and decisions in a mobile-native representation rather than shrinking it.",
+        "section": "layout"
+      },
+      {
+        "name": "The Ruled-Plane Rule",
+        "body": "Separate levels with background tone and explicit rules; never add drop shadows to these review artifacts.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Square Frame Rule",
+        "body": "Keep structural containers and controls square; do not soften the planning artifact into rounded product cards or pills.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Line Carries Meaning Rule",
+        "body": "Preserve established solid, dashed, dotted, and double patterns whenever the corresponding state is shown, and pair every pattern with text.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do keep extensions neutral, square, ruled, and visibly low fidelity.",
+      "Do label every status in text and use fill or line pattern only as a redundant cue.",
+      "Do preserve real responsive behavior: stack, reflow, scroll, or change representation according to the shipped breakpoints.",
+      "Do mark unresolved assets and values with dashed skeletal fields, explicit ownership, and bracketed placeholders.",
+      "Do keep the five exact vehicles, their driver relationship, blocking windows, and conflicts visible in schedule studies.",
+      "Do preserve keyboard focus, skip navigation, reduced-motion behavior, adequate control height, and print-safe section framing."
+    ],
+    "donts": [
+      "Don't treat this artifact as final brand guidance or reuse its wireframe components as production implementation decisions.",
+      "Don't invent a product name, logo, commercial value, rate, policy, claim, review, vehicle fact, provider, or image.",
+      "Don't add brand color, gradients, shadows, decorative imagery, floating pills, or rounded cards to make the artifact feel finished.",
+      "Don't encode status through color, gray tone, or border pattern alone.",
+      "Don't squeeze the desktop fleet timeline into a narrow viewport; use the shipped agenda representation.",
+      "Don't replace explicit placeholders with plausible-looking content before verified client evidence exists."
+    ]
+  }
+}

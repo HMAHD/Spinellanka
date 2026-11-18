@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+FAILURES=0
+
+pass() {
+    printf 'PASS  %s\n' "$1"
+}
+
+fail() {
+    printf 'FAIL  %s\n' "$1" >&2
+    FAILURES=$((FAILURES + 1))
+}
+
+version_from() {
+    if [[ "$1" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+        printf '%s' "${BASH_REMATCH[1]}"
+    fi
+}
+
+version_at_least() {
+    php -r 'exit(version_compare($argv[1], $argv[2], ">=") ? 0 : 1);' "$1" "$2"
+}
+
+check_command() {
+    local name="$1"
+
+    if command -v "$name" >/dev/null 2>&1; then
+        pass "$name is available"
+    else
+        fail "$name is missing"
+    fi
+}
+
+for command in php composer node npm claude graft; do
+    check_command "$command"
+done
+
+if command -v php >/dev/null 2>&1; then
+    PHP_VERSION="$(version_from "$(php -r 'echo PHP_VERSION;')")"
+    if version_at_least "$PHP_VERSION" "8.3.0"; then
+        pass "PHP $PHP_VERSION satisfies >= 8.3"
+    else
+        fail "PHP $PHP_VERSION is below 8.3"
+    fi
+fi
+
+if command -v node >/dev/null 2>&1; then
+    NODE_VERSION="$(version_from "$(node --version)")"
+    if [[ "$NODE_VERSION" == 26.* ]]; then
+        pass "Node $NODE_VERSION matches .nvmrc"
+    else
+        fail "Node $NODE_VERSION does not match required 26.x; run nvm use"
+    fi
+fi
+
+if command -v npm >/dev/null 2>&1; then
+    NPM_VERSION="$(version_from "$(npm --version)")"
+    if [[ "$NPM_VERSION" == 11.* ]]; then
+        pass "npm $NPM_VERSION matches required 11.x"
+    else
+        fail "npm $NPM_VERSION does not match required 11.x"
+    fi
+fi
+
+if command -v claude >/dev/null 2>&1; then
+    CLAUDE_VERSION="$(version_from "$(claude --version)")"
+    if version_at_least "$CLAUDE_VERSION" "2.1.327"; then
+        pass "Claude Code $CLAUDE_VERSION satisfies project baseline"
+    else
+        fail "Claude Code $CLAUDE_VERSION is below 2.1.327"
+    fi
+fi
+
+if command -v graft >/dev/null 2>&1; then
+    GRAFT_VERSION="$(version_from "$(graft --version)")"
+    if [[ "$GRAFT_VERSION" == "0.16.0" ]]; then
+        pass "Graft $GRAFT_VERSION matches project version"
+    else
+        fail "Graft $GRAFT_VERSION does not match 0.16.0"
+    fi
+fi
+
+if command -v bun >/dev/null 2>&1; then
+    pass "Bun $(bun --version) is available as an optional runner"
+fi
+
+php -r '
+$root = $argv[1];
+$lock = json_decode(file_get_contents($root."/skills-lock.json"), true, flags: JSON_THROW_ON_ERROR);
+$skill = $lock["skills"]["modern-web-guidance"] ?? [];
+exit(($skill["commit"] ?? null) === "64a6d708f5a43f2cd3fde5d4d7db3905ba1bdf65" ? 0 : 1);
+' "$ROOT" && pass "Modern Web Guidance lock matches" || fail "Modern Web Guidance lock drifted"
+
+php -r '
+$settings = json_decode(file_get_contents($argv[1]."/.claude/settings.json"), true, flags: JSON_THROW_ON_ERROR);
+$source = $settings["extraKnownMarketplaces"]["egm"]["source"] ?? [];
+$plugins = $settings["enabledPlugins"] ?? [];
+$ok = ($source["ref"] ?? null) === "70406c4d22cc7ea8299637c2c5b44625c48b3f08"
+    && ($plugins["egm@egm"] ?? false) === true
+    && ($plugins["mattpocock-skills@claude-plugins-official"] ?? false) === true;
+exit($ok ? 0 : 1);
+' "$ROOT" && pass "EGM and Matt Pocock project settings match" || fail "Agent plugin settings drifted"
+
+[[ -f "$ROOT/.agents/skills/modern-web-guidance/SKILL.md" ]] \
+    && pass "Modern Web Guidance skill is vendored" \
+    || fail "Modern Web Guidance skill is missing"
+
+[[ -f "$HOME/.claude/skills/impeccable/SKILL.md" || -f "$ROOT/.claude/skills/impeccable/SKILL.md" ]] \
+    && pass "Impeccable skill is available" \
+    || fail "Impeccable skill is missing; install version 4.9.1"
+
+[[ -f "$HOME/.claude/skills/caveman/SKILL.md" || -f "$ROOT/.claude/skills/caveman/SKILL.md" ]] \
+    && pass "Caveman skill is available" \
+    || fail "Caveman skill is missing"
+
+[[ -d "$HOME/.claude/plugins/cache/egm/egm/0.1.1" ]] \
+    && pass "EGM plugin 0.1.1 is installed" \
+    || fail "EGM plugin 0.1.1 is not installed yet"
+
+[[ -d "$HOME/.claude/plugins/cache/claude-plugins-official/mattpocock-skills/1.3.1" ]] \
+    && pass "Matt Pocock plugin 1.3.1 is installed" \
+    || fail "Matt Pocock plugin is missing or differs from 1.3.1"
+
+if ((FAILURES > 0)); then
+    printf '\n%d environment check(s) failed. See docs/development/environment.md.\n' "$FAILURES" >&2
+    exit 1
+fi
+
+printf '\nEnvironment matches the shared baseline.\n'

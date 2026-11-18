@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+if command -v nvm >/dev/null 2>&1; then
+    nvm use
+fi
+
+"$ROOT/scripts/check-environment"
+
+composer install --no-interaction --prefer-dist
+
+if [[ ! -f .env ]]; then
+    cp .env.example .env
+fi
+
+php artisan key:generate
+php artisan migrate --force
+npm ci --ignore-scripts
+npm run build
+
+printf '\nSpinellanka setup complete. Run composer dev to start local services.\n'

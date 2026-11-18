@@ -1,13 +1,13 @@
 # Spinellanka
 
-**Status:** Approved UX baseline; implementation plan awaiting approval
-**Platform:** Responsive web application
+**Status:** Foundation and responsive public shell implemented; booking workflows await verified operational inputs
+**Platform:** Responsive Laravel web application
 **Hosting target:** cPanel/LAMP
 **Last updated:** 2026-11-18
 
 Spinellanka is an advance-booking transport platform for international travelers arranging Sri Lankan mobility. Customers choose Airport Pickup, Airport Transfer, chauffeured Ride, or self-drive Rent; select an exact suitable vehicle from the operator's five-vehicle fleet; and submit without creating an account. Staff reviews every request, manages one authoritative vehicle schedule, and confirms the booking through a private secure link.
 
-> **No production application code has been created yet.** The approved UX package and proposed technical plan are intentionally committed before implementation begins.
+The repository now contains the Laravel 13 foundation, shared developer and agent environment, and the first production public shell. Booking, fleet, pricing, payment, messaging, and staff workflows remain gated by the approved delivery roadmap and verified client inputs.
 
 ## Repository guide
 
@@ -32,7 +32,7 @@ Spinellanka is an advance-booking transport platform for international travelers
 
 The walkthrough is a grayscale structural artifact. It is not the production visual design.
 
-### Proposed implementation plan
+### Approved implementation plan
 
 - [Planning overview and approval gate](docs/planning/README.md)
 - [Technology stack](docs/planning/01-technology-stack.md)
@@ -42,6 +42,18 @@ The walkthrough is a grayscale structural artifact. It is not the production vis
 - [cPanel deployment and operations](docs/planning/05-cpanel-deployment-and-operations.md)
 - [Production design direction](docs/planning/06-production-design-direction.md)
 - [Delivery roadmap and testing](docs/planning/07-delivery-roadmap-and-testing.md)
+
+## Development
+
+Use Node 26 from `.nvmrc`, PHP 8.4 where available, and PHP 8.3 as the compatibility floor.
+
+```sh
+nvm use
+./scripts/check-environment
+./scripts/bootstrap
+```
+
+See [shared development environment](docs/development/environment.md) for teammate setup, pinned agent tools, audit notes, and manual setup steps. Run `composer verify`, `npm run format:check`, and `npm run build` before handoff.
 
 ## Recommended implementation baseline
 
@@ -89,7 +101,7 @@ If documentation conflicts:
 1. Client-approved changes recorded in [acceptance and sign-off](docs/ux/08-acceptance-and-signoff.md) take priority.
 2. [Product requirements](docs/ux/01-product-requirements.md) control functionality.
 3. [Screen and state inventory](docs/ux/04-screen-and-state-inventory.md) controls UX coverage.
-4. The planning documents control the proposed technical implementation after explicit approval.
+4. The planning documents control the approved technical implementation.
 5. Wireframes illustrate the requirements but cannot silently add product behavior.
 
-Implementation begins only after the written technical plan is approved. Client-owned fleet facts, rates, policy values, legal/privacy/retention wording, support operations, and production provider accounts remain launch gates rather than reasons to fabricate data.
+Implementation follows the approved written technical plan. Client-owned fleet facts, rates, policy values, legal/privacy/retention wording, support operations, and production provider accounts remain launch gates rather than reasons to fabricate data.

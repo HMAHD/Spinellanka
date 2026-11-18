@@ -1,0 +1,27 @@
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "packageManager": "npm@11.20.0",
+    "engines": {
+        "node": ">=26 <27",
+        "npm": ">=11 <12"
+    },
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite",
+        "format": "prettier --write resources tests vite.config.js",
+        "format:check": "prettier --check resources tests vite.config.js"
+    },
+    "devDependencies": {
+        "@fontsource-variable/inter": "^5.2.8",
+        "@oddbird/popover-polyfill": "^0.6.0",
+        "@tailwindcss/vite": "^4.1.17",
+        "concurrently": "^10.0.3",
+        "laravel-vite-plugin": "^3.1.0",
+        "prettier": "^3.6.2",
+        "prettier-plugin-tailwindcss": "^0.7.1",
+        "tailwindcss": "^4.1.17",
+        "vite": "^8.0.0"
+    }
+}

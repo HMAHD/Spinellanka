@@ -3,7 +3,13 @@
 Thumbs.db
 
 # Local tooling and review evidence
-.impeccable/
+.impeccable/*
+!.impeccable/config.json
+!.impeccable/design.json
+!.impeccable/surfaces/
+!.impeccable/surfaces/**
+.impeccable/config.local.json
+.taste-skill/
 
 # Environment and secrets
 .env
@@ -14,6 +20,7 @@ Thumbs.db
 
 # PHP / Laravel
 /vendor/
+/database/*.sqlite
 .phpunit.result.cache
 .phpunit.cache/
 /storage/logs/*
