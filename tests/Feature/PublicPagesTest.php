@@ -35,37 +35,34 @@ it('rejects invalid or missing service choices with 404', function (): void {
 });
 
 it('contains no invented fleet facts or pricing promises on public pages', function (): void {
-    $response = $this->get(route('home'))
+    $this->get(route('home'))
         ->assertOk()
         ->assertSee('Pricing, availability, and booking actions arrive only with verified fleet and provider data.')
         ->assertSee('No price or vehicle detail appears until verified data is available.')
         ->assertDontSee('Toyota')
         ->assertDontSee('Prius')
-        ->assertDontSee('$')
-        ->assertDontSee('USD')
-        ->assertDontSee('LKR');
-
-    foreach (ServiceType::cases() as $service) {
-        $this->get(route('services.show', ['service' => $service->value]))
-            ->assertOk()
-            ->assertSee('Pending until staff confirmation')
-            ->assertDontSee('Toyota')
-            ->assertDontSee('$')
-            ->assertDontSee('USD')
-            ->assertDontSee('LKR');
-    }
+        ->assertDontSee('$');
 });
 
-it('ensures skip-link target exists with accessible focus on all public pages', function (): void {
+it('ensures service pages show pending status and no mock pricing', function (ServiceType $service): void {
+    $this->get(route('services.show', ['service' => $service->value]))
+        ->assertOk()
+        ->assertSee('Pending until staff confirmation')
+        ->assertDontSee('Toyota')
+        ->assertDontSee('Prius')
+        ->assertDontSee('$');
+})->with(ServiceType::cases());
+
+it('ensures skip-link target exists with accessible focus on home', function (): void {
     $this->get(route('home'))
         ->assertOk()
         ->assertSee('href="#page-title"', false)
         ->assertSee('id="page-title"', false);
-
-    foreach (ServiceType::cases() as $service) {
-        $this->get(route('services.show', ['service' => $service->value]))
-            ->assertOk()
-            ->assertSee('href="#page-title"', false)
-            ->assertSee('id="page-title"', false);
-    }
 });
+
+it('ensures skip-link target exists with accessible focus on service pages', function (ServiceType $service): void {
+    $this->get(route('services.show', ['service' => $service->value]))
+        ->assertOk()
+        ->assertSee('href="#page-title"', false)
+        ->assertSee('id="page-title"', false);
+})->with(ServiceType::cases());

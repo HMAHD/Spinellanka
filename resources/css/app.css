@@ -1053,6 +1053,13 @@ h1:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-press: 0ms;
+    --t-hover: 0ms;
+    --t-ui: 0ms;
+    --t-reveal: 0ms;
+  }
+
   .site-nav .nav-action:active,
   .primary-action:active,
   .service-form button:active {

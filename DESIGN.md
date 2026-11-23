@@ -34,11 +34,6 @@ typography:
     fontWeight: 680
     lineHeight: 0.98
     letterSpacing: "-0.035em"
-  lead:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "1.125rem"
-    fontWeight: 400
-    lineHeight: 1.6
   body:
     fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.0625rem"
@@ -49,11 +44,6 @@ typography:
     fontSize: "0.9375rem"
     fontWeight: 650
     lineHeight: 1.6
-  caption:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "0.875rem"
-    fontWeight: 400
-    lineHeight: 1.5
 rounded:
   functional: "0.75rem"
 spacing:
@@ -141,6 +131,7 @@ The palette separates calm reading space from dependable decision surfaces, with
 - **Quiet Line:** The boundary color for the mobile menu and other light-surface control edges.
 - **Navy Reading:** The higher-contrast supporting text color on navy.
 - **Navy Muted:** The quieter supporting text color on navy.
+- **Navy Line:** The blue-violet boundary color (`#7180bf`) for dark-surface form controls.
 
 ### Named Rules
 

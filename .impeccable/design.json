@@ -96,10 +96,6 @@
         "displayName": "Service Title",
         "purpose": "Service rows and compact content titles."
       },
-      "lead": {
-        "displayName": "Lead Reading",
-        "purpose": "Introductory copy and emphasis sections."
-      },
       "body": {
         "displayName": "Reading Body",
         "purpose": "Default explanatory and factual copy."
@@ -107,10 +103,6 @@
       "label": {
         "displayName": "Interface Label",
         "purpose": "Navigation, persistent form labels, and compact actions."
-      },
-      "caption": {
-        "displayName": "Caption & Secondary Label",
-        "purpose": "Fact tile headers, desk service links, and footer statements."
       }
     },
     "shadows": [],
