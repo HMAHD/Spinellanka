@@ -26,7 +26,16 @@ class EditVehicle extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->using(function (Model $record): bool {
+                    if ($record instanceof Vehicle) {
+                        app(VehicleService::class)->deleteVehicle($record, auth()->user());
+
+                        return true;
+                    }
+
+                    return false;
+                }),
         ];
     }
 }

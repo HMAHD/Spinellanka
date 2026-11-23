@@ -76,8 +76,11 @@ class MediaService
             $filename = basename($media->file_path);
             $publicPath = "vehicles/{$media->vehicle_id}/media/{$filename}";
 
+            // Re-encode and strip EXIF metadata before publishing
+            $cleanContents = $this->stripExifAndSanitize((string) $contents, $filename);
+
             // Store on public disk
-            Storage::disk('public')->put($publicPath, (string) $contents);
+            Storage::disk('public')->put($publicPath, $cleanContents);
 
             // Delete quarantined file
             $quarantineDisk->delete($media->file_path);
@@ -126,5 +129,30 @@ class MediaService
             metadata: ['media_id' => $mediaId, 'vehicle_id' => $media->vehicle_id],
             auditable: $vehicle instanceof Vehicle ? $vehicle : null
         );
+    }
+
+    protected function stripExifAndSanitize(string $rawContents, string $filename): string
+    {
+        if (function_exists('imagecreatefromstring')) {
+            $image = @imagecreatefromstring($rawContents);
+            if ($image !== false) {
+                ob_start();
+                $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                if ($ext === 'png') {
+                    imagepng($image);
+                } elseif ($ext === 'webp' && function_exists('imagewebp')) {
+                    imagewebp($image, null, 90);
+                } else {
+                    imagejpeg($image, null, 90);
+                }
+                $clean = ob_get_clean();
+                imagedestroy($image);
+                if ($clean !== false && strlen($clean) > 0) {
+                    return $clean;
+                }
+            }
+        }
+
+        return $rawContents;
     }
 }

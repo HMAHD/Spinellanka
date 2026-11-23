@@ -3,11 +3,16 @@
 namespace App\Filament\Resources\Catalog\Extras;
 
 use App\Domain\Catalog\Enums\ExtraPricingType;
+use App\Domain\Catalog\Enums\VehicleType;
+use App\Domain\Catalog\Services\ExtraService;
 use App\Filament\Resources\Catalog\Extras\Pages\ManageExtras;
 use App\Models\Extra;
+use App\Models\Vehicle;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -99,8 +104,90 @@ class ExtraResource extends Resource
             ])
             ->paginationMode(PaginationMode::Simple)
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                Action::make('compatibility')
+                    ->label('Compatibility')
+                    ->icon(Heroicon::OutlinedAdjustmentsHorizontal)
+                    ->color('info')
+                    ->fillForm(fn (Extra $record): array => [
+                        'compatibilities' => $record->compatibilities()->get()->map(fn ($c): array => [
+                            'id' => $c->id,
+                            'service_type' => $c->service_type,
+                            'vehicle_type' => $c->vehicle_type,
+                            'vehicle_id' => $c->vehicle_id,
+                            'is_compatible' => $c->is_compatible,
+                        ])->toArray(),
+                    ])
+                    ->form([
+                        Repeater::make('compatibilities')
+                            ->label('Compatibility Rules (4-Tier Hierarchy)')
+                            ->helperText('Rules define where this extra is permitted or forbidden. If no rules exist, extra is globally compatible.')
+                            ->schema([
+                                Select::make('service_type')
+                                    ->label('Service (Optional)')
+                                    ->options([
+                                        'pickup' => 'Airport Pickup',
+                                        'transfer' => 'Airport Transfer',
+                                        'ride' => 'Ride',
+                                        'rent' => 'Rent',
+                                    ])
+                                    ->placeholder('All Services'),
+                                Select::make('vehicle_type')
+                                    ->label('Vehicle Type (Optional)')
+                                    ->options(VehicleType::class)
+                                    ->placeholder('All Vehicle Types'),
+                                Select::make('vehicle_id')
+                                    ->label('Exact Vehicle (Optional)')
+                                    ->options(fn () => Vehicle::pluck('public_name', 'id'))
+                                    ->placeholder('All Vehicles'),
+                                Toggle::make('is_compatible')
+                                    ->label('Compatible')
+                                    ->default(true),
+                            ])
+                            ->columns(4),
+                    ])
+                    ->action(function (Extra $record, array $data): void {
+                        $service = app(ExtraService::class);
+                        $existing = $record->compatibilities()->get()->keyBy('id');
+                        /** @var array<int, array<string, mixed>> $submitted */
+                        $submitted = $data['compatibilities'] ?? [];
+
+                        // Delete removed rules
+                        $submittedIds = array_filter(array_column($submitted, 'id'));
+                        foreach ($existing as $id => $rule) {
+                            if (! in_array($id, $submittedIds, true)) {
+                                $service->deleteCompatibilityRule($rule, auth()->user());
+                            }
+                        }
+
+                        // Add or update rules
+                        foreach ($submitted as $row) {
+                            $ruleId = $row['id'] ?? null;
+                            if ($ruleId && $existing->has($ruleId)) {
+                                $rule = $existing->get($ruleId);
+                                $rule->update([
+                                    'service_type' => ! empty($row['service_type']) ? (string) $row['service_type'] : null,
+                                    'vehicle_type' => ! empty($row['vehicle_type']) ? (string) $row['vehicle_type'] : null,
+                                    'vehicle_id' => ! empty($row['vehicle_id']) ? (int) $row['vehicle_id'] : null,
+                                    'is_compatible' => (bool) ($row['is_compatible'] ?? true),
+                                ]);
+                            } else {
+                                $service->createCompatibilityRule($record, [
+                                    'service_type' => ! empty($row['service_type']) ? (string) $row['service_type'] : null,
+                                    'vehicle_type' => ! empty($row['vehicle_type']) ? (string) $row['vehicle_type'] : null,
+                                    'vehicle_id' => ! empty($row['vehicle_id']) ? (int) $row['vehicle_id'] : null,
+                                    'is_compatible' => (bool) ($row['is_compatible'] ?? true),
+                                ], auth()->user());
+                            }
+                        }
+                    }),
+                EditAction::make()
+                    ->using(fn (Extra $record, array $data) => app(ExtraService::class)->updateExtra($record, $data, auth()->user())),
+                DeleteAction::make()
+                    ->using(function (Extra $record): bool {
+                        app(ExtraService::class)->deleteExtra($record, auth()->user());
+
+                        return true;
+                    }),
             ]);
     }
 
