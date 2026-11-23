@@ -157,7 +157,7 @@ Playwright covers the minimum release journeys:
 
 1. Airport Pickup request on mobile.
 2. Airport Transfer recommended-time override warning.
-3. Ride with ordered stops and separate return.
+3. Ride with ordered stops, separate return, selected-destination route map, and explicit customer-device location permission/granted/denied/unavailable states.
 4. Rent eligibility, 24-hour summary and exact vehicle.
 5. No availability and stale/expired hold recovery.
 6. Staff manual booking and proposal.
@@ -171,6 +171,7 @@ Playwright covers the minimum release journeys:
 - axe automated accessibility plus manual keyboard/screen-reader review;
 - 320px, 390px, tablet and desktop responsive checks;
 - slow/failed network and interrupted external-provider tests;
+- Ride geolocation denial, unsupported/inaccurate/interrupted fixes, watch cleanup, static-route fallback, and proof that coordinates never leave browser memory;
 - authorization/security regression suite;
 - migration rollback compatibility;
 - backup restore and cPanel release rollback;

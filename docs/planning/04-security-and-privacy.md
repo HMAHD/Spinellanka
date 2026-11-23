@@ -72,6 +72,9 @@ Driver and guest links never enter the staff authorization system.
 - CSRF protection covers state-changing browser requests.
 - File uploads use allowlisted MIME/type/size, random names, private storage, and authorization on download.
 - Security headers include HSTS after HTTPS validation, CSP, frame restrictions, nosniff, restrictive referrer policy, and permissions policy.
+- Default-deny browser geolocation outside the active Ride surface. On that surface, allow only same-origin top-level use, explain the purpose before the browser prompt, and start the location watch only after an explicit traveler action.
+- Ride current-device coordinates remain ephemeral browser memory. Do not send them through Livewire/fetch, map-provider requests, analytics, error reporting, logs, queues, URLs, forms, local/session storage, service workers, or the database. Clear the watch when disabled, hidden/unloaded, or no longer needed.
+- Permission denial, unsupported APIs, unavailable/inaccurate fixes, and interruptions keep the selected-destination route and itinerary usable. Never present browser location as vehicle tracking, route-completion proof, emergency monitoring, or an authoritative operational signal.
 - CORS is closed because no public cross-origin API exists at launch.
 - Rate limits apply to availability search, hold creation, submission, private-link recovery, login, password recovery, and webhooks.
 - Bot protection is introduced only if measured abuse appears; accessibility-safe rate limiting and honeypot techniques precede CAPTCHA.
@@ -111,7 +114,7 @@ Driver and guest links never enter the staff authorization system.
 - Show staff only the data needed for their role and drivers only the data needed for the current trip.
 - Define retention periods with the client's legal owner before production data is accepted.
 - Data access, correction, export, anonymization/deletion, and legal hold actions are permissioned and audited.
-- Analytics are consent-aware and avoid private booking, admin, driver, payment, and handover content.
+- Analytics are consent-aware and avoid private booking, admin, driver, payment, handover, and current-device geolocation content.
 
 ## Audit events
 

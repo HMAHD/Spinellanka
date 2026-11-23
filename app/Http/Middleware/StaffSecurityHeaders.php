@@ -21,4 +21,3 @@ class StaffSecurityHeaders
         return $response;
     }
 }
-

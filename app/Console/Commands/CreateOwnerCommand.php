@@ -136,4 +136,3 @@ class CreateOwnerCommand extends Command
         return self::SUCCESS;
     }
 }
-

@@ -5,7 +5,9 @@ namespace App\Providers;
 use App\Domain\Audit\Services\AuditService;
 use App\Domain\Identity\Role;
 use App\Models\AuditEvent;
+use App\Models\Driver;
 use App\Models\User;
+use App\Models\Vehicle;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
@@ -34,6 +36,10 @@ class AppServiceProvider extends ServiceProvider
             }
 
             if (($target instanceof User || $target === User::class) && in_array($ability, ['delete', 'deactivate'], true)) {
+                return null;
+            }
+
+            if (($target instanceof Vehicle || $target === Vehicle::class || $target instanceof Driver || $target === Driver::class) && $ability === 'delete') {
                 return null;
             }
 

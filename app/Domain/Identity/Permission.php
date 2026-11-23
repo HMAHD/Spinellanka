@@ -51,4 +51,3 @@ enum Permission: string
         };
     }
 }
-

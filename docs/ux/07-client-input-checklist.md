@@ -146,6 +146,8 @@ Complete for each vehicle that supports chauffeured services.
 | Return-leg rules | ☐ | |
 | Same-vehicle expectation across separate legs | ☐ | Current UX seeks same exact vehicle availability for both |
 | Route change process and fees | ☐ | |
+| Destination map/route-preview expectations | ☐ | Provider coverage, route disclaimer, and fallback copy |
+| Current-device Ride location permission/privacy copy | ☐ | Browser-local only while page is open; no server transmission/storage; denial/failure fallback required |
 | Driver waiting/no-show behavior | ☐ | |
 | Tolls/parking/entrance fees inclusion | ☐ | |
 

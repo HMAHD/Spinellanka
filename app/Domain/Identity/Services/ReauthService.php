@@ -35,4 +35,3 @@ class ReauthService
         session()->forget('auth.password_confirmed_at');
     }
 }
-

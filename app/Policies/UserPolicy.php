@@ -59,4 +59,3 @@ class UserPolicy
         return false;
     }
 }
-

@@ -47,7 +47,9 @@ Amber text on white is not accessible for body copy. Use amber as a fill with na
 
 The palette is the only element retained from the temporary reference. The type choice below was made independently and is not an extracted reference decision.
 
-- **Primary UI font:** self-hosted Inter Variable with `system-ui`, `-apple-system`, `Segoe UI`, and sans-serif fallbacks.
+- **Primary UI font:** self-hosted Allo 1.0.3 under SIL Open Font License 1.1, using the official upright variable WOFF2 (`100–900`) with `ui-sans-serif`, `system-ui`, `-apple-system`, `Segoe UI`, and generic sans-serif fallbacks. Keep the family’s automatic optical sizing; use its default roundness unless a rendered design review approves a different shared token.
+- Import only official package/release files from `joshpuckett/allo` or `allo-font@1.0.3`; retain `OFL.txt` and copyright notices in the distributed application. Do not load fonts from a third-party runtime CDN.
+- Ship oblique WOFF2 files only for weights the interface actually uses. Measure fallback metrics and layout shift before adding any metric overrides; never guess adjustment values.
 - **Operational identifiers:** system monospace only for booking references, dates/times, amounts in dense tables, and audit data.
 - Body size starts at 16px with at least 1.5 line height.
 - Form labels remain persistent and never rely on placeholder text.

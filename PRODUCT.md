@@ -45,9 +45,11 @@ Staff operate a small fleet where an overlapping booking, maintenance block, pre
 
 - Responsive customer web experience; no native application.
 - No customer account, password, or OTP.
-- All services are advance bookings; there is no live dispatch or moving-map tracking.
+- All services are advance bookings; there is no live dispatch. During an active Ride, the traveler may explicitly enable a browser-only moving map that shows the current device position against the selected destinations while the Ride page remains open.
+- Ride current-location display requires a user action and browser permission, stays on the traveler's device, stops when the page/session ends or the traveler disables it, and is never transmitted to or stored by Spinellanka. Denial, unsupported browsers, lost permission, or weak GPS must leave the itinerary and static route usable.
+- This customer-device aid is not driver/vehicle tracking, proof of route completion, an emergency/safety monitor, or input to booking, pricing, payment, availability, or staff decisions.
 - Customers select one exact available vehicle from the fleet.
-- Search uses service-specific fields, supported place search, optional map pin, and pickup instructions.
+- Search uses service-specific fields, supported place search, a destination map/route preview, optional map pin, and pickup instructions.
 - Availability considers requested duration, route or rental period, configured buffers, offline bookings, and maintenance blocks.
 - A selected vehicle receives a 15-minute checkout hold.
 - Every submission is pending until staff confirms it.
@@ -78,6 +80,7 @@ Staff operate a small fleet where an overlapping booking, maintenance block, pre
 3. **International clarity:** explain Sri Lanka time, locations, currency, airport timing, inclusions, and next steps without local assumptions.
 4. **No-account control:** a private booking link should provide the useful control of an account without requiring registration.
 5. **Proof over claims:** use real fleet, driver, policy, and review evidence only when the client supplies it.
+6. **Location stays optional and local:** destination maps work without current location; Ride current-position display starts only after explicit permission and never creates a Spinellanka location history.
 
 ## Accessibility & Inclusion
 

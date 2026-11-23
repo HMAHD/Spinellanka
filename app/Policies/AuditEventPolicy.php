@@ -35,4 +35,3 @@ class AuditEventPolicy
         return false;
     }
 }
-

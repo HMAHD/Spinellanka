@@ -43,4 +43,3 @@ class EnsureActiveStaff
         return $next($request);
     }
 }
-

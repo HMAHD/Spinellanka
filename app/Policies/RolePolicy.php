@@ -33,4 +33,3 @@ class RolePolicy
         return false;
     }
 }
-
