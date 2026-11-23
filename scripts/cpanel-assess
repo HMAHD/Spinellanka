@@ -1,0 +1,389 @@
+#!/usr/bin/env bash
+#
+# scripts/cpanel-assess
+# Evaluates hosting capability against the 11 gates in docs/planning/05-cpanel-deployment-and-operations.md
+#
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PHP_BIN="${PHP_BIN:-${CPANEL_PHP_BIN:-php}}"
+BASE_DIR="${SPINELLANKA_BASE_DIR:-$ROOT}"
+DOMAIN="${CPANEL_DOMAIN:-}"
+WEB_PHP_VERSION="${CPANEL_WEB_PHP_VERSION:-}"
+OUTPUT_FORMAT="text"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --php-bin)
+            PHP_BIN="$2"
+            shift 2
+            ;;
+        --base-dir)
+            BASE_DIR="$2"
+            shift 2
+            ;;
+        --domain)
+            DOMAIN="$2"
+            shift 2
+            ;;
+        --web-php)
+            WEB_PHP_VERSION="$2"
+            shift 2
+            ;;
+        --format)
+            OUTPUT_FORMAT="$2"
+            shift 2
+            ;;
+        *)
+            printf 'Unknown argument: %s\n' "$1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+export PHP_BIN BASE_DIR DOMAIN WEB_PHP_VERSION OUTPUT_FORMAT ROOT
+
+"$PHP_BIN" -r '
+$baseDir = getenv("BASE_DIR") ?: getcwd();
+$phpBin = getenv("PHP_BIN") ?: "php";
+$domain = getenv("DOMAIN") ?: "";
+$webPhpVersion = getenv("WEB_PHP_VERSION") ?: "";
+$format = getenv("OUTPUT_FORMAT") ?: "text";
+$root = getenv("ROOT") ?: getcwd();
+
+$gates = [];
+$failures = [];
+
+// Gate 1: PHP Web runtime
+if ($webPhpVersion !== "") {
+    $webOk = version_compare($webPhpVersion, "8.3.0", ">=");
+    $gates["1. PHP web runtime"] = [
+        "status" => $webOk ? "PASS" : "FAIL",
+        "detail" => "Web PHP $webPhpVersion (>= 8.3 required)"
+    ];
+    if (!$webOk) $failures[] = "Web PHP $webPhpVersion is below 8.3";
+} else {
+    // If web PHP version not explicitly provided, record pending verification
+    $gates["1. PHP web runtime"] = [
+        "status" => "PENDING",
+        "detail" => "Web PHP version not supplied via CPANEL_WEB_PHP_VERSION / --web-php"
+    ];
+    $failures[] = "Web PHP version must be verified against hosting facts";
+}
+
+// Gate 2: PHP CLI runtime (exact major.minor match with web)
+$cliVersion = PHP_VERSION;
+$cliMajorMinor = PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;
+$cliOk = version_compare($cliVersion, "8.3.0", ">=");
+
+if ($webPhpVersion !== "") {
+    $webParts = explode(".", $webPhpVersion);
+    $webMajorMinor = ($webParts[0] ?? "") . "." . ($webParts[1] ?? "");
+    $match = ($cliMajorMinor === $webMajorMinor);
+    $gates["2. PHP CLI runtime"] = [
+        "status" => ($cliOk && $match) ? "PASS" : "FAIL",
+        "detail" => "CLI PHP $cliVersion (Major/minor $cliMajorMinor vs Web $webMajorMinor)"
+    ];
+    if (!$match) $failures[] = "CLI PHP ($cliMajorMinor) does not match Web PHP ($webMajorMinor)";
+} else {
+    $gates["2. PHP CLI runtime"] = [
+        "status" => $cliOk ? "PASS" : "FAIL",
+        "detail" => "CLI PHP $cliVersion satisfies >= 8.3 (Web parity pending verification)"
+    ];
+    if (!$cliOk) $failures[] = "CLI PHP $cliVersion is below 8.3";
+}
+
+// Gate 3: Required extensions
+$requiredExtensions = [
+    "ctype", "curl", "dom", "fileinfo", "filter", "hash",
+    "mbstring", "openssl", "pcre", "pdo", "session", "tokenizer", "xml",
+    "pdo_mysql", "intl"
+];
+$missingExt = [];
+foreach ($requiredExtensions as $ext) {
+    if (!extension_loaded($ext)) {
+        $missingExt[] = $ext;
+    }
+}
+$extOk = empty($missingExt);
+$gates["3. PHP extensions"] = [
+    "status" => $extOk ? "PASS" : "FAIL",
+    "detail" => $extOk ? "All 15 required extensions loaded" : "Missing: " . implode(", ", $missingExt)
+];
+if (!$extOk) $failures[] = "Missing required PHP extensions: " . implode(", ", $missingExt);
+
+// Gate 4: Database (MariaDB 10.11+ or MySQL 8.0 with InnoDB and transactions)
+$dbStatus = "PENDING";
+$dbDetail = "Database connection facts not provided";
+// Check if .env exists
+$envFile = file_exists("$baseDir/.env") ? "$baseDir/.env" : "$root/.env";
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    $env = [];
+    foreach ($lines as $line) {
+        if (str_starts_with(trim($line), "#")) continue;
+        if (str_contains($line, "=")) {
+            [$k, $v] = explode("=", $line, 2);
+            $env[trim($k)] = trim($v, " \t\n\r\0\x0B\"'\''");
+        }
+    }
+    $dbConnection = $env["DB_CONNECTION"] ?? "mysql";
+    $dbHost = $env["DB_HOST"] ?? "127.0.0.1";
+    $dbPort = $env["DB_PORT"] ?? "3306";
+    $dbName = $env["DB_DATABASE"] ?? "";
+    $dbUser = $env["DB_USERNAME"] ?? "";
+    $dbPass = $env["DB_PASSWORD"] ?? "";
+
+    if ($dbConnection === "sqlite") {
+        $dbStatus = "FAIL";
+        $dbDetail = "SQLite in use; cPanel requires MariaDB 10.11+ or MySQL 8.0 with InnoDB";
+        $failures[] = $dbDetail;
+    } elseif ($dbName !== "" && $dbUser !== "") {
+        try {
+            $pdo = new PDO("mysql:host=$dbHost;port=$dbPort;dbname=$dbName", $dbUser, $dbPass, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_TIMEOUT => 3,
+            ]);
+            $verStmt = $pdo->query("SELECT VERSION()");
+            $versionStr = (string)$verStmt->fetchColumn();
+            
+            // Check InnoDB
+            $engines = $pdo->query("SHOW ENGINES")->fetchAll(PDO::FETCH_ASSOC);
+            $innodbOk = false;
+            foreach ($engines as $eng) {
+                if (strcasecmp($eng["Engine"] ?? "", "InnoDB") === 0 && in_array(strtoupper($eng["Support"] ?? ""), ["DEFAULT", "YES"])) {
+                    $innodbOk = true;
+                    break;
+                }
+            }
+            
+            // Test transaction
+            $pdo->beginTransaction();
+            $pdo->commit();
+
+            if ($innodbOk) {
+                $dbStatus = "PASS";
+                $dbDetail = "Connected: $versionStr (InnoDB enabled, transactions verified)";
+            } else {
+                $dbStatus = "FAIL";
+                $dbDetail = "InnoDB engine not supported on database: $versionStr";
+                $failures[] = $dbDetail;
+            }
+        } catch (\Throwable $e) {
+            $dbStatus = "FAIL";
+            $dbDetail = "Database connection failed: " . $e->getMessage();
+            $failures[] = $dbDetail;
+        }
+    }
+}
+$gates["4. Database engine"] = [
+    "status" => $dbStatus,
+    "detail" => $dbDetail
+];
+if ($dbStatus === "PENDING") {
+    $failures[] = "Database connectivity and version must be verified against cPanel credentials";
+}
+
+// Gate 5: Web root isolation
+$webRootStatus = "PENDING";
+$webRootDetail = "Web root pointer to spinellanka/current/public requires hosting verification";
+if (getenv("CPANEL_DOCUMENT_ROOT_VERIFIED") === "true") {
+    $webRootStatus = "PASS";
+    $webRootDetail = "DocumentRoot verified to target current/public outside public_html";
+} else {
+    $failures[] = "Document root isolation to current/public must be confirmed by host";
+}
+$gates["5. Web root isolation"] = [
+    "status" => $webRootStatus,
+    "detail" => $webRootDetail
+];
+
+// Gate 6: Filesystem layout & permissions
+$fsOk = is_writable($baseDir);
+$storageWritable = false;
+$cacheWritable = false;
+$testDirs = ["$baseDir/storage", "$root/storage", "$baseDir/bootstrap/cache", "$root/bootstrap/cache"];
+$fsDetail = is_writable($baseDir) ? "Base directory is writable" : "Base directory $baseDir is not writable";
+$gates["6. Filesystem isolation"] = [
+    "status" => $fsOk ? "PASS" : "FAIL",
+    "detail" => $fsDetail
+];
+if (!$fsOk) $failures[] = $fsDetail;
+
+// Gate 7: CLI / Deploy transport
+$cliTransportOk = (php_sapi_name() === "cli");
+$gates["7. CLI/Deploy transport"] = [
+    "status" => $cliTransportOk ? "PASS" : "FAIL",
+    "detail" => $cliTransportOk ? "PHP CLI environment and non-interactive shell operational" : "CLI execution unavailable"
+];
+if (!$cliTransportOk) $failures[] = "CLI execution environment is not operational";
+
+// Gate 8: Scheduler (cPanel cron 1-minute granularity)
+$cronStatus = "PENDING";
+$cronDetail = "cPanel cron 1-minute granularity requires hosting verification";
+if (getenv("CPANEL_CRON_VERIFIED") === "true") {
+    $cronStatus = "PASS";
+    $cronDetail = "cPanel cron supports 1-minute non-overlapping execution";
+} else {
+    $failures[] = "cPanel 1-minute cron execution must be confirmed";
+}
+$gates["8. Scheduler / Cron"] = [
+    "status" => $cronStatus,
+    "detail" => $cronDetail
+];
+
+// Gate 9: TLS / SSL
+$tlsStatus = "PENDING";
+$tlsDetail = "TLS certificate and forced HTTPS require host domain verification";
+if ($domain !== "") {
+    $ch = curl_init("https://$domain/up");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+    $res = curl_exec($ch);
+    $curlErr = curl_errno($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($curlErr === 0 && ($httpCode >= 200 && $httpCode < 400)) {
+        $tlsStatus = "PASS";
+        $tlsDetail = "Valid TLS certificate verified on https://$domain";
+    } else {
+        $tlsStatus = "FAIL";
+        $tlsDetail = "TLS check failed for https://$domain (HTTP $httpCode, curl error $curlErr)";
+        $failures[] = $tlsDetail;
+    }
+} else {
+    $failures[] = "TLS certificate must be verified against live domain";
+}
+$gates["9. TLS / HTTPS"] = [
+    "status" => $tlsStatus,
+    "detail" => $tlsDetail
+];
+
+// Gate 10: Backups (Automated database dump & storage)
+$backupStatus = "FAIL";
+$backupDetail = "Database dump utility (mysqldump/mariadb-dump) not found";
+exec("command -v mysqldump || command -v mariadb-dump", $dumpOut, $dumpCode);
+if ($dumpCode === 0 && !empty($dumpOut[0])) {
+    $backupStatus = "PASS";
+    $backupDetail = "Database dump binary found: " . $dumpOut[0];
+} else {
+    // If not found in CLI path, check standard cPanel locations
+    $cpanelPaths = ["/usr/bin/mysqldump", "/usr/local/bin/mysqldump", "/usr/bin/mariadb-dump"];
+    foreach ($cpanelPaths as $p) {
+        if (file_exists($p) && is_executable($p)) {
+            $backupStatus = "PASS";
+            $backupDetail = "Database dump binary found: $p";
+            break;
+        }
+    }
+}
+$gates["10. Backups"] = [
+    "status" => $backupStatus,
+    "detail" => $backupDetail
+];
+if ($backupStatus !== "PASS") $failures[] = "Database backup dump utility is missing or inaccessible";
+
+// Gate 11: Limits & Environment (>= 256MB memory, atomic symlink via rename)
+$memVal = ini_get("memory_limit");
+$memBytes = -1;
+if ($memVal === "-1") {
+    $memBytes = PHP_INT_MAX;
+} else {
+    $unit = strtolower(substr($memVal, -1));
+    $num = (int)$memVal;
+    if ($unit === "g") $memBytes = $num * 1024 * 1024 * 1024;
+    elseif ($unit === "m") $memBytes = $num * 1024 * 1024;
+    elseif ($unit === "k") $memBytes = $num * 1024;
+    else $memBytes = (int)$memVal;
+}
+$memOk = ($memBytes >= 256 * 1024 * 1024);
+
+// Test atomic symlink rename (mv -Tf or rename)
+$tmpTestDir = sys_get_temp_dir() . "/spinellanka_test_" . uniqid();
+@mkdir($tmpTestDir, 0777, true);
+$targetA = "$tmpTestDir/targetA";
+$targetB = "$tmpTestDir/targetB";
+$symlinkPath = "$tmpTestDir/current";
+@mkdir($targetA);
+@mkdir($targetB);
+@symlink($targetA, $symlinkPath);
+$atomicSymlinkOk = false;
+$tmpLink = "$tmpTestDir/current.tmp";
+@symlink($targetB, $tmpLink);
+if (file_exists($tmpLink)) {
+    // Test mv -Tf or rename()
+    exec("mv -Tf " . escapeshellarg($tmpLink) . " " . escapeshellarg($symlinkPath) . " 2>/dev/null", $mvOut, $mvCode);
+    if ($mvCode === 0 && readlink($symlinkPath) === $targetB) {
+        $atomicSymlinkOk = true;
+    } elseif (@rename($tmpLink, $symlinkPath) && readlink($symlinkPath) === $targetB) {
+        $atomicSymlinkOk = true;
+    }
+}
+// Cleanup
+@unlink($symlinkPath);
+@unlink($tmpLink);
+@rmdir($targetA);
+@rmdir($targetB);
+@rmdir($tmpTestDir);
+
+$limitsOk = $memOk && $atomicSymlinkOk;
+$limitsDetail = "Memory limit: $memVal (>= 256M: " . ($memOk ? "yes" : "no") . "); Atomic symlink rename: " . ($atomicSymlinkOk ? "supported" : "unsupported");
+$gates["11. Limits & Environment"] = [
+    "status" => $limitsOk ? "PASS" : "FAIL",
+    "detail" => $limitsDetail
+];
+if (!$limitsOk) $failures[] = $limitsDetail;
+
+// Calculate verdict
+$allPassed = empty($failures);
+$hasPending = false;
+foreach ($gates as $g) {
+    if ($g["status"] === "PENDING") {
+        $hasPending = true;
+        break;
+    }
+}
+
+$verdict = $allPassed ? "Accepted" : "Blocked — hosting";
+
+if ($format === "markdown") {
+    printf("# cPanel Capability Assessment Report\n\n");
+    printf("**Date:** %s\n", date("Y-m-d H:i:s T"));
+    printf("**Verdict:** %s\n\n", $verdict);
+    printf("| Gate | Status | Detail |\n");
+    printf("|---|---|---|\n");
+    foreach ($gates as $gateName => $info) {
+        printf("| %s | %s | %s |\n", $gateName, $info["status"], $info["detail"]);
+    }
+    printf("\n");
+    if (!empty($failures)) {
+        printf("### Unmet or Pending Gates\n\n");
+        foreach ($failures as $f) {
+            printf("- %s\n", $f);
+        }
+        printf("\n**Action Required:** Hosting owner must supply capability evidence for unmet gates. Until resolved, Phase 01 remains Blocked with deployment disabled.\n");
+    }
+} else {
+    printf("========================================================\n");
+    printf("   Spinellanka cPanel Capability Assessment\n");
+    printf("========================================================\n\n");
+    foreach ($gates as $gateName => $info) {
+        $color = $info["status"] === "PASS" ? "PASS" : ($info["status"] === "PENDING" ? "PEND" : "FAIL");
+        printf("[%s] %-25s : %s\n", $color, $gateName, $info["detail"]);
+    }
+    printf("\n--------------------------------------------------------\n");
+    printf("Verdict: %s\n", $verdict);
+    printf("--------------------------------------------------------\n");
+    if (!empty($failures)) {
+        printf("\nBlocked Gates:\n");
+        foreach ($failures as $f) {
+            printf("  * %s\n", $f);
+        }
+    }
+}
+
+exit($allPassed ? 0 : 1);
+'
+

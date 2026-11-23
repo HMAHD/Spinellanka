@@ -1,0 +1,102 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      release_sha:
+        description: 'Git commit SHA from main to deploy'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deployment-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_sha }}
+
+      - name: Assert Hosting Capability Gate Passed
+        run: |
+          echo "Checking hosting acceptance verdict in docs/planning/05-cpanel-deployment-and-operations.md..."
+          if ! grep -q 'Verdict: Accepted' docs/planning/05-cpanel-deployment-and-operations.md; then
+            echo "::error::Deployment blocked! Hosting acceptance gate has not passed. Phase 01 hosting verdict must be Accepted before deployment can be activated."
+            exit 1
+          fi
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Dependencies & Build Release Artifact
+        run: |
+          npm ci --ignore-scripts
+          ./scripts/package-release --output-dir dist
+
+      - name: Verify Checksum Prior to Transfer
+        run: |
+          cd dist
+          sha256sum -c release.tar.gz.sha256
+
+      - name: Transfer and Activate Release on cPanel
+        env:
+          CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT || '22' }}
+          CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+          CPANEL_DEPLOY_PATH: ${{ secrets.CPANEL_DEPLOY_PATH }}
+          CPANEL_PHP_BIN: ${{ secrets.CPANEL_PHP_BIN || 'php' }}
+        run: |
+          if [[ -z "${CPANEL_SSH_HOST:-}" || -z "${CPANEL_SSH_KEY:-}" ]]; then
+            echo "::error::Deployment credentials (CPANEL_SSH_HOST, CPANEL_SSH_KEY) are not configured in environment secrets."
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh
+          echo "$CPANEL_SSH_KEY" > ~/.ssh/cpanel_key
+          chmod 600 ~/.ssh/cpanel_key
+
+          # Ensure incoming staging directory exists
+          ssh -i ~/.ssh/cpanel_key -p "$CPANEL_SSH_PORT" -o StrictHostKeyChecking=accept-new \
+            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" "mkdir -p '$CPANEL_DEPLOY_PATH/.incoming' '$CPANEL_DEPLOY_PATH/scripts'"
+
+          # Transfer archive, checksum, and deploy scripts
+          scp -i ~/.ssh/cpanel_key -P "$CPANEL_SSH_PORT" -o StrictHostKeyChecking=accept-new \
+            dist/release.tar.gz dist/release.tar.gz.sha256 "$CPANEL_SSH_USER@$CPANEL_SSH_HOST:$CPANEL_DEPLOY_PATH/.incoming/"
+
+          scp -i ~/.ssh/cpanel_key -P "$CPANEL_SSH_PORT" -o StrictHostKeyChecking=accept-new \
+            scripts/deploy-release scripts/rollback-release "$CPANEL_SSH_USER@$CPANEL_SSH_HOST:$CPANEL_DEPLOY_PATH/scripts/"
+
+          # Execute remote deployment
+          ssh -i ~/.ssh/cpanel_key -p "$CPANEL_SSH_PORT" -o StrictHostKeyChecking=accept-new \
+            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" \
+            "SPINELLANKA_BASE_DIR='$CPANEL_DEPLOY_PATH' CPANEL_PHP_BIN='$CPANEL_PHP_BIN' bash '$CPANEL_DEPLOY_PATH/scripts/deploy-release'"
+
