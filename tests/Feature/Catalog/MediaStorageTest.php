@@ -71,4 +71,3 @@ test('deleting media record removes file from disk', function (): void {
 
     expect(Storage::disk('public')->exists($filePath))->toBeFalse();
 });
-
