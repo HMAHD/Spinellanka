@@ -39,6 +39,18 @@ Owner/Admin and Staff receive the smallest role baseline, with explicit capabili
 - user/role management;
 - full audit access.
 
+The 20 canonical capability permissions (`App\Domain\Identity\Permission`):
+- Staff Administration: `users.view`, `users.manage`, `roles.manage`
+- Audit Foundation: `audit.view`, `audit.export`
+- Fleet & Maintenance: `fleet.view`, `fleet.manage`
+- Booking Operations: `booking.view`, `booking.review`, `booking.confirm`, `booking.override_conflict`, `booking.cancel`
+- Financial Operations: `payment.view`, `payment.record_offline`, `payment.refund`
+- Incident Operations: `incident.view`, `incident.manage`
+- Data Exports: `export.customer_data`, `export.financial_data`
+- System & Policies: `config.manage`
+
+`Owner/Admin` receives all 20 permissions. `Staff` receives 8 operational permissions (`audit.view`, `fleet.view`, `booking.view`, `booking.review`, `booking.confirm`, `payment.view`, `payment.record_offline`, `incident.view`).
+
 Driver and guest links never enter the staff authorization system.
 
 ## Private links
