@@ -14,6 +14,7 @@ colors:
   paper: "#ffffff"
   navy-reading: "#dbe4ff"
   navy-muted: "#c7d2fe"
+  navy-line: "#7180bf"
 typography:
   display:
     fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
@@ -130,6 +131,7 @@ The palette separates calm reading space from dependable decision surfaces, with
 - **Quiet Line:** The boundary color for the mobile menu and other light-surface control edges.
 - **Navy Reading:** The higher-contrast supporting text color on navy.
 - **Navy Muted:** The quieter supporting text color on navy.
+- **Navy Line:** The blue-violet boundary color (`#7180bf`) for dark-surface form controls.
 
 ### Named Rules
 

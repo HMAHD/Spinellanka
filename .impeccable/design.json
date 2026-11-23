@@ -75,6 +75,12 @@
         "displayName": "Navy Muted",
         "canonical": "#c7d2fe",
         "tonalRamp": ["#151d39", "#2c3859", "#47587c", "#697ba3", "#91a0c8", "#b2bee7", "#c7d2fe", "#eef1ff"]
+      },
+      "navy-line": {
+        "role": "neutral",
+        "displayName": "Navy Line",
+        "canonical": "#7180bf",
+        "tonalRamp": ["#1d2442", "#353f6c", "#505d97", "#7180bf", "#9aa4d4", "#c2c9e7", "#e1e4f4", "#f3f5fa"]
       }
     },
     "typographyMeta": {

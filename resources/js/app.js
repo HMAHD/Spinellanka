@@ -71,7 +71,10 @@ const closeMenuAfterNavigation = () => {
   };
 
   menu.addEventListener("click", (event) => {
-    if (!(event.target instanceof HTMLAnchorElement)) {
+    const anchor =
+      event.target instanceof Element ? event.target.closest("a") : null;
+
+    if (!anchor) {
       return;
     }
 
