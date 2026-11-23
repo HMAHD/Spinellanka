@@ -23,4 +23,3 @@ class DriverFactory extends Factory
         ];
     }
 }
-

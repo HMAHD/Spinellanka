@@ -17,4 +17,3 @@ class ListVehicles extends ListRecords
         ];
     }
 }
-

@@ -38,4 +38,3 @@ class DriverPolicy
         return $driver->assignments()->doesntExist();
     }
 }
-

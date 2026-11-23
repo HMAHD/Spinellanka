@@ -33,4 +33,3 @@ class ExtraPolicy
         return $user->can(Permission::FleetManage->value);
     }
 }
-

@@ -38,4 +38,3 @@ class VehiclePolicy
         return $vehicle->driverAssignments()->doesntExist();
     }
 }
-

@@ -16,4 +16,3 @@ class CreateVehicle extends CreateRecord
         return app(VehicleService::class)->createVehicle($data, auth()->user());
     }
 }
-

@@ -158,4 +158,3 @@ test('cannot delete vehicle if driver assignments exist', function (): void {
 
     expect($this->owner->can('delete', $vehicle))->toBeFalse();
 });
-

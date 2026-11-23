@@ -227,15 +227,7 @@ class DriverAssignmentService
         $conflict = VehicleDriverAssignment::query()
             ->where('driver_id', $driverId)
             ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
-            ->where(function ($q) use ($start, $end) {
-                $q->where(function ($sub) use ($end) {
-                    if ($end !== null) {
-                        $sub->where('starts_at', '<', $end);
-                    }
-                })->where(function ($sub) use ($start) {
-                    $sub->whereNull('ends_at')->orWhere('ends_at', '>', $start);
-                });
-            })
+            ->overlapping($start, $end)
             ->lockForUpdate()
             ->exists();
 
@@ -250,15 +242,7 @@ class DriverAssignmentService
             ->where('vehicle_id', $vehicleId)
             ->where('is_permanent', true)
             ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
-            ->where(function ($q) use ($start, $end) {
-                $q->where(function ($sub) use ($end) {
-                    if ($end !== null) {
-                        $sub->where('starts_at', '<', $end);
-                    }
-                })->where(function ($sub) use ($start) {
-                    $sub->whereNull('ends_at')->orWhere('ends_at', '>', $start);
-                });
-            })
+            ->overlapping($start, $end)
             ->lockForUpdate()
             ->exists();
 

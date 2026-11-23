@@ -833,7 +833,7 @@ Prepare a PR handoff listing reused patterns, approved policy sources, calculati
 
 ### Independently usable outcome
 
-Travelers can request a chauffeured point-to-point or multi-stop Ride with ordered stops, approved waiting information, and an optional separately timed return leg. Selecting destinations produces a provider-neutral map/route preview. On the active Ride page, the traveler may explicitly enable a current-device marker that updates locally while the page is open and never reaches Spinellanka servers or storage. Suitability, exact vehicle, estimate/custom quote, holds, review, pending submission, staff review, and manual entry use the established core.
+Travelers can request a chauffeured point-to-point or multi-stop Ride with ordered stops, approved waiting information, and an optional separately timed return leg. Selecting destinations produces a provider-neutral map/route preview with an equivalent text itinerary. Suitability, exact vehicle, estimate/custom quote, holds, review, pending submission, staff review, and manual entry use the established core. The active-Ride customer-device marker is delivered later on the private guest surface in Phase 12.
 
 ### Scope
 
@@ -843,20 +843,20 @@ Travelers can request a chauffeured point-to-point or multi-stop Ride with order
 - Price only approved route, stop, wait, and return components through Pricing.
 - Preserve ordered customer input and immutable submitted summaries.
 - Render the selected pickup/stops/final destination on a provider-neutral static/interactive route map with a text itinerary and no-map fallback.
-- On the active Ride guest page only, add an explicit “Show my location” action. After browser permission, keep `watchPosition` results in page memory only, update a customer-device marker, expose accuracy/unavailable status accessibly, and clear the watch on disable, page hide/unload, or lifecycle end. Never send coordinates through Livewire/fetch, provider requests, analytics, error reporting, URLs, forms, storage, service workers, queues, logs, or the database.
+- Expose a reusable route-map presentation boundary for Phase 12 without accepting current-device coordinates, adding tracking state, or changing Booking/Availability/Pricing behavior.
 - Add accessible add/remove/reorder interactions with a server-rendered fallback.
 - Add staff review/manual-entry fields and complete tests.
 
 ### Non-scope
 
-- No live dispatch, open-ended hourly hire, route optimization, background geolocation, server-side/customer location history, driver or vehicle tracking, staff location view, route-completion proof, emergency/safety monitoring, or location-driven booking/pricing/payment/availability decision.
+- No live dispatch, open-ended hourly hire, route optimization, active-Ride current-device marker (Phase 12), background geolocation, server-side/customer location history, driver or vehicle tracking, staff location view, route-completion proof, emergency/safety monitoring, or location-driven booking/pricing/payment/availability decision.
 - No new tracking provider or map-provider contract outside the approved provider-neutral `PlaceSearch`/`RouteEstimate` boundary; if the approved map capability cannot render the selected route without new procurement, stop and return the decision to the lead/privacy owner.
 - No invented stop limits, waiting ranges/fees, same-vehicle rule, return rule, or route-change policy.
 - No shared domain refactor without lead approval.
 
 ### Decision and stop gates
 
-Stop if included stop count, waiting min/max/pricing, return-leg rules, same-vehicle expectation, route changes, no-show behavior, fee inclusion, approved map provider/cost/privacy terms, route-map fallback, or browser-location permission/privacy copy is unapproved. Before the guided maintainer starts, confirm the merged Phase 05 multi-interval command passes its all-or-nothing tests; if it is absent or failing, return the work to the lead and do not modify locking in Phase 09. Browser location must remain optional, same-origin/top-level, page-lifetime, and provably absent from all outbound requests and persistence; any request for background, driver/vehicle, staff-visible, or stored tracking is a new lead/privacy-owned architecture decision.
+Stop if included stop count, waiting min/max/pricing, return-leg rules, same-vehicle expectation, route changes, no-show behavior, fee inclusion, approved map provider/cost/privacy terms, or route-map fallback is unapproved. Before the guided maintainer starts, confirm the merged Phase 05 multi-interval command passes its all-or-nothing tests; if it is absent or failing, return the work to the lead and do not modify locking in Phase 09. The route-map boundary must not accept current-device coordinates or create tracking state; Phase 12 owns the separately approved active-Ride browser-location enhancement.
 
 ### Required proof
 
@@ -865,9 +865,7 @@ Stop if included stop count, waiting min/max/pricing, return-leg rules, same-veh
 - One conflicting leg blocks the exact vehicle and offers safe alternatives/custom assistance.
 - JavaScript enhancement cannot lose or reorder submitted data.
 - Selected destinations produce a usable route map plus equivalent text itinerary; provider/script failure preserves the itinerary and custom-quote path.
-- Current-device location starts only after explicit action and permission, stops/clears on every exit path, and denial/unsupported/inaccurate/interrupted fixes preserve the static route.
-- Network, Livewire, analytics, error-reporting, URL/form, storage, service-worker, log, queue, and database evidence proves no current-device coordinate leaves browser memory.
-- Location is never presented or consumed as driver/vehicle tracking, trip completion, emergency monitoring, or authoritative business state.
+- The Phase 09 map accepts only selected route/destination data, creates no current-device tracking state, and leaves a documented presentation boundary for Phase 12.
 - Stale/expired/concurrent/pending/private/staff behavior matches Phase 07.
 
 ### Standalone AI prompt
@@ -879,15 +877,15 @@ Read CLAUDE.md, roadmap.md sections 1–11 and Phase 09, PRODUCT.md, DESIGN.md, 
 
 Run Modern Web Guidance before editing the dynamic stop form, validation, accessibility, HTML/CSS, or client JavaScript. Run Impeccable for public UI. Use full EGM only if the lead approves a shared multi-component change. Ask Matt remains user-invoked only.
 
-Confirm approved stop limits, waiting bounds/pricing, return behavior, same-exact-vehicle rule, route-change/no-show behavior, fee treatment, map provider/cost/privacy terms, route fallback, and current-location permission/privacy copy. Stop with exact questions when any value is absent. Do not invent plausible defaults.
+Confirm approved stop limits, waiting bounds/pricing, return behavior, same-exact-vehicle rule, route-change/no-show behavior, fee treatment, map provider/cost/privacy terms, and route fallback. Stop with exact questions when any value is absent. Do not invent plausible defaults.
 
-Implement only Ride-specific records, ordered pickup/stops/final destination, per-stop waiting, optional separately timed return, immutable summaries, staff review/manual fields, selected-destination route map, optional browser-local current-device marker, and tests. Reuse provider-neutral location/route, Catalog suitability, Pricing, token, Booking, and the merged Phase 05 all-or-nothing multi-interval Availability command. Do not change locking architecture in this guided phase. Essential form submission, ordering, itinerary, and recovery must survive without JavaScript or map-provider success.
+Implement only Ride-specific records, ordered pickup/stops/final destination, per-stop waiting, optional separately timed return, immutable summaries, staff review/manual fields, selected-destination route map, and tests. Reuse provider-neutral location/route, Catalog suitability, Pricing, token, Booking, and the merged Phase 05 all-or-nothing multi-interval Availability command. Do not change locking architecture in this guided phase. Essential form submission, ordering, itinerary, and recovery must survive without JavaScript or map-provider success.
 
-Current-device location starts only from an explicit action on the active Ride page after purpose copy and browser permission. Keep every coordinate in page memory; clear the watch on disable, page hide/unload, component teardown, and lifecycle end. Do not transmit or store coordinates through Livewire/fetch, map-provider requests, analytics, error reporting, URLs/forms, local/session storage, service workers, logs, queues, or the database. Denial, unsupported APIs, weak/inaccurate/interrupted fixes, and provider failure retain the selected destinations and text/static route. Never label this as vehicle tracking, trip completion, or emergency monitoring.
+Expose a narrow route-map presentation boundary that Phase 12 can enhance on an active private Ride page. Phase 09 must not request browser geolocation, accept current-device coordinates, create tracking state, or imply live dispatch/vehicle tracking.
 
-Test ordering, add/remove/reorder, validation boundaries, return/no-return, all-leg availability, one-leg conflict, price/custom quote, route-map/text-itinerary parity, map-provider/script failure, explicit location action, granted/denied/unsupported/inaccurate/interrupted permission states, watch cleanup on every exit, and proof that coordinates never enter outbound requests or any storage/log/state boundary. Also test stale/expired hold, concurrency, duplicate submit, pending status, token privacy, manual booking, keyboard/screen-reader status, reduced motion, and mobile/desktop layouts. Run full repository, Impeccable, Playwright, axe, privacy/network inspection, and real-browser checks.
+Test ordering, add/remove/reorder, validation boundaries, return/no-return, all-leg availability, one-leg conflict, price/custom quote, route-map/text-itinerary parity, map-provider/script failure, and proof that Phase 09 creates no current-device geolocation request or tracking state. Also test stale/expired hold, concurrency, duplicate submit, pending status, token privacy, manual booking, keyboard/screen-reader status, reduced motion, and mobile/desktop layouts. Run full repository, Impeccable, Playwright, axe, privacy/network inspection, and real-browser checks.
 
-Prepare a PR handoff mapping policy inputs to tests, reused interfaces, multi-leg transaction proof, map-provider/privacy approval, route/text fallback screenshots, geolocation permission and cleanup states, proof of zero coordinate transmission/storage, Modern Web Guidance, Impeccable result, migration/rollback, and non-scope. Ask the lead to review schema, multi-leg availability, and the browser-location privacy boundary before final handoff. For feedback, reproduce, add regression coverage, make only a Phase 09 fix, rerun targeted/full/UI/privacy gates, and request re-review.
+Prepare a PR handoff mapping policy inputs to tests, reused interfaces, multi-leg transaction proof, map-provider/privacy approval, route/text fallback screenshots, proof that Phase 09 adds no current-device tracking state, the Phase 12 presentation boundary, Modern Web Guidance, Impeccable result, migration/rollback, and non-scope. Ask the lead to review schema, multi-leg availability, and the map boundary before final handoff. For feedback, reproduce, add regression coverage, make only a Phase 09 fix, rerun targeted/full/UI/privacy gates, and request re-review.
 ```
 
 ---
@@ -2163,6 +2161,204 @@ With `composer dev` active, verify Vite is running and hard-refresh the browser.
 ```
 
 Stop and align with `docs/development/environment.md`. Do not upgrade one maintainer's plugin or lockfile during a phase unless dependency/tooling upgrade is the approved scope.
+
+### Standalone AI prompt — guided maintainer setup with XAMPP
+
+Copy this entire prompt into a fresh Claude Code session on the guided maintainer's Windows computer. The prompt is capability-gated: it uses XAMPP only when its real PHP and database satisfy the project. It never weakens the project to fit an older XAMPP bundle.
+
+```text
+Set up the Spinellanka repository for a guided maintainer on Windows. The maintainer currently uses XAMPP. Act as a patient setup operator: explain one short step at a time, run every non-administrative check you can, and ask the maintainer only for actions that require Windows Administrator approval, passwords, browser sign-in, or a GUI. Never ask them to paste a password, token, .env file, APP_KEY, database dump, or private path into chat. Redact username-specific paths in the final report.
+
+This is environment setup only. Do not edit application behavior, product/design/planning documents, dependency constraints, lockfiles, migrations, or shared tool versions. Do not commit, push, create a phase branch/PR, reset/clean/stash work, or change a remote. Never lower PHP/database requirements, change Composer platform settings, switch tests to SQLite, skip scripts/check-environment, expose the Laravel repository root through Apache, or use a different skill/plugin version to make a check pass.
+
+Read the repository CLAUDE.md, roadmap.md sections 1–11 and 12–22, docs/development/environment.md, composer.json, package.json, .nvmrc, .env.example, scripts/check-environment, scripts/bootstrap, .claude/settings.json, .mcp.json, and skills-lock.json. These files override generic XAMPP tutorials. Use direct file tools for these configuration/docs files. Query Graft before any application-source read; setup should not require application-source edits. Ask Matt remains user-invoked only and must never be called automatically.
+
+1. Protect existing work and discover the machine
+
+Before installing or changing anything, ask where XAMPP is installed and whether this is a fresh clone. Run read-only PowerShell checks and show a redacted summary:
+
+$PSVersionTable.PSVersion
+Get-Command git, php, composer, node, npm, claude, graft -ErrorAction SilentlyContinue | Select-Object Name, Source
+where.exe php
+where.exe mysql
+where.exe node
+where.exe npm
+where.exe composer
+
+Do not assume C:\xampp. Set $XamppRoot to the path the maintainer confirms, then run:
+
+& "$XamppRoot\php\php.exe" -v
+& "$XamppRoot\php\php.exe" --ini
+& "$XamppRoot\php\php.exe" -m
+& "$XamppRoot\mysql\bin\mysql.exe" --version
+
+Inspect the actual output. XAMPP passes only if:
+- CLI PHP is 8.4 preferred or at least 8.3 and uses PHP 8.3-compatible syntax;
+- Ctype, cURL, DOM, Fileinfo, Filter, Hash, Mbstring, OpenSSL, PCRE, PDO, PDO MySQL, Session, Tokenizer, and XML are loaded; Intl and Zip are strongly recommended;
+- the database is MySQL 8.0 or MariaDB 10.11 or newer, uses InnoDB, and supports transactions;
+- Composer is 2.x;
+- Node is 26.x and npm is 11.x;
+- Git and Claude Code 2.1.327 or newer are available.
+
+If XAMPP's PHP or database fails, stop. Do not patch composer.json, use XAMPP's older database, or hide the mismatch. Recommend the verified WSL2 setup from roadmap section 12. XAMPP may remain installed for unrelated projects, but it does not become Spinellanka's runtime. If only Apache is needed from XAMPP, a separately supported PHP/database arrangement requires lead approval; do not mix binaries silently.
+
+2. Align Windows runtimes
+
+Use nvm-windows for Node 26 if needed. Never install a second unmanaged Node over an active nvm-windows installation. After the maintainer approves any installer/Administrator prompt, verify in a new PowerShell window:
+
+nvm install 26
+nvm use 26
+node --version
+npm --version
+
+Install Composer 2 against the same XAMPP php.exe only after XAMPP passes. Confirm `where.exe php` and Composer diagnostics point to that same PHP installation. If Apache will be used later, its PHP module must use the same PHP major/minor as CLI; otherwise stop.
+
+Install/sign in to Claude Code through official Anthropic instructions. Never ask for or copy its credential. Install the pinned machine-level tools under Node 26 only after approval:
+
+npm install --global @nanonets/graft@0.16.0
+npx skills add juliusbrussee/caveman@caveman -g -y
+npm install --global @caveman-ai/cli@2.1.0
+
+Verify `graft --version` is exactly 0.16.0. Caveman is available only when the user invokes it; repository prose remains normal English.
+
+3. Clone safely and load project tools
+
+Clone the canonical repository into a normal user-owned development folder, not C:\xampp\htdocs, OneDrive, a synchronized folder, or an Administrator-owned directory. Enter the clone and prove the root/clean state:
+
+git clone https://github.com/HMAHD/Spinellanka.git
+cd Spinellanka
+git rev-parse --show-toplevel
+git remote -v
+git status --short --branch
+
+Expected branch is main and the fresh tree is clean. Stop if the remote is unexpected or any file is changed/untracked. Do not delete it.
+
+Use nvm-windows to select Node 26, then install/align Impeccable from the verified repository root:
+
+npx -y impeccable@4.9.1 install --providers=claude --scope=project
+git diff --exit-code
+git status --short
+
+Stop if the project installer changes the clean checkout. Preserve and report the diff; do not accept it automatically.
+
+Inside Claude Code, add the official Ponytail marketplace/plugin and verify exactly v5.3.3:
+
+/plugin marketplace add DietrichGebert/ponytail
+/plugin install ponytail@ponytail
+
+Use /plugin to verify the source is DietrichGebert/ponytail and version is v5.3.3. Open the repository in Claude Code so committed settings load pinned EGM 0.1.1, Matt Pocock skills 1.3.1, Modern Web Guidance at the locked commit, Graft MCP/hooks, and project instructions. Do not replace committed settings or skill files. Verify:
+- Graft is 0.16.0 and responds before source work;
+- Impeccable is 4.9.1;
+- Ponytail is official v5.3.3;
+- EGM is 0.1.1 at the committed marketplace ref;
+- Matt Pocock skills are 1.3.1, with Ask Matt manual only;
+- Modern Web Guidance matches skills-lock.json;
+- Caveman and its CLI match the shared environment guide.
+
+Use Git Bash for repository Bash scripts. In that Git Bash session, put the confirmed XAMPP PHP/MySQL directories before other PHP/MySQL entries for this session only; adapt the drive/path from $XamppRoot rather than assuming /c/xampp:
+
+export PATH="/<drive>/<xampp-path>/php:/<drive>/<xampp-path>/mysql/bin:$PATH"
+hash -r
+which php
+php -v
+php -m
+mysql --version
+node --version
+npm --version
+composer --version
+claude --version
+graft --version
+./scripts/check-environment
+
+The angle-bracket path is an instruction to translate the confirmed Windows path into Git Bash syntax. Do not paste it literally. Stop on every failure. Do not edit the check script to pass the machine.
+
+4. Create a disposable local database
+
+Start only XAMPP's database service after it has passed the version gate. Keep Apache stopped for the preferred baseline run. Confirm port 3306 belongs to the intended local MySQL/MariaDB process and is not an SSH tunnel, proxy, Docker forward, or another server. Use XAMPP Shell, PowerShell with the full mysql.exe path, or phpMyAdmin only after verifying it targets 127.0.0.1:3306.
+
+Create a local-only database/user with a password entered privately by the maintainer. Never put the real password in chat or Git:
+
+CREATE DATABASE spinellanka
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+CREATE USER 'spinellanka_local'@'127.0.0.1'
+  IDENTIFIED BY '<enter-private-local-password>';
+GRANT ALL PRIVILEGES ON spinellanka.*
+  TO 'spinellanka_local'@'127.0.0.1';
+FLUSH PRIVILEGES;
+
+The password token above is not a value to paste. Ask the maintainer to type their private local password directly into the SQL client. If the database or user exists, inspect it; never drop or overwrite it automatically. Verify InnoDB and a transaction with a disposable test table, then remove only that test table.
+
+5. Install the application without overwriting secrets
+
+In PowerShell from the clean repository root, stop immediately if .env exists. Inspect it with the maintainer; never overwrite it or regenerate APP_KEY. For a fresh checkout only:
+
+composer install --no-interaction --prefer-dist
+Copy-Item .env.example .env
+
+Confirm APP_KEY is empty before running:
+
+php artisan key:generate
+npm ci --ignore-scripts
+
+Set only these local values, with the password entered locally and never printed in the report:
+
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=spinellanka
+DB_USERNAME=spinellanka_local
+DB_PASSWORD=<private-local-password>
+
+Keep the repository's database-backed queue, cache, and session settings. Run:
+
+php artisan config:clear
+php artisan migrate
+npm run build
+php artisan about
+php artisan migrate:status
+
+Do not use scripts/bootstrap when .env exists. Do not run migrate:fresh, db:wipe, or destructive SQL during setup.
+
+6. Run the project in the supported XAMPP-compatible mode
+
+Preferred mode: use XAMPP only for the accepted local database. Keep XAMPP Apache stopped and run the Laravel application, queue listener, and Vite together from the repository:
+
+composer dev
+
+Open http://127.0.0.1:8000. This avoids exposing the repository through htdocs and matches the project's normal development command.
+
+If the maintainer explicitly requires XAMPP Apache, first make the preferred mode pass. Then ask for lead approval before changing Windows hosts or Apache configuration. Configure a named local virtual host whose DocumentRoot is exactly <repository>\public, never the repository root. Enable rewrite, deny directory listing, and keep .env, storage, vendor metadata, Git, and source files outside web access. Verify Apache's PHP major/minor equals the CLI. Continue running the queue listener and Vite in separate terminals. Never use http://localhost/Spinellanka or copy the repository into htdocs as a shortcut.
+
+7. Verify as a user and as a maintainer
+
+With composer dev running, execute:
+
+curl.exe --fail --silent --show-error http://127.0.0.1:8000/up
+curl.exe --fail --silent --show-error http://127.0.0.1:8000/
+curl.exe --fail --silent --show-error http://127.0.0.1:8000/services/ride
+
+Open the app in a real browser. Verify home and all four service routes, mobile navigation, keyboard focus, reduced motion, and no console errors. Use fictional local data only.
+
+Run the full local gate in Git Bash under Node 26, with the previously verified XAMPP PHP/MySQL paths active:
+
+./scripts/check-environment
+composer validate --strict
+composer verify
+npm run format:check
+npm run build
+composer audit --locked
+npm audit --omit=dev
+
+Report each pass/failure exactly. A setup is Complete only when every environment gate, migration, build, smoke route, browser check, and full verification command passes. If XAMPP fails a capability, the status is Blocked—XAMPP and the next step is WSL2; never call it complete with a workaround.
+
+8. Final handoff
+
+Return a concise report containing redacted binary paths, versions, XAMPP capability verdict, database engine/version/port without credentials, selected run mode, skill/plugin versions, environment-check result, migration/build/test results, URLs checked, browser result, and any blocker. Confirm git status is still clean and that no .env, secret, generated database, or personal path is staged. Do not commit or push. End with the exact commands the maintainer should run each day: start the accepted XAMPP database service, enter the repository, select Node 26, run composer dev, and stop all processes when finished.
+```
 
 ---
 
