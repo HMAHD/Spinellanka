@@ -11,6 +11,7 @@
   --ink: #0f172a;
   --muted: #475569;
   --line: #cbd5e1;
+  --navy-line: #7180bf;
   --white: #ffffff;
   --page-margin: clamp(1rem, 2.2vw, 2rem);
   --content-pad: clamp(1.5rem, 5vw, 5.5rem);
@@ -29,8 +30,10 @@
   scrollbar-width: thin;
 }
 
-@view-transition {
-  navigation: auto;
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
 }
 
 *,
@@ -298,7 +301,7 @@ h1:focus-visible {
   width: 100%;
   min-height: 3.25rem;
   padding-inline: 1rem 2.5rem;
-  border: 2px solid #7180bf;
+  border: 2px solid var(--navy-line, #7180bf);
   border-radius: var(--radius);
   background: var(--navy-soft);
   color: var(--white);
@@ -826,7 +829,7 @@ h1:focus-visible {
     color: currentColor;
   }
 
-  .menu-trigger {
+  .js .menu-trigger {
     display: inline-flex;
     grid-column: 2;
     align-items: center;
@@ -1050,16 +1053,17 @@ h1:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  @view-transition {
-    navigation: none;
+  .site-nav .nav-action:active,
+  .primary-action:active,
+  .service-form button:active {
+    transform: none;
   }
 
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
+  .skip-link {
+    transition: none;
+  }
+
+  .js .site-nav[popover] {
+    transition: none;
   }
 }

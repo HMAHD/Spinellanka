@@ -14,6 +14,7 @@ colors:
   paper: "#ffffff"
   navy-reading: "#dbe4ff"
   navy-muted: "#c7d2fe"
+  navy-line: "#7180bf"
 typography:
   display:
     fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
@@ -33,6 +34,11 @@ typography:
     fontWeight: 680
     lineHeight: 0.98
     letterSpacing: "-0.035em"
+  lead:
+    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.125rem"
+    fontWeight: 400
+    lineHeight: 1.6
   body:
     fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.0625rem"
@@ -43,6 +49,11 @@ typography:
     fontSize: "0.9375rem"
     fontWeight: 650
     lineHeight: 1.6
+  caption:
+    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 400
+    lineHeight: 1.5
 rounded:
   functional: "0.75rem"
 spacing:
