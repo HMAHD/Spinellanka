@@ -18,7 +18,7 @@ This roadmap decomposes the five planned delivery phases in `docs/planning/07-de
 
 Before changing the application, use these sources in this order:
 
-1. An **Approved** or **Approved with recorded changes** revision of `docs/ux/08-acceptance-and-signoff.md` governs client-approved product/UX behavior and decided `CHG-###` changes. Its current `Draft 1` / `Pending` revision is proposed input, not client approval.
+1. An **Approved** or **Approved with recorded changes** revision of `docs/ux/08-acceptance-and-signoff.md` governs client-approved product/UX behavior and decided `CHG-###` changes. Its current `Draft 2` / `Pending` revision is proposed input, not full client sign-off; individually recorded change decisions still require the named owner's authority and evidence.
 2. `PRODUCT.md` governs product truth and non-negotiable behavior.
 3. `docs/planning/01-technology-stack.md` through `docs/planning/05-cpanel-deployment-and-operations.md` plus `docs/planning/07-delivery-roadmap-and-testing.md` govern architecture, data, security, deployment, and delivery constraints.
 4. `docs/ux/07-client-input-checklist.md` governs the provenance/readiness of client-owned facts and policies; a blank or unchecked item is unavailable.
@@ -48,6 +48,7 @@ Until an acceptance revision is signed off, only a phase separately authorized b
 - A failed message never rolls back committed booking, proposal, or payment state.
 - A previously accepted booking remains authoritative while a revision is pending.
 - Provider integrations stay behind provider-neutral interfaces.
+- Ride shows selected destinations on a route map. On the active Ride page, an explicitly enabled current-device marker may update in browser memory only; no coordinate reaches Spinellanka servers, providers, analytics, logs, storage, or business state. This is not driver/vehicle tracking, live dispatch, trip proof, or emergency monitoring.
 - No production fact, price, policy, legal text, review, support promise, credential, or image may be invented.
 
 ## 4. Engineering and security boundaries
@@ -62,7 +63,7 @@ Until an acceptance revision is signed off, only a phase separately authorized b
 - Require individual MFA-protected staff accounts. Never create a shared admin account.
 - Apply policies/permissions to routes, record queries, Livewire/Filament actions, queued commands, exports, and sensitive operations.
 - Keep `.env`, application keys, provider secrets, private tokens, production data, backups, and credentials out of Git, prompts, logs, screenshots, and PR descriptions.
-- Do not store raw card data or identity-document images. Staff record approved original-document inspection outcomes.
+- Do not store raw card data, identity-document images, or Ride current-device coordinates. Staff record approved original-document inspection outcomes; Ride geolocation remains ephemeral browser memory with explicit permission and cleanup.
 - Use backward-compatible expand/contract migrations. Keep the previous release able to run during the observation window.
 - Never weaken Laravel security to fit cPanel. If hosting lacks PHP CLI, cron, or safe `public/` document-root control, upgrade or move hosting.
 
@@ -312,7 +313,7 @@ Add phase-specific tests rather than relying only on the full gate. Schema phase
 
 - Existing public home and service routes remain available.
 - `App\Domain\Booking\ServiceType` remains the single four-service vocabulary until an approved domain design changes it.
-- The Cloud/Navy/Amber design system and self-hosted Inter Variable remain authoritative.
+- The Cloud/Navy/Amber visual system and current self-hosted Inter baseline remain intact until the approved CHG-002 migration in Phase 04 replaces Inter with Allo 1.0.3 across public/customer surfaces; never ship a mixed-font transition.
 - Current MySQL development defaults, PHP 8.3 compatibility, Node 26, npm 11, and lockfiles remain intact.
 
 ### Baseline verification
@@ -529,7 +530,8 @@ The public site offers accessible service, fleet, process, help, contact, and le
 - Preserve the existing four-service chooser and clear advance-booking/pending-confirmation language.
 - For each service, keep its booking CTA disabled or routed to the approved inquiry fallback until that service phase is merged: Airport Pickup—07, Airport Transfer—08, Ride—09, Rent—10. Phase 07 never enables the other three services.
 - Add SEO metadata only from verified content; exclude private/staff areas.
-- Preserve Cloud/Navy/Amber design tokens, Inter Variable, functional corners, no decorative shadows/gradients/pills, keyboard access, 44px targets, 3px focus ring, reduced motion, and non-JavaScript access.
+- Replace the public/customer Inter family with self-hosted official Allo 1.0.3 assets under SIL OFL 1.1. Use the upright variable WOFF2, load only used obliques, retain the license/copyright notice, preserve system fallbacks, and update `DESIGN.md`, `.impeccable/design.json`, and affected surface contracts from the rendered shipped result.
+- Preserve Cloud/Navy/Amber design tokens, the one-family rule, functional corners, no decorative shadows/gradients/pills, keyboard access, 44px targets, 3px focus ring, reduced motion, and non-JavaScript access.
 - Add responsive and accessibility tests plus current public-shell Playwright/axe coverage.
 
 ### Non-scope
@@ -540,7 +542,7 @@ The public site offers accessible service, fleet, process, help, contact, and le
 
 ### Decision and stop gates
 
-Stop when required copy, contact details, legal text, fleet facts, imagery, alt text, or proof is unverified. Render a truthful unavailable/pending state or omit the surface. Any design-system change requires lead approval, Impeccable review, and updated design records.
+Stop when required copy, contact details, legal text, fleet facts, imagery, alt text, or proof is unverified. Render a truthful unavailable/pending state or omit the surface. Any design-system change requires lead approval, Impeccable review, and updated design records. For Allo, stop if the asset is not from official `joshpuckett/allo` release/package version 1.0.3, the OFL/copyright notice is absent, or rendered fallback/layout-shift evidence is missing.
 
 ### Required proof
 
@@ -550,6 +552,7 @@ Stop when required copy, contact details, legal text, fleet facts, imagery, alt 
 - Keyboard, zoom, mobile/desktop, reduced-motion, and screen-reader semantics meet the baseline.
 - Each service CTA remains disabled/inquiry-only until its own merged phase (07/08/09/10), and no CTA implies immediate or confirmed service.
 - Public metadata contains no unverified claim.
+- Allo 1.0.3 is self-hosted with no third-party font request, its OFL/copyright notice ships, only required WOFF2 assets load, fallback remains readable, and rendered 320px/390px/768px/1440px layouts show no font-caused clipping or material layout shift.
 
 ### Standalone AI prompt
 
@@ -560,11 +563,11 @@ Read CLAUDE.md, roadmap.md sections 1–11 and Phase 04, PRODUCT.md, DESIGN.md, 
 
 Before any HTML, CSS, browser JavaScript, form, accessibility, performance, or web-platform edit, run Modern Web Guidance searches/retrieval for each relevant capability and apply required fallbacks. Run Impeccable for all public UI work. Use full EGM only if the lead approves a multi-component architecture change. Ask Matt remains user-invoked only.
 
-Build server-rendered service, fleet, how-it-works, help/FAQ, contact/support, and legal shells. Render only verified Catalog fields. Missing images or facts stay absent with a calm factual empty state, never stock content. Keep each service inquiry fallback in place until its own merged implementation: Airport Pickup Phase 07, Airport Transfer Phase 08, Ride Phase 09, and Rent Phase 10. Phase 07 does not enable all services. Preserve exact-vehicle and pending-confirmation language, semantic structure, keyboard use, 3px focus, 44px targets, reduced motion, progressive enhancement, and the approved Cloud/Navy/Amber system. Do not redesign unrelated pages.
+Build server-rendered service, fleet, how-it-works, help/FAQ, contact/support, and legal shells. Render only verified Catalog fields. Missing images or facts stay absent with a calm factual empty state, never stock content. Keep each service inquiry fallback in place until its own merged implementation: Airport Pickup Phase 07, Airport Transfer Phase 08, Ride Phase 09, and Rent Phase 10. Phase 07 does not enable all services. Preserve exact-vehicle and pending-confirmation language, semantic structure, keyboard use, 3px focus, 44px targets, reduced motion, progressive enhancement, and the approved Cloud/Navy/Amber system. Implement CHG-002 as a one-family migration from Inter to official self-hosted Allo 1.0.3: use the variable upright WOFF2, include only used obliques, retain OFL/copyright files, keep system fallbacks, prevent third-party font requests, and measure fallback/layout shift rather than guessing metric overrides. Update DESIGN.md, .impeccable/design.json, and affected surface contracts from the rendered result. Do not redesign unrelated pages.
 
 Stop and ask the lead when copy or design authority conflicts. Do not draft legal wording. Record approved client changes in docs/ux/08 and verified inputs in docs/ux/07. Update DESIGN.md, .impeccable/design.json, and surface contracts only when an approved shipped design change requires it.
 
-Add feature, accessibility, Playwright, and axe tests for navigation, empty/verified catalog, mobile/desktop layout, no-JavaScript essential content, keyboard paths, and noindex boundaries. Run the full repository gate and Impeccable detector. Launch the app, inspect 320px, 390px, 768px tablet, and 1440px renders, test keyboard, popover/select, zoom, reduced motion, and capture evidence.
+Add feature, accessibility, Playwright, and axe tests for navigation, empty/verified catalog, mobile/desktop layout, no-JavaScript essential content, keyboard paths, and noindex boundaries. Run the full repository gate and Impeccable detector. Launch the app, inspect 320px, 390px, 768px tablet, and 1440px renders, test keyboard, popover/select, zoom, reduced motion, and capture evidence. Inspect network/font loading, fallback rendering, weight coverage, clipping/overflow, and layout shift with Allo at every required viewport.
 
 Prepare a PR handoff naming applied Modern Web Guidance guides, Impeccable result, screenshots, content sources, omitted unverified inputs, tests, and unchanged non-scope. For review feedback, reproduce the finding, make the smallest Phase 04 correction, rerun targeted/full/UI checks, update evidence, and request re-review.
 ```
@@ -830,7 +833,7 @@ Prepare a PR handoff listing reused patterns, approved policy sources, calculati
 
 ### Independently usable outcome
 
-Travelers can request a chauffeured point-to-point or multi-stop Ride with ordered stops, approved waiting information, and an optional separately timed return leg. Suitability, exact vehicle, estimate/custom quote, holds, review, pending submission, staff review, and manual entry use the established core.
+Travelers can request a chauffeured point-to-point or multi-stop Ride with ordered stops, approved waiting information, and an optional separately timed return leg. Selecting destinations produces a provider-neutral map/route preview. On the active Ride page, the traveler may explicitly enable a current-device marker that updates locally while the page is open and never reaches Spinellanka servers or storage. Suitability, exact vehicle, estimate/custom quote, holds, review, pending submission, staff review, and manual entry use the established core.
 
 ### Scope
 
@@ -839,18 +842,21 @@ Travelers can request a chauffeured point-to-point or multi-stop Ride with order
 - Check the exact vehicle across all required blocking legs and buffers through Availability.
 - Price only approved route, stop, wait, and return components through Pricing.
 - Preserve ordered customer input and immutable submitted summaries.
+- Render the selected pickup/stops/final destination on a provider-neutral static/interactive route map with a text itinerary and no-map fallback.
+- On the active Ride guest page only, add an explicit “Show my location” action. After browser permission, keep `watchPosition` results in page memory only, update a customer-device marker, expose accuracy/unavailable status accessibly, and clear the watch on disable, page hide/unload, or lifecycle end. Never send coordinates through Livewire/fetch, provider requests, analytics, error reporting, URLs, forms, storage, service workers, queues, logs, or the database.
 - Add accessible add/remove/reorder interactions with a server-rendered fallback.
 - Add staff review/manual-entry fields and complete tests.
 
 ### Non-scope
 
-- No live dispatch, open-ended hourly hire, route optimization, automatic tracking, new map contract, or client-side-only state.
+- No live dispatch, open-ended hourly hire, route optimization, background geolocation, server-side/customer location history, driver or vehicle tracking, staff location view, route-completion proof, emergency/safety monitoring, or location-driven booking/pricing/payment/availability decision.
+- No new tracking provider or map-provider contract outside the approved provider-neutral `PlaceSearch`/`RouteEstimate` boundary; if the approved map capability cannot render the selected route without new procurement, stop and return the decision to the lead/privacy owner.
 - No invented stop limits, waiting ranges/fees, same-vehicle rule, return rule, or route-change policy.
 - No shared domain refactor without lead approval.
 
 ### Decision and stop gates
 
-Stop if included stop count, waiting min/max/pricing, return-leg rules, same-vehicle expectation, route changes, no-show behavior, or fee inclusion is unapproved. Before the guided maintainer starts, confirm the merged Phase 05 multi-interval command passes its all-or-nothing tests; if it is absent or failing, return the work to the lead and do not modify locking in Phase 09.
+Stop if included stop count, waiting min/max/pricing, return-leg rules, same-vehicle expectation, route changes, no-show behavior, fee inclusion, approved map provider/cost/privacy terms, route-map fallback, or browser-location permission/privacy copy is unapproved. Before the guided maintainer starts, confirm the merged Phase 05 multi-interval command passes its all-or-nothing tests; if it is absent or failing, return the work to the lead and do not modify locking in Phase 09. Browser location must remain optional, same-origin/top-level, page-lifetime, and provably absent from all outbound requests and persistence; any request for background, driver/vehicle, staff-visible, or stored tracking is a new lead/privacy-owned architecture decision.
 
 ### Required proof
 
@@ -858,6 +864,10 @@ Stop if included stop count, waiting min/max/pricing, return-leg rules, same-veh
 - Optional return is a separately timed leg and all required intervals are protected atomically.
 - One conflicting leg blocks the exact vehicle and offers safe alternatives/custom assistance.
 - JavaScript enhancement cannot lose or reorder submitted data.
+- Selected destinations produce a usable route map plus equivalent text itinerary; provider/script failure preserves the itinerary and custom-quote path.
+- Current-device location starts only after explicit action and permission, stops/clears on every exit path, and denial/unsupported/inaccurate/interrupted fixes preserve the static route.
+- Network, Livewire, analytics, error-reporting, URL/form, storage, service-worker, log, queue, and database evidence proves no current-device coordinate leaves browser memory.
+- Location is never presented or consumed as driver/vehicle tracking, trip completion, emergency monitoring, or authoritative business state.
 - Stale/expired/concurrent/pending/private/staff behavior matches Phase 07.
 
 ### Standalone AI prompt
@@ -869,13 +879,15 @@ Read CLAUDE.md, roadmap.md sections 1–11 and Phase 09, PRODUCT.md, DESIGN.md, 
 
 Run Modern Web Guidance before editing the dynamic stop form, validation, accessibility, HTML/CSS, or client JavaScript. Run Impeccable for public UI. Use full EGM only if the lead approves a shared multi-component change. Ask Matt remains user-invoked only.
 
-Confirm approved stop limits, waiting bounds/pricing, return behavior, same-exact-vehicle rule, route-change/no-show behavior, and fee treatment. Stop with exact questions when any value is absent. Do not invent plausible defaults.
+Confirm approved stop limits, waiting bounds/pricing, return behavior, same-exact-vehicle rule, route-change/no-show behavior, fee treatment, map provider/cost/privacy terms, route fallback, and current-location permission/privacy copy. Stop with exact questions when any value is absent. Do not invent plausible defaults.
 
-Implement only Ride-specific records, ordered pickup/stops/final destination, per-stop waiting, optional separately timed return, immutable summaries, staff review/manual fields, and tests. Reuse provider-neutral location/route, Catalog suitability, Pricing, token, Booking, and the merged Phase 05 all-or-nothing multi-interval Availability command. Do not change locking architecture in this guided phase. Essential form submission and ordering must survive without JavaScript.
+Implement only Ride-specific records, ordered pickup/stops/final destination, per-stop waiting, optional separately timed return, immutable summaries, staff review/manual fields, selected-destination route map, optional browser-local current-device marker, and tests. Reuse provider-neutral location/route, Catalog suitability, Pricing, token, Booking, and the merged Phase 05 all-or-nothing multi-interval Availability command. Do not change locking architecture in this guided phase. Essential form submission, ordering, itinerary, and recovery must survive without JavaScript or map-provider success.
 
-Test ordering, add/remove/reorder, validation boundaries, return/no-return, all-leg availability, one-leg conflict, price/custom quote, provider failure, stale/expired hold, concurrency, duplicate submit, pending status, token privacy, manual booking, keyboard/screen-reader behavior, and mobile/desktop layouts. Run full repository, Impeccable, Playwright, axe, and real-browser checks.
+Current-device location starts only from an explicit action on the active Ride page after purpose copy and browser permission. Keep every coordinate in page memory; clear the watch on disable, page hide/unload, component teardown, and lifecycle end. Do not transmit or store coordinates through Livewire/fetch, map-provider requests, analytics, error reporting, URLs/forms, local/session storage, service workers, logs, queues, or the database. Denial, unsupported APIs, weak/inaccurate/interrupted fixes, and provider failure retain the selected destinations and text/static route. Never label this as vehicle tracking, trip completion, or emergency monitoring.
 
-Prepare a PR handoff mapping policy inputs to tests, reused interfaces, multi-leg transaction proof, screenshots, web guidance, Impeccable result, migration/rollback, and non-scope. Ask the lead to review schema and multi-leg availability before final handoff. For feedback, reproduce, add regression coverage, make only a Phase 09 fix, rerun targeted/full/UI gates, and request re-review.
+Test ordering, add/remove/reorder, validation boundaries, return/no-return, all-leg availability, one-leg conflict, price/custom quote, route-map/text-itinerary parity, map-provider/script failure, explicit location action, granted/denied/unsupported/inaccurate/interrupted permission states, watch cleanup on every exit, and proof that coordinates never enter outbound requests or any storage/log/state boundary. Also test stale/expired hold, concurrency, duplicate submit, pending status, token privacy, manual booking, keyboard/screen-reader status, reduced motion, and mobile/desktop layouts. Run full repository, Impeccable, Playwright, axe, privacy/network inspection, and real-browser checks.
+
+Prepare a PR handoff mapping policy inputs to tests, reused interfaces, multi-leg transaction proof, map-provider/privacy approval, route/text fallback screenshots, geolocation permission and cleanup states, proof of zero coordinate transmission/storage, Modern Web Guidance, Impeccable result, migration/rollback, and non-scope. Ask the lead to review schema, multi-leg availability, and the browser-location privacy boundary before final handoff. For feedback, reproduce, add regression coverage, make only a Phase 09 fix, rerun targeted/full/UI/privacy gates, and request re-review.
 ```
 
 ---
@@ -1551,9 +1563,9 @@ Review and, where authorized, fix Spinellanka Phase 04 on branch phase/04-public
 
 Read CLAUDE.md, roadmap.md sections 1–11 and Phase 04, PRODUCT.md, DESIGN.md, .impeccable/design.json, affected .impeccable/surfaces contracts, docs/planning/06-production-design-direction.md, docs/ux/07-client-input-checklist.md content/fleet/imagery/proof sections, docs/ux/08-acceptance-and-signoff.md, PR/diff, screenshots, and tests. Query Graft first. Invoke /ponytail-review branch and /code-review. Use /egm-review if public surfaces conflict with Catalog/service architecture. Run Modern Web Guidance searches/retrieval and Impeccable context, audit, and polish. Ask Matt remains user-invoked only.
 
-Review code and plan for fabricated claims/assets; private data exposure; wrong exact-vehicle detail/eligibility; CTA activation before Phases 07/08/09/10; inaccessible or broken responsive layout; missing alt text provenance; image/LCP/CLS waste; improper headings/landmarks/focus; unsupported browser behavior without fallback; design-token drift; stale surface/DESIGN records; and missing empty/pending states. Report Must fix, Should fix, and Nice to have with concrete failure, exact location, consequence, and minimal fix.
+Review code and plan for fabricated claims/assets; private data exposure; wrong exact-vehicle detail/eligibility; CTA activation before Phases 07/08/09/10; inaccessible or broken responsive layout; missing alt text provenance; image/LCP/CLS waste; improper headings/landmarks/focus; unsupported browser behavior without fallback; mixed Inter/Allo output; unofficial or wrong-version font assets; absent OFL/copyright notice; third-party font requests; unused oblique payloads; unreadable fallback or font-caused layout shift/clipping; design-token drift; stale surface/DESIGN records; and missing empty/pending states. Report Must fix, Should fix, and Nice to have with concrete failure, exact location, consequence, and minimal fix.
 
-Fix confirmed in-scope defects only. Stop for content approval, image rights, service eligibility, CTA/product behavior, or design-direction decisions. Add regression/browser coverage. Run targeted tests, Modern Web Guidance compliance check, Impeccable detector/audit/polish, real-browser journeys at 320px/390px/768px/1440px, keyboard, 200% zoom, screen reader, reduced motion, slow/failure and console checks, plus full repository gates. Rerun Ponytail/code review. Finish with ship/fix-required verdict, applied guide IDs, screenshots, unresolved plan defects/owners, and no-fabrication evidence.
+Fix confirmed in-scope defects only. Stop for content approval, image rights, service eligibility, CTA/product behavior, font source/license, or design-direction decisions. Add regression/browser coverage. Run targeted tests, Modern Web Guidance compliance check, Impeccable detector/audit/polish, real-browser journeys at 320px/390px/768px/1440px, keyboard, 200% zoom, screen reader, reduced motion, slow/failure and console checks, network/font payload inspection, fallback rendering, and layout-shift/clipping review, plus full repository gates. Rerun Ponytail/code review. Finish with ship/fix-required verdict, applied guide IDs, screenshots, Allo source/version/license evidence, updated design records, unresolved plan defects/owners, and no-fabrication evidence.
 ```
 
 ## Phase 05 review-and-fix prompt
@@ -1611,9 +1623,9 @@ Review and, where authorized, fix Spinellanka Phase 09 on branch phase/09-ride. 
 
 Read CLAUDE.md, roadmap.md sections 1–11 and Phase 09, PRODUCT.md, the approved Phase 07 pattern, Phase 05 multi-interval design/tests, applicable architecture/data/security docs, docs/ux/07-client-input-checklist.md Ride/geography/timing/pricing/support sections, docs/ux/08-acceptance-and-signoff.md, PR/diff, migrations, and tests. Query Graft first and trace shared multi-interval callers. Invoke /ponytail-review branch and /code-review; invoke /egm-review if shared availability/lifecycle drift exists. Run Modern Web Guidance and Impeccable for UI. Ask Matt remains user-invoked only.
 
-Review code and plan for outbound/return partial commits; wrong overlap or ordering; same-exact-vehicle failure; lock redesign outside Phase 05; duplicate core booking logic; stop/wait/route-change assumptions; timezone/duration boundaries; stale hold/estimate; pending status/contact/consent drift; custom-quote/failure gaps; and concurrency tests that cannot prove all-or-nothing behavior. Classify Must fix, Should fix, and Nice to have with exact input/interleaving, location, consequence, and minimal fix.
+Review code and plan for outbound/return partial commits; wrong overlap or ordering; same-exact-vehicle failure; lock redesign outside Phase 05; duplicate core booking logic; stop/wait/route-change assumptions; timezone/duration boundaries; stale hold/estimate; pending status/contact/consent drift; custom-quote/failure gaps; route map not matching ordered destinations; JavaScript/provider failure losing the itinerary; geolocation starting without explicit action; coordinates entering Livewire/fetch/provider/analytics/error-reporting/URL/form/storage/service-worker/log/queue/database boundaries; watch cleanup leaks; denial/unsupported/inaccurate states blocking the Ride page; location presented as vehicle tracking or trip proof; and concurrency tests that cannot prove all-or-nothing behavior. Classify Must fix, Should fix, and Nice to have with exact input/interleaving or privacy failure, location, consequence, and minimal fix.
 
-Fix confirmed Ride-owned defects only. Stop for wait/stop/return/same-vehicle/route policy, rates, or Availability redesign. Add single-leg, two-leg, one-conflicting-leg atomic rollback, duplicate, stale, concurrent, ordering, permission, and UI regression tests. Run Phase 05 concurrency matrix on MariaDB/MySQL, Phase 07 regressions, Ride Playwright/axe and responsive checks, full gates, then Ponytail/code review again. Finish with ship/fix-required verdict, transaction evidence, unresolved plan defects/owners, and rollback impact.
+Fix confirmed Ride-owned defects only. Stop for wait/stop/return/same-vehicle/route policy, rates, map-provider/privacy terms, location copy, or Availability redesign. Add single-leg, two-leg, one-conflicting-leg atomic rollback, duplicate, stale, concurrent, ordering, route-map/text-fallback, provider/script failure, explicit permission, granted/denied/unsupported/inaccurate/interrupted location, watch cleanup, zero-coordinate-egress, permission, and UI regression tests. Run the Phase 05 concurrency matrix on MariaDB/MySQL, Phase 07 regressions, Ride Playwright/axe, privacy/network/storage inspection, responsive/keyboard/reduced-motion checks, full gates, then Ponytail/code review again. Finish with ship/fix-required verdict, transaction and location-boundary evidence, unresolved plan defects/owners, and rollback impact.
 ```
 
 ## Phase 10 review-and-fix prompt
@@ -1734,7 +1746,8 @@ Use one of these environments:
 
 - macOS with PHP 8.4 preferred, Composer 2, MySQL 8 or MariaDB 10.11, and NVM.
 - Linux with PHP 8.4 preferred or PHP 8.3, Composer 2, MySQL 8 or MariaDB 10.11, and NVM.
-- Windows through WSL2 Ubuntu. Keep the repository, PHP, Composer, Node, and database inside WSL for consistent permissions and paths. Native Windows is not a verified project baseline.
+- Windows through WSL2 Ubuntu. Keep the repository, PHP, Composer, Node, and database inside WSL for consistent permissions and paths. This remains the verified Windows baseline.
+- Native Windows with XAMPP is conditional, not automatically supported. It may be used only when XAMPP's actual CLI PHP is 8.3+ with every required extension and its database is MySQL 8.0 or MariaDB 10.11+ with InnoDB/transactions. The exact binaries used by Composer, Artisan, Apache, and database clients must pass the same project checks. If any gate fails, use WSL2; never lower Composer/platform requirements, switch to SQLite, mix hidden PHP installations, or bypass `scripts/check-environment`.
 
 Do not use Docker as a substitute unless the project lead approves and commits a shared Docker environment. Both maintainers should use the locked runtime and dependency graph rather than separate ad hoc environments.
 

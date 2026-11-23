@@ -1,8 +1,8 @@
 # 08 — Acceptance and Sign-off
 
 **Working title:** Sri Lanka Travel Mobility — UX Planning Package  
-**Revision:** Draft 1  
-**Prepared:** 2026-11-16  
+**Revision:** Draft 2  
+**Prepared:** 2026-11-23  
 **Approval applies to:** requirements, information architecture, user flows, screen/state coverage, and low-fidelity wireframe structure—not final visual design or production implementation.
 
 ## 1. Approval options
@@ -36,7 +36,7 @@ The client confirms the four service definitions:
 ### 3.1 Search and availability
 
 - ☐ Home asks the traveler to choose a service before seeing its tailored form.
-- ☐ Locations support search, map pin, and written instructions.
+- ☐ Locations support search, destination map/route preview, optional map pin, and written instructions.
 - ☐ All service times are Sri Lanka time, with optional local-time guidance.
 - ☐ Passenger/luggage/assistance requirements filter incompatible vehicles.
 - ☐ Availability uses full time windows, buffers, manual bookings, maintenance, and holds.
@@ -49,7 +49,8 @@ The client confirms the four service definitions:
 
 - ☐ Airport Pickup collects flight/arrival, destination, meet-and-greet, passenger/luggage, and waiting/no-show context.
 - ☐ Airport Transfer recommends pickup time from flight/route context and warns on later override.
-- ☐ Ride supports ordered stops, waiting per stop, and optional separately timed return legs.
+- ☐ Ride supports ordered stops, waiting per stop, optional separately timed return legs, and a map of the selected destinations.
+- ☐ During an active Ride, the traveler may explicitly enable current-device position on that map while the page is open; permission denial or location failure keeps the static route and itinerary usable, and Spinellanka does not transmit or store the position.
 - ☐ Rent clearly states self-drive/no driver, uses 24-hour periods, collects eligibility context, and checks original documents at handover rather than uploading them.
 
 ### 3.3 Request, proposal, and payment
@@ -144,7 +145,7 @@ This register summarizes confirmed discovery decisions.
 | Availability | Time-window schedule with buffers, blocks, manual bookings, and conflicts |
 | Suitability | Hard passenger/luggage/accessibility/feature filters |
 | Checkout hold | 15 minutes after exact-vehicle selection |
-| Location | Search + optional map pin + instructions |
+| Location | Search + destination map/route preview + optional pin + instructions; Ride may show permission-gated current-device position locally while its page is open, with no server transmission/storage |
 | Time zone | Sri Lanka time; optional traveler local equivalent |
 | Price | Itemized estimate before submission; staff confirms final |
 | Currency | USD primary + approximate LKR |
@@ -199,8 +200,8 @@ Only items entered here modify this draft.
 
 | Change ID | Request | Reason | Affected requirement/screen IDs | Owner | Decision | Applied in revision |
 |---|---|---|---|---|---|---|
-| CHG-001 |  |  |  |  | Pending |  |
-| CHG-002 |  |  |  |  | Pending |  |
+| CHG-001 | Add a selected-destination map to Ride and an optional, permission-gated current-device marker while the active Ride page is open; no location reaches Spinellanka servers or storage | Give the traveler local visual progress without adding dispatch or vehicle tracking | Sections 3.1, 3.2, 6, 7; Ride booking and active guest Ride map | Project lead / product owner, 2026-11-23 | Approved as browser-local only; privacy copy remains an owner-approved launch input | Draft 2 |
+| CHG-002 | Replace Inter with self-hosted Allo 1.0.3 under SIL OFL 1.1 across the public/customer design system | Adopt the requested friendly screen-optimized type family without adding a second font or third-party runtime request | Production design direction, public shell, customer forms/status surfaces, DESIGN.md and Impeccable records when shipped | Project lead / design owner, 2026-11-23 | Approved; implementation must include license, fallback, performance, and rendered-layout verification | Draft 2 |
 | CHG-003 |  |  |  |  | Pending |  |
 
 ## 9. Client-input ownership

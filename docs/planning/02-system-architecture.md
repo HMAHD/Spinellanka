@@ -124,6 +124,8 @@ Provider selection is intentionally isolated behind these capabilities:
 - `ExchangeRateSource`;
 - `ErrorReporter`.
 
+Ride current-device display is a browser-only presentation enhancement, not a provider/domain capability or tracking subsystem. The browser requests geolocation only after a traveler explicitly enables it on an active Ride map, uses the position in memory to update that map while the page is open, and clears the watch when disabled, hidden/unloaded, or no longer needed. The position must not be sent through Livewire, analytics, logs, error reporting, provider requests controlled by Spinellanka, queues, or persistence. Booking, route, pricing, availability, payment, driver, staff, and audit state never depend on it. The selected destinations and static provider route remain usable when permission is denied, unavailable, inaccurate, or interrupted. Live driver/vehicle tracking remains out of scope.
+
 The launch recommendation is Google Maps Platform for place/route quality, Meta WhatsApp Cloud API for direct messaging, Postmark for transactional email, and a hosted Sri Lankan payment gateway approved by the client's merchant bank. Payment provider selection is a finance-owned procurement gate because settlement currency, refunds, deposits, merchant eligibility, and cPanel origin/webhook requirements must be verified with the actual account.
 
 The initial LKR approximation may use an audited admin-entered rate with value, source note, effective time, and actor. This avoids making booking availability depend on an exchange-rate API.
@@ -133,6 +135,7 @@ The initial LKR approximation may use an audited admin-entered rate with value, 
 | Failure | Safe behavior |
 |---|---|
 | Maps/place API unavailable | Preserve entered text/pin; allow staff-reviewed custom quote when route cannot be priced safely |
+| Ride browser location denied/unavailable/inaccurate | Keep selected destinations, itinerary, and static route usable; show neutral local guidance and never infer trip status |
 | Pricing calculation unavailable | Remove estimate, preserve criteria, submit transparent custom-quote request |
 | WhatsApp/email unavailable | Commit booking action, show reference/private link, queue retry, alert staff |
 | Payment callback delayed | Show pending; reconcile idempotently; never prompt an automatic duplicate charge |

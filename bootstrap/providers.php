@@ -6,5 +6,5 @@ use App\Providers\Filament\AdminPanelProvider;
 return [
     AppServiceProvider::class,
     AdminPanelProvider::class,
-    App\Providers\Filament\AdminPanelProvider::class,
+    AdminPanelProvider::class,
 ];

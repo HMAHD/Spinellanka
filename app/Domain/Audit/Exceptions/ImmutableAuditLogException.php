@@ -11,4 +11,3 @@ class ImmutableAuditLogException extends RuntimeException
         parent::__construct($message);
     }
 }
-
