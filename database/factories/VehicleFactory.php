@@ -37,4 +37,3 @@ class VehicleFactory extends Factory
         ];
     }
 }
-

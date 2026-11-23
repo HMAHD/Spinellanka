@@ -33,4 +33,3 @@ class VehicleDriverAssignmentPolicy
         return $user->can(Permission::FleetManage->value);
     }
 }
-

@@ -218,4 +218,3 @@ class VehicleResource extends Resource
         ];
     }
 }
-

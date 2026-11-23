@@ -25,4 +25,3 @@ class VehicleMediaFactory extends Factory
         ];
     }
 }
-

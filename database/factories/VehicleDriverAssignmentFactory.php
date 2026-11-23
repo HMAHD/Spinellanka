@@ -24,4 +24,3 @@ class VehicleDriverAssignmentFactory extends Factory
         ];
     }
 }
-
