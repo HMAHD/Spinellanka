@@ -64,11 +64,20 @@
         "ref": "70406c4d22cc7ea8299637c2c5b44625c48b3f08"
       },
       "autoUpdate": false
+    },
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail",
+        "ref": "v5.3.3"
+      },
+      "autoUpdate": false
     }
   },
   "enabledPlugins": {
     "egm@egm": true,
-    "mattpocock-skills@claude-plugins-official": true
+    "mattpocock-skills@claude-plugins-official": true,
+    "ponytail@ponytail": true
   },
   "footerLinksRegexes": [
     "graft/[\\w./-]+\\.md"
