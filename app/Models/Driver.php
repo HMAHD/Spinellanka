@@ -8,6 +8,7 @@ use Database\Factories\DriverFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @use HasFactory<DriverFactory>
@@ -59,6 +60,15 @@ class Driver extends Model
             'public_trust_facts' => 'array',
             'status' => DriverStatus::class,
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleted(function (Driver $driver): void {
+            if ($driver->portrait_path && Storage::disk('public')->exists($driver->portrait_path)) {
+                Storage::disk('public')->delete($driver->portrait_path);
+            }
+        });
     }
 
     /**

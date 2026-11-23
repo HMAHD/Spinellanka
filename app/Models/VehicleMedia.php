@@ -8,6 +8,7 @@ use Database\Factories\VehicleMediaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @use HasFactory<VehicleMediaFactory>
@@ -50,6 +51,15 @@ class VehicleMedia extends Model
             'is_approved' => 'boolean',
             'media_type' => MediaType::class,
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleted(function (VehicleMedia $media): void {
+            if (Storage::disk($media->disk)->exists($media->file_path)) {
+                Storage::disk($media->disk)->delete($media->file_path);
+            }
+        });
     }
 
     /**
