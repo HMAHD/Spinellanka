@@ -24,7 +24,7 @@ related_targets:
 
 **THESIS:** The page behaves like a calm mobility desk: a fixed service-selection object beside a concise reading column. It refuses glossy travel imagery and equal feature-card grids.
 
-**OWN-WORLD:** Cloud canvas and Spinel Navy divide the page into clean fields; Ceylon Amber marks only the active service and primary action. Inter, square-edged paper slips, itinerary rows, generous spacing, and 10–12px functional corners carry the system without gradients, shadows, or invented pictures.
+**OWN-WORLD:** Cloud canvas and Spinel Navy divide the page into clean fields; Ceylon Amber marks only the active service and primary action. Allo, square-edged paper slips, itinerary rows, generous spacing, and 10–12px functional corners carry the system without gradients, shadows, or invented pictures.
 
 **STORY:** A traveler identifies the offer, chooses one of four services, learns that exact vehicles are selected and every request awaits staff confirmation, then reads the request sequence. The selected service opens a dedicated factual page.
 
