@@ -203,16 +203,16 @@ it('renders how-it-works page with 4-step workflow, Sri Lanka timezone, and adva
         ->assertSee('In-Person Handover for Rent');
 });
 
-it('renders help and FAQ page with accessible accordion details', function (): void {
+it('renders help and FAQ page with accessible accordion details and truthful pending notice', function (): void {
     $response = $this->get(route('help'));
 
     $response->assertOk()
         ->assertSee('Help &amp; Frequently Asked Questions', false)
+        ->assertSee('FAQ Verification in Progress')
         ->assertSee('How far in advance should I book?')
         ->assertSee('What does exact vehicle selection mean?')
         ->assertSee('What time zone are bookings scheduled in?')
-        ->assertSee('What is included with Airport Pickup?')
-        ->assertSee('What is required for self-drive Rent?')
+        ->assertSee('What four services are available?')
         ->assertSee('details class="faq-item"', false)
         ->assertSee('summary class="faq-question"', false);
 });
@@ -221,23 +221,23 @@ it('redirects /faq to /help via 301 redirect', function (): void {
     $this->get('/faq')->assertRedirect(route('help'))->assertStatus(301);
 });
 
-it('renders contact page with phased service launch timeline and checklist verification notice', function (): void {
+it('renders contact page with customer-facing service launch sequence and operator verification notice', function (): void {
     $response = $this->get(route('contact'));
 
     $response->assertOk()
         ->assertSee('Contact &amp; Inquiries', false)
-        ->assertSee('Phase 07:')
+        ->assertSee('Service Launch Sequence')
         ->assertSee('Airport Pickup')
-        ->assertSee('Phase 08:')
         ->assertSee('Airport Transfer')
-        ->assertSee('Phase 09:')
         ->assertSee('Ride')
-        ->assertSee('Phase 10:')
         ->assertSee('Rent')
-        ->assertSee('Checklist Section 1');
+        ->assertSee('Contact Details Verification')
+        ->assertSee('finalized with the local operator')
+        ->assertDontSee('Phase 07:')
+        ->assertDontSee('Checklist Section 1');
 });
 
-it('renders terms and privacy pages with noindex metadata and truthful legal pending status', function (): void {
+it('renders terms and privacy pages with noindex metadata and truthful legal pending status without drafted legal commitments', function (): void {
     $termsResponse = $this->get(route('legal.terms'));
     $termsResponse->assertOk()
         ->assertSee('Terms of Service')
@@ -247,8 +247,9 @@ it('renders terms and privacy pages with noindex metadata and truthful legal pen
     $privacyResponse = $this->get(route('legal.privacy'));
     $privacyResponse->assertOk()
         ->assertSee('Privacy Policy')
-        ->assertSee('Policy Finalization in Progress')
-        ->assertSee('Data Minimization Standards')
+        ->assertSee('Policy Verification in Progress')
+        ->assertSee('no-account model')
+        ->assertDontSee('never sold or disclosed to third-party advertisers')
         ->assertSee('name="robots" content="noindex, nofollow"', false);
 });
 
@@ -302,4 +303,45 @@ it('verifies that self-hosted Allo 1.0.3 font files and licenses exist in public
     expect(file_exists(public_path('fonts/allo/OFL.txt')))->toBeTrue();
     expect(file_exists(public_path('fonts/allo/LICENSE.txt')))->toBeTrue();
     expect(filesize(public_path('fonts/allo/AlloVariable.woff2')))->toBeGreaterThan(400000);
+});
+
+it('verifies vehicle publicApprovedMedia scope, getUrl helper, and eligibleServiceLabels helper', function (): void {
+    Storage::fake('public');
+    Storage::fake('local');
+
+    $vehicle = Vehicle::factory()->create([
+        'eligible_for_pickup' => true,
+        'eligible_for_transfer' => false,
+        'eligible_for_ride' => true,
+        'eligible_for_rent' => false,
+    ]);
+
+    $approvedPublicMedia = VehicleMedia::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'disk' => 'public',
+        'file_path' => 'vehicles/front.webp',
+        'is_approved' => true,
+        'sort_order' => 1,
+    ]);
+
+    $unapprovedMedia = VehicleMedia::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'disk' => 'public',
+        'file_path' => 'vehicles/draft.webp',
+        'is_approved' => false,
+        'sort_order' => 2,
+    ]);
+
+    $privateMedia = VehicleMedia::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'disk' => 'local',
+        'file_path' => 'private/registration.pdf',
+        'is_approved' => true,
+        'sort_order' => 3,
+    ]);
+
+    expect($vehicle->publicApprovedMedia)->toHaveCount(1);
+    expect($vehicle->publicApprovedMedia->first()->id)->toBe($approvedPublicMedia->id);
+    expect($approvedPublicMedia->getUrl())->toBe(Storage::disk('public')->url('vehicles/front.webp'));
+    expect($vehicle->eligibleServiceLabels())->toBe(['Airport Pickup', 'Ride']);
 });
