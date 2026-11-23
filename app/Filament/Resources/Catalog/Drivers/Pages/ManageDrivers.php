@@ -28,4 +28,3 @@ class ManageDrivers extends ManageRecords
         ];
     }
 }
-

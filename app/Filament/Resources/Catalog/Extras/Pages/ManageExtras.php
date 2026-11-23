@@ -28,4 +28,3 @@ class ManageExtras extends ManageRecords
         ];
     }
 }
-

@@ -33,4 +33,3 @@ class VehicleMediaPolicy
         return $user->can(Permission::FleetManage->value);
     }
 }
-

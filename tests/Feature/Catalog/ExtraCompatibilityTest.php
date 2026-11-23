@@ -77,4 +77,3 @@ test('inactive extra is never compatible regardless of rules', function (): void
 
     expect($service->isCompatible($extra, ServiceType::AirportPickup, $vehicle))->toBeFalse();
 });
-

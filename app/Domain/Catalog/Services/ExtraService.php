@@ -67,4 +67,3 @@ class ExtraService
         return $allActive->filter(fn (Extra $extra) => $this->isCompatible($extra, $serviceType, $vehicle))->values();
     }
 }
-

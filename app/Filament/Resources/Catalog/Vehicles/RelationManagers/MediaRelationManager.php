@@ -93,4 +93,3 @@ class MediaRelationManager extends RelationManager
             ]);
     }
 }
-

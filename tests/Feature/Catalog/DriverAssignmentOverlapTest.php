@@ -123,4 +123,3 @@ test('cannot assign inactive driver to a vehicle', function (): void {
     expect(fn () => $service->assignPermanentDriver($vehicle, $inactiveDriver, $start, null, $this->owner))
         ->toThrow(DriverAssignmentConflictException::class);
 });
-
