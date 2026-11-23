@@ -70,3 +70,96 @@ jobs:
 
       - name: Audit production dependencies
         run: npm audit --omit=dev
+
+  release-artifact:
+    name: Package & Verify Release Artifact
+    runs-on: ubuntu-latest
+    needs: [php, frontend]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Package Release Artifact
+        run: ./scripts/package-release --output-dir dist
+
+      - name: Verify Checksum Integrity
+        run: |
+          cd dist
+          sha256sum -c release.tar.gz.sha256
+
+      - name: Verify Corrupted Checksum Rejection
+        run: |
+          cd dist
+          cp release.tar.gz release.tar.gz.bak
+          echo "corruption_payload" >> release.tar.gz
+          if sha256sum -c release.tar.gz.sha256; then
+            echo "::error::Corrupted archive passed checksum verification!"
+            exit 1
+          fi
+          echo "Corrupted checksum was rejected as expected."
+          mv release.tar.gz.bak release.tar.gz
+
+      - name: Verify Strict Artifact Exclusions
+        run: |
+          mkdir -p check-artifact
+          tar -xzf dist/release.tar.gz -C check-artifact
+
+          # Assert excluded files are NOT present
+          if find check-artifact -name ".env*" | grep -q .; then
+            echo "::error::Release artifact contains .env files!"
+            exit 1
+          fi
+          if [[ -d check-artifact/tests ]]; then
+            echo "::error::Release artifact contains tests/ directory!"
+            exit 1
+          fi
+          if [[ -d check-artifact/.git ]]; then
+            echo "::error::Release artifact contains .git directory!"
+            exit 1
+          fi
+          if [[ -d check-artifact/node_modules ]]; then
+            echo "::error::Release artifact contains node_modules!"
+            exit 1
+          fi
+          if find check-artifact -name "*.sqlite*" | grep -q .; then
+            echo "::error::Release artifact contains sqlite files!"
+            exit 1
+          fi
+          if [[ -f check-artifact/phpunit.xml || -f check-artifact/phpstan.neon ]]; then
+            echo "::error::Release artifact contains development configuration files!"
+            exit 1
+          fi
+
+          # Assert required production elements ARE present
+          test -f check-artifact/artisan
+          test -x check-artifact/artisan
+          test -f check-artifact/public/build/manifest.json
+          test -d check-artifact/vendor
+          test -f check-artifact/vendor/autoload.php
+
+          echo "All artifact inclusion and exclusion rules verified successfully."
+
+      - name: Upload Verified Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifact
+          path: |
+            dist/release.tar.gz
+            dist/release.tar.gz.sha256
+          retention-days: 5

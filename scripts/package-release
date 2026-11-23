@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+#
+# scripts/package-release
+# Packages production PHP dependencies and compiled Vite assets into an immutable release artifact.
+# Generates release.tar.gz and release.tar.gz.sha256.
+#
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUTPUT_DIR="${OUTPUT_DIR:-$ROOT/dist}"
+RELEASE_ID="${RELEASE_ID:-$(date -u +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD 2>/dev/null || echo 'release')}"
+SKIP_BUILD="${SKIP_BUILD:-false}"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --output-dir)
+            OUTPUT_DIR="$2"
+            shift 2
+            ;;
+        --release-id)
+            RELEASE_ID="$2"
+            shift 2
+            ;;
+        --skip-build)
+            SKIP_BUILD=true
+            shift
+            ;;
+        *)
+            printf 'Unknown argument: %s\n' "$1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+mkdir -p "$OUTPUT_DIR"
+STAGE_DIR="$(mktemp -d -t spinellanka_pkg_XXXXXX)"
+
+cleanup() {
+    rm -rf "$STAGE_DIR"
+}
+trap cleanup EXIT INT TERM
+
+printf 'Packaging Spinellanka release %s...\n' "$RELEASE_ID"
+
+# 1. Clear local caches to avoid bundling stale config
+if command -v php >/dev/null 2>&1; then
+    php -r '
+        $cachedConfig = "'"$ROOT"'/bootstrap/cache/config.php";
+        if (file_exists($cachedConfig)) @unlink($cachedConfig);
+    '
+fi
+
+# 2. Compile frontend assets if not skipped
+if [[ "$SKIP_BUILD" != "true" ]]; then
+    printf 'Building frontend assets...\n'
+    (cd "$ROOT" && npm run build)
+fi
+
+# 3. Verify public build assets exist
+if [[ ! -f "$ROOT/public/build/manifest.json" ]]; then
+    printf 'ERROR: public/build/manifest.json not found. Run npm run build first.\n' >&2
+    exit 1
+fi
+
+# 4. Copy application source files to staging
+printf 'Assembling release file tree...\n'
+mkdir -p "$STAGE_DIR/release"
+cd "$ROOT"
+
+# Copy directories and files needed for production
+cp -R app config database public resources routes artisan composer.json composer.lock "$STAGE_DIR/release/"
+
+# Create bootstrap/cache in release, strictly excluding cached configs
+mkdir -p "$STAGE_DIR/release/bootstrap/cache"
+cp bootstrap/app.php "$STAGE_DIR/release/bootstrap/"
+if [[ -f bootstrap/providers.php ]]; then
+    cp bootstrap/providers.php "$STAGE_DIR/release/bootstrap/"
+fi
+
+# Create temporary storage framework cache so package:discover and filament:upgrade succeed during composer install
+mkdir -p "$STAGE_DIR/release/storage/framework/views" "$STAGE_DIR/release/storage/framework/cache"
+
+# Strip development/local artifacts from public
+rm -f "$STAGE_DIR/release/public/hot"
+rm -f "$STAGE_DIR/release/public/storage"
+
+# Strip sqlite files from database if any exist
+find "$STAGE_DIR/release/database" -name "*.sqlite*" -type f -delete 2>/dev/null || true
+
+# 5. Install production-only PHP dependencies into staging
+printf 'Installing production dependencies (--no-dev --optimize-autoloader)...\n'
+(
+    cd "$STAGE_DIR/release"
+    composer install \
+        --no-dev \
+        --no-interaction \
+        --no-progress \
+        --prefer-dist \
+        --optimize-autoloader \
+        --quiet
+)
+
+# Strip storage entirely from release package (will be symlinked on cPanel from shared/)
+rm -rf "$STAGE_DIR/release/storage"
+
+# 6. Ensure proper permissions
+chmod -R u=rwX,go=rX "$STAGE_DIR/release"
+chmod +x "$STAGE_DIR/release/artisan"
+chmod 775 "$STAGE_DIR/release/bootstrap/cache"
+
+# 7. Create archive and compute SHA256
+printf 'Creating release archive and computing SHA256 checksum...\n'
+ARCHIVE_PATH="$OUTPUT_DIR/release.tar.gz"
+CHECKSUM_PATH="$OUTPUT_DIR/release.tar.gz.sha256"
+
+# Create tarball from inside $STAGE_DIR/release
+(cd "$STAGE_DIR/release" && tar -czf "$ARCHIVE_PATH" .)
+
+# Generate SHA256 checksum
+(
+    cd "$OUTPUT_DIR"
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum release.tar.gz > release.tar.gz.sha256
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 release.tar.gz > release.tar.gz.sha256
+    else
+        php -r 'file_put_contents("release.tar.gz.sha256", hash_file("sha256", "release.tar.gz")."  release.tar.gz\n");'
+    fi
+)
+
+printf 'Release artifact successfully generated:\n'
+printf '  Archive:  %s (%s)\n' "$ARCHIVE_PATH" "$(du -h "$ARCHIVE_PATH" | cut -f1)"
+printf '  Checksum: %s\n' "$(cat "$CHECKSUM_PATH")"
+
