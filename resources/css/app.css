@@ -665,7 +665,7 @@ h1:focus-visible {
   width: 100%;
   aspect-ratio: 16 / 10;
   object-fit: cover;
-  background: #e2e8f0;
+  background: var(--cloud-step);
 }
 
 .fleet-media-empty {
@@ -734,7 +734,7 @@ h1:focus-visible {
 .service-tags li {
   padding: 0.25rem 0.625rem;
   background: var(--white);
-  border-radius: calc(var(--radius) / 2);
+  border-radius: var(--radius);
   color: var(--navy);
   font-weight: 600;
 }
@@ -858,11 +858,11 @@ h1:focus-visible {
 }
 
 .vehicle-booking-notice h2 {
-  color: var(--amber);
+  color: var(--white);
 }
 
 .vehicle-booking-notice p {
-  color: #dbe4ff;
+  color: var(--navy-reading);
   margin-block-end: 1.5rem;
   line-height: 1.6;
 }
@@ -1025,11 +1025,11 @@ h1:focus-visible {
 
 .cta-banner h2 {
   font-size: clamp(2rem, 3.5vw, 3rem);
-  color: var(--amber);
+  color: var(--white);
 }
 
 .cta-banner p {
-  color: #dbe4ff;
+  color: var(--navy-reading);
   margin-block: 1rem 2rem;
   max-width: 38ch;
   margin-inline: auto;
