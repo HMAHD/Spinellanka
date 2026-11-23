@@ -69,4 +69,12 @@ class VehicleMedia extends Model
     {
         return $this->belongsTo(Vehicle::class);
     }
+
+    /**
+     * Get the accessible public or storage URL for this media item.
+     */
+    public function getUrl(): string
+    {
+        return Storage::disk($this->disk)->url($this->file_path);
+    }
 }

@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0C1445">
+  <meta name="robots" content="@yield('meta_robots', 'index, follow')">
   <meta name="description" content="@yield('meta_description', 'Advance-booking transport services for international travelers in Sri Lanka.')">
 
   <title>@yield('title', config('app.name'))</title>
@@ -25,7 +26,10 @@
 
     <nav class="site-nav" id="site-menu" aria-label="Primary navigation">
       <a href="{{ route('home') }}#services" @if(request()->routeIs('home')) aria-current="page" @endif>Services</a>
-      <a href="{{ route('home') }}#process">Process</a>
+      <a href="{{ route('fleet.index') }}" @if(request()->routeIs('fleet.*')) aria-current="page" @endif>Fleet</a>
+      <a href="{{ route('how-it-works') }}" @if(request()->routeIs('how-it-works')) aria-current="page" @endif>How It Works</a>
+      <a href="{{ route('help') }}" @if(request()->routeIs('help')) aria-current="page" @endif>Help</a>
+      <a href="{{ route('contact') }}" @if(request()->routeIs('contact')) aria-current="page" @endif>Contact</a>
       <a class="nav-action" href="{{ route('home') }}#service-desk">Choose service</a>
     </nav>
   </header>

@@ -17,30 +17,30 @@ colors:
   navy-line: "#7180bf"
 typography:
   display:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Allo, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
     fontSize: "clamp(3.5rem, 5.4vw, 5.75rem)"
     fontWeight: 680
     lineHeight: 0.98
     letterSpacing: "-0.035em"
   headline:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Allo, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
     fontSize: "clamp(2.75rem, 4.6vw, 4.75rem)"
     fontWeight: 680
     lineHeight: 0.98
     letterSpacing: "-0.035em"
   title:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Allo, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
     fontSize: "clamp(1.75rem, 2.5vw, 2.5rem)"
     fontWeight: 680
     lineHeight: 0.98
     letterSpacing: "-0.035em"
   body:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Allo, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
     fontSize: "1.0625rem"
     fontWeight: 400
     lineHeight: 1.6
   label:
-    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Allo, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
     fontSize: "0.9375rem"
     fontWeight: 650
     lineHeight: 1.6
@@ -141,11 +141,11 @@ The palette separates calm reading space from dependable decision surfaces, with
 
 ## Typography
 
-**Display Font:** Inter Variable (with Inter, UI sans-serif, system UI, and generic sans-serif fallbacks)  
-**Body Font:** Inter Variable (with the same fallback stack)  
-**Label Font:** Inter Variable (with the same fallback stack)
+**Display Font:** Allo (with UI sans-serif, system UI, -apple-system, Segoe UI, and generic sans-serif fallbacks)  
+**Body Font:** Allo (with the same fallback stack)  
+**Label Font:** Allo (with the same fallback stack)
 
-**Character:** A single variable family makes the public shell direct and internationally familiar. Tight, heavy headings provide confidence while regular reading copy remains open and calm.
+**Character:** A single variable family (Allo 1.0.3 variable upright WOFF2 under SIL OFL 1.1) makes the public shell direct and internationally familiar. Tight, heavy headings provide confidence while regular reading copy remains open and calm.
 
 ### Hierarchy
 - **Display** (680, fluid 3.5–5.75rem, 0.98): First-view titles and major service-page names; mobile uses a separately observed fluid range to preserve the same authority.
@@ -156,7 +156,7 @@ The palette separates calm reading space from dependable decision surfaces, with
 
 ### Named Rules
 
-**The One-Family Rule.** Build hierarchy with the Inter Variable scale, weight, spacing, and tonal contrast; do not introduce a display face to manufacture personality.
+**The One-Family Rule.** Build hierarchy with the Allo variable scale, weight, spacing, and tonal contrast; do not introduce a display face to manufacture personality.
 
 **The Short-Line Rule.** Keep explanatory copy near the shipped 38–42-character measures and let headings balance naturally rather than stretching either across the field.
 
