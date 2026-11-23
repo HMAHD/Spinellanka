@@ -104,6 +104,41 @@ class Vehicle extends Model
     }
 
     /**
+     * @return HasMany<VehicleMedia, $this>
+     */
+    public function publicApprovedMedia(): HasMany
+    {
+        return $this->media()
+            ->where('is_approved', true)
+            ->where('disk', 'public')
+            ->orderBy('sort_order');
+    }
+
+    /**
+     * Get the human-readable labels of services this vehicle is eligible for.
+     *
+     * @return array<string>
+     */
+    public function eligibleServiceLabels(): array
+    {
+        $services = [];
+        if ($this->eligible_for_pickup) {
+            $services[] = 'Airport Pickup';
+        }
+        if ($this->eligible_for_transfer) {
+            $services[] = 'Airport Transfer';
+        }
+        if ($this->eligible_for_ride) {
+            $services[] = 'Ride';
+        }
+        if ($this->eligible_for_rent) {
+            $services[] = 'Rent (Self-Drive)';
+        }
+
+        return $services;
+    }
+
+    /**
      * @return HasMany<VehicleDriverAssignment, $this>
      */
     public function driverAssignments(): HasMany

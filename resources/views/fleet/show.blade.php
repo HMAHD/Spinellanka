@@ -14,12 +14,12 @@
 
     <div class="vehicle-detail-layout">
       <div class="vehicle-media-area">
-        @if($vehicle->media->isNotEmpty())
+        @if($vehicle->publicApprovedMedia->isNotEmpty())
           <div class="vehicle-gallery" aria-label="Photos of {{ $vehicle->public_name }}">
-            @foreach($vehicle->media as $media)
+            @foreach($vehicle->publicApprovedMedia as $media)
               <figure class="vehicle-gallery-item">
                 <img
-                  src="{{ Storage::disk($media->disk)->url($media->file_path) }}"
+                  src="{{ $media->getUrl() }}"
                   alt="{{ $media->alt_text }}"
                   loading="{{ $loop->first ? 'eager' : 'lazy' }}"
                   width="800"
@@ -90,16 +90,15 @@
           <h2 id="eligibility-title">Service Eligibility</h2>
           <p class="section-hint">This vehicle is approved for the following advance-booked services:</p>
           <ul class="service-tags" aria-label="Eligible services">
-            @if($vehicle->eligible_for_pickup)<li>Airport Pickup</li>@endif
-            @if($vehicle->eligible_for_transfer)<li>Airport Transfer</li>@endif
-            @if($vehicle->eligible_for_ride)<li>Ride</li>@endif
-            @if($vehicle->eligible_for_rent)<li>Rent (Self-Drive)</li>@endif
+            @foreach($vehicle->eligibleServiceLabels() as $serviceLabel)
+              <li>{{ $serviceLabel }}</li>
+            @endforeach
           </ul>
         </section>
 
         <section class="vehicle-booking-notice" aria-labelledby="booking-notice-title">
           <h2 id="booking-notice-title">Advance Inquiry</h2>
-          <p>Instant online checkout opens in phased launches: Phase 07 (Airport Pickup), Phase 08 (Airport Transfer), Phase 09 (Ride), and Phase 10 (Rent). Inquiries for upcoming travel can be submitted directly.</p>
+          <p>Instant online booking will open sequentially across our four services. Advance inquiries for upcoming travel can be submitted directly to our operations desk.</p>
           <a class="primary-action" href="{{ route('contact') }}">Inquire about this vehicle</a>
         </section>
       </div>

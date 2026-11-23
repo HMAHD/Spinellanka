@@ -32,7 +32,7 @@ Route::get('/services/{service}', function (string $service) {
 Route::get('/fleet', function () {
     $vehicles = Vehicle::query()
         ->where('status', VehicleStatus::Active)
-        ->with(['media' => fn ($query) => $query->where('is_approved', true)->where('disk', 'public')->orderBy('sort_order')])
+        ->with('publicApprovedMedia')
         ->orderBy('id')
         ->get();
 
@@ -44,7 +44,7 @@ Route::get('/fleet', function () {
 Route::get('/fleet/{vehicle}', function (Vehicle $vehicle) {
     abort_if($vehicle->status !== VehicleStatus::Active, 404);
 
-    $vehicle->load(['media' => fn ($query) => $query->where('is_approved', true)->where('disk', 'public')->orderBy('sort_order')]);
+    $vehicle->load('publicApprovedMedia');
 
     return view('fleet.show', [
         'vehicle' => $vehicle,

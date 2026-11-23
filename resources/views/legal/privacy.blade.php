@@ -15,16 +15,9 @@
 
     <div class="legal-content">
       <section class="legal-pending-notice" role="status">
-        <h2>Policy Finalization in Progress</h2>
-        <p>Our comprehensive privacy policy and data governance practices are currently being finalized with legal counsel. Complete policy documentation will be published prior to service launch.</p>
-        <h3>Data Minimization Standards</h3>
-        <p>Spinellanka operates under strict data minimization standards:</p>
-        <ul>
-          <li>We collect only the contact information strictly required to coordinate your transport.</li>
-          <li>No customer account or login credentials are required or stored.</li>
-          <li>Customer personal information is never sold or disclosed to third-party advertisers.</li>
-          <li>Physical identification for self-drive Rent is inspected in person at vehicle handover and is not uploaded online.</li>
-        </ul>
+        <h2>Policy Verification in Progress</h2>
+        <p>Our official privacy notice and data protection terms are currently being finalized with authorized legal counsel. Complete verified terms will be published prior to service launch.</p>
+        <p>In the interim, Spinellanka operates on a no-account model: customer transport inquiries are handled directly with operations without public account creation or third-party tracking.</p>
       </section>
 
       <div class="legal-actions">
@@ -37,4 +30,3 @@
   </div>
 </main>
 @endsection
-

@@ -30,10 +30,10 @@
         <div class="fleet-grid">
           @foreach($vehicles as $vehicle)
             <article class="fleet-card" data-reveal>
-              @if($vehicle->media->isNotEmpty())
+              @if($vehicle->publicApprovedMedia->isNotEmpty())
                 <img
-                  src="{{ Storage::disk($vehicle->media->first()->disk)->url($vehicle->media->first()->file_path) }}"
-                  alt="{{ $vehicle->media->first()->alt_text }}"
+                  src="{{ $vehicle->publicApprovedMedia->first()->getUrl() }}"
+                  alt="{{ $vehicle->publicApprovedMedia->first()->alt_text }}"
                   class="fleet-card-media"
                   loading="lazy"
                   width="640"
@@ -70,10 +70,9 @@
                 </dl>
 
                 <ul class="service-tags" aria-label="Eligible services for {{ $vehicle->public_name }}">
-                  @if($vehicle->eligible_for_pickup)<li>Airport Pickup</li>@endif
-                  @if($vehicle->eligible_for_transfer)<li>Airport Transfer</li>@endif
-                  @if($vehicle->eligible_for_ride)<li>Ride</li>@endif
-                  @if($vehicle->eligible_for_rent)<li>Rent (Self-Drive)</li>@endif
+                  @foreach($vehicle->eligibleServiceLabels() as $serviceLabel)
+                    <li>{{ $serviceLabel }}</li>
+                  @endforeach
                 </ul>
               </div>
 

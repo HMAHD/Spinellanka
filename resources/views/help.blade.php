@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Help & FAQ — Spinellanka')
-@section('meta_description', 'Frequently asked questions about advance booking, vehicle selection, and travel coordination in Sri Lanka.')
+@section('meta_description', 'Essential information about advance booking, vehicle selection, and travel coordination in Sri Lanka.')
 
 @section('content')
 <main id="main-content" class="content-page">
@@ -12,8 +12,13 @@
       <p class="content-lead">Essential information on how our advance transport booking, vehicle selection, and operations work across Sri Lanka.</p>
     </header>
 
+    <div class="pending-notice" role="status" style="margin-block-start: 2rem;">
+      <h2>FAQ Verification in Progress</h2>
+      <p>Detailed FAQ items, cancellation conditions, and luggage policies are currently being finalized with the local operator. Verified policy questions will be published here upon completion.</p>
+    </div>
+
     <section class="accordion faq-section" aria-labelledby="faq-heading">
-      <h2 id="faq-heading" class="sr-only">Frequently Asked Questions</h2>
+      <h2 id="faq-heading" class="sr-only">Core Operational Information</h2>
 
       <details class="faq-item" open>
         <summary class="faq-question">How far in advance should I book?</summary>
@@ -37,37 +42,9 @@
       </details>
 
       <details class="faq-item">
-        <summary class="faq-question">What is included with Airport Pickup?</summary>
+        <summary class="faq-question">What four services are available?</summary>
         <div class="faq-answer">
-          <p>Airport Pickup includes flight arrival monitoring, meet-and-greet in the airport arrival terminal, luggage handling assistance, and chauffeured transport directly to your destination.</p>
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-question">How are luggage capacities determined?</summary>
-        <div class="faq-answer">
-          <p>Luggage capacity is verified for each vehicle based on standard international checked luggage and cabin bags. If you carry oversize sporting equipment (such as surfboards), please review vehicle space before submitting your request.</p>
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-question">What is required for self-drive Rent?</summary>
-        <div class="faq-answer">
-          <p>For self-drive Rent, drivers must present an original national driver's license, an International Driving Permit (IDP) or Sri Lankan driving endorsement, and passport identification in person at vehicle handover. Documents are never uploaded online.</p>
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-question">Why does every request remain pending?</summary>
-        <div class="faq-answer">
-          <p>Every request is personally evaluated by our operations team to confirm route feasibility, maintenance schedules, and turnaround buffers. You will receive an operational proposal confirming exact availability and costs before payment.</p>
-        </div>
-      </details>
-
-      <details class="faq-item">
-        <summary class="faq-question">How do changes and cancellations work?</summary>
-        <div class="faq-answer">
-          <p>Because bookings are coordinated with dedicated staff, changes and cancellations are managed directly with our operations desk. If details change, an updated proposal will be issued for your approval.</p>
+          <p>We provide Airport Pickup (arrivals with meet-and-greet), Airport Transfer (departures with guided timing), Ride (point-to-point and multi-stop chauffeured journeys), and Rent (exact self-drive hire without driver).</p>
         </div>
       </details>
     </section>
@@ -82,4 +59,3 @@
   </div>
 </main>
 @endsection
-
