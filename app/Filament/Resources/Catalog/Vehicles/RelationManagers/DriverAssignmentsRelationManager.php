@@ -43,7 +43,8 @@ class DriverAssignmentsRelationManager extends RelationManager
                     ->label('Ends At (Asia/Colombo)')
                     ->timezone('Asia/Colombo')
                     ->after('starts_at')
-                    ->helperText('Leave empty for permanent / ongoing base assignment.'),
+                    ->required(fn (callable $get): bool => ! (bool) $get('is_permanent'))
+                    ->helperText('Required for temporary assignments. Leave empty for permanent base assignment.'),
                 Toggle::make('is_permanent')
                     ->label('Permanent Base Driver')
                     ->default(false)
@@ -99,6 +100,10 @@ class DriverAssignmentsRelationManager extends RelationManager
                             );
                         }
 
+                        if (empty($data['ends_at'])) {
+                            throw new \InvalidArgumentException('Temporary driver assignment requires an end date and time.');
+                        }
+
                         $endsAt = Carbon::parse($data['ends_at'], 'Asia/Colombo');
 
                         return $service->assignTemporaryDriver(
@@ -124,7 +129,7 @@ class DriverAssignmentsRelationManager extends RelationManager
                     ->requiresConfirmation()
                     ->modalHeading('End Driver Assignment')
                     ->modalDescription('Are you sure you want to end this driver assignment as of right now?')
-                    ->action(fn (VehicleDriverAssignment $record) => app(DriverAssignmentService::class)->endAssignment($record, now(), auth()->user())),
+                    ->action(fn (VehicleDriverAssignment $record) => app(DriverAssignmentService::class)->endAssignment($record, Carbon::now('Asia/Colombo'), auth()->user())),
             ]);
     }
 }

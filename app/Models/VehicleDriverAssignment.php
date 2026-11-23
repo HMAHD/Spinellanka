@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Database\Factories\VehicleDriverAssignmentFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -46,6 +47,22 @@ class VehicleDriverAssignment extends Model
             'ends_at' => 'datetime',
             'is_permanent' => 'boolean',
         ];
+    }
+
+    /**
+     * @param  Builder<VehicleDriverAssignment>  $query
+     */
+    public function scopeOverlapping(Builder $query, Carbon $start, ?Carbon $end): void
+    {
+        $query->where(function ($q) use ($start, $end) {
+            $q->where(function ($sub) use ($end) {
+                if ($end !== null) {
+                    $sub->where('starts_at', '<', $end);
+                }
+            })->where(function ($sub) use ($start) {
+                $sub->whereNull('ends_at')->orWhere('ends_at', '>', $start);
+            });
+        });
     }
 
     /**
