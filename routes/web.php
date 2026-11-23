@@ -1,6 +1,8 @@
 <?php
 
 use App\Domain\Booking\ServiceType;
+use App\Domain\Catalog\Enums\VehicleStatus;
+use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -26,3 +28,35 @@ Route::get('/services/{service}', function (string $service) {
         'services' => ServiceType::cases(),
     ]);
 })->name('services.show');
+
+Route::get('/fleet', function () {
+    $vehicles = Vehicle::query()
+        ->where('status', VehicleStatus::Active)
+        ->with(['media' => fn ($query) => $query->where('is_approved', true)->where('disk', 'public')->orderBy('sort_order')])
+        ->orderBy('id')
+        ->get();
+
+    return view('fleet.index', [
+        'vehicles' => $vehicles,
+    ]);
+})->name('fleet.index');
+
+Route::get('/fleet/{vehicle}', function (Vehicle $vehicle) {
+    abort_if($vehicle->status !== VehicleStatus::Active, 404);
+
+    $vehicle->load(['media' => fn ($query) => $query->where('is_approved', true)->where('disk', 'public')->orderBy('sort_order')]);
+
+    return view('fleet.show', [
+        'vehicle' => $vehicle,
+    ]);
+})->name('fleet.show');
+
+Route::view('/how-it-works', 'how-it-works')->name('how-it-works');
+
+Route::view('/help', 'help')->name('help');
+Route::redirect('/faq', '/help', 301);
+
+Route::view('/contact', 'contact')->name('contact');
+
+Route::view('/legal/terms', 'legal.terms')->name('legal.terms');
+Route::view('/legal/privacy', 'legal.privacy')->name('legal.privacy');

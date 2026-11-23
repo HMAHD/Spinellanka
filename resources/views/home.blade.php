@@ -73,11 +73,7 @@
         <a class="text-action" href="#service-desk">Choose your service</a>
       </section>
 
-      <footer class="site-footer">
-        <p>Advance transport requests in Sri Lanka.</p>
-        <a href="{{ route('home') }}#services">Services</a>
-        <p>&copy; {{ now()->year }} Spinellanka</p>
-      </footer>
+      @include('partials.footer')
     </div>
 
     <aside class="desk-panel" id="service-desk" aria-labelledby="desk-title">
