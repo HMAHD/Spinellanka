@@ -731,7 +731,8 @@ h1:focus-visible {
   font-size: 0.8125rem;
 }
 
-.service-tags li {
+.service-tags li,
+.service-tags span {
   padding: 0.25rem 0.625rem;
   background: var(--white);
   border-radius: var(--radius);
@@ -739,7 +740,8 @@ h1:focus-visible {
   font-weight: 600;
 }
 
-.fleet-card:hover .service-tags li {
+.fleet-card:hover .service-tags li,
+.fleet-card:hover .service-tags span {
   background: var(--cloud-step);
 }
 

@@ -71,29 +71,25 @@
               <dt>Air conditioning</dt>
               <dd>{{ $vehicle->has_ac ? 'Equipped with climate control' : 'No air conditioning' }}</dd>
             </div>
-            @if(!empty($vehicle->accessibility_features))
-              <div>
-                <dt>Accessibility</dt>
-                <dd>{{ implode(', ', $vehicle->accessibility_features) }}</dd>
-              </div>
-            @endif
-            @if(!empty($vehicle->amenities))
-              <div>
-                <dt>Features</dt>
-                <dd>{{ implode(', ', $vehicle->amenities) }}</dd>
-              </div>
-            @endif
+            <div>
+              <dt>Accessibility</dt>
+              <dd>{{ !empty($vehicle->accessibility_features) ? implode(', ', $vehicle->accessibility_features) : 'Standard access' }}</dd>
+            </div>
+            <div>
+              <dt>Features</dt>
+              <dd>{{ !empty($vehicle->amenities) ? implode(', ', $vehicle->amenities) : 'Standard verified equipment' }}</dd>
+            </div>
           </dl>
         </section>
 
         <section class="vehicle-services-card" aria-labelledby="eligibility-title">
           <h2 id="eligibility-title">Service Eligibility</h2>
           <p class="section-hint">This vehicle is approved for the following advance-booked services:</p>
-          <ul class="service-tags" aria-label="Eligible services">
+          <div class="service-tags" role="list" aria-label="Eligible services">
             @foreach($vehicle->eligibleServiceLabels() as $serviceLabel)
-              <li>{{ $serviceLabel }}</li>
+              <span role="listitem">{{ $serviceLabel }}</span>
             @endforeach
-          </ul>
+          </div>
         </section>
 
         <section class="vehicle-booking-notice" aria-labelledby="booking-notice-title">

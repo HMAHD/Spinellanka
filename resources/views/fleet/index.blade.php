@@ -69,11 +69,11 @@
                   </div>
                 </dl>
 
-                <ul class="service-tags" aria-label="Eligible services for {{ $vehicle->public_name }}">
+                <div class="service-tags" role="list" aria-label="Eligible services for {{ $vehicle->public_name }}">
                   @foreach($vehicle->eligibleServiceLabels() as $serviceLabel)
-                    <li>{{ $serviceLabel }}</li>
+                    <span role="listitem">{{ $serviceLabel }}</span>
                   @endforeach
-                </ul>
+                </div>
               </div>
 
               <footer class="fleet-card-footer">
