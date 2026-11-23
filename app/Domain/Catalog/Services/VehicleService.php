@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleDriverAssignment;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -54,19 +55,35 @@ class VehicleService
         }
 
         return DB::transaction(function () use ($vehicle, $attributes, $actor) {
+            $oldStatus = $vehicle->status;
             $oldAttributes = $vehicle->only(array_keys($attributes));
+
+            $newStatus = isset($attributes['status'])
+                ? ($attributes['status'] instanceof VehicleStatus ? $attributes['status'] : VehicleStatus::from((string) $attributes['status']))
+                : null;
+
             $vehicle->update($attributes);
 
-            $this->auditService->record(
-                action: 'fleet.vehicle.updated',
-                actor: $actor,
-                summary: "Updated vehicle {$vehicle->public_name} ({$vehicle->internal_fleet_id})",
-                metadata: [
-                    'vehicle_id' => $vehicle->id,
-                    'changes' => array_diff_assoc($attributes, $oldAttributes),
-                ],
-                auditable: $vehicle
+            if ($newStatus !== null && $newStatus !== $oldStatus) {
+                $this->handleStatusChange($vehicle, $oldStatus, $newStatus, $actor);
+            }
+
+            $diff = array_diff_assoc(
+                $this->normalizeAttributesForDiff($attributes),
+                $this->normalizeAttributesForDiff($oldAttributes)
             );
+            if (! empty($diff)) {
+                $this->auditService->record(
+                    action: 'fleet.vehicle.updated',
+                    actor: $actor,
+                    summary: "Updated vehicle {$vehicle->public_name} ({$vehicle->internal_fleet_id})",
+                    metadata: [
+                        'vehicle_id' => $vehicle->id,
+                        'changes' => $diff,
+                    ],
+                    auditable: $vehicle
+                );
+            }
 
             return $vehicle;
         });
@@ -82,42 +99,103 @@ class VehicleService
             $oldStatus = $vehicle->status;
             $vehicle->update(['status' => $newStatus]);
 
-            // When a vehicle is retired, close any open-ended driver assignments
-            if ($newStatus === VehicleStatus::Retired) {
-                $now = Carbon::now('Asia/Colombo');
-                $activeAssignments = $vehicle->driverAssignments()->whereNull('ends_at')->get();
-                foreach ($activeAssignments as $assignment) {
-                    if ($assignment instanceof VehicleDriverAssignment) {
-                        $assignment->update(['ends_at' => $now]);
-                        $this->auditService->record(
-                            action: 'fleet.driver_assignment.closed',
-                            actor: $actor,
-                            summary: "Auto-closed driver assignment for retired vehicle {$vehicle->public_name}",
-                            metadata: ['assignment_id' => $assignment->id, 'closed_at' => $now->toIso8601String()],
-                            auditable: $assignment
-                        );
-                    }
-                }
-            }
-
-            $oldStatusValue = $oldStatus instanceof VehicleStatus ? $oldStatus->value : (string) $oldStatus;
-            $newStatusValue = $newStatus->value;
-
-            $this->auditService->record(
-                action: 'fleet.vehicle.status_changed',
-                actor: $actor,
-                summary: "Changed status of vehicle {$vehicle->public_name} from {$oldStatusValue} to {$newStatusValue}",
-                metadata: [
-                    'vehicle_id' => $vehicle->id,
-                    'old_status' => $oldStatusValue,
-                    'new_status' => $newStatusValue,
-                    'reason' => $reason,
-                ],
-                auditable: $vehicle
-            );
+            $this->handleStatusChange($vehicle, $oldStatus, $newStatus, $actor, $reason);
 
             return $vehicle;
         });
+    }
+
+    public function deleteVehicle(Vehicle $vehicle, ?User $actor = null): void
+    {
+        DB::transaction(function () use ($vehicle, $actor) {
+            if ($vehicle->driverAssignments()->exists()) {
+                throw new InvalidArgumentException('Cannot delete vehicle with assignment history.');
+            }
+
+            $vehicleId = $vehicle->id;
+            $name = $vehicle->public_name;
+            $fleetId = $vehicle->internal_fleet_id;
+
+            $vehicle->delete();
+
+            $this->auditService->record(
+                action: 'fleet.vehicle.deleted',
+                actor: $actor,
+                summary: "Deleted vehicle {$name} ({$fleetId})",
+                metadata: [
+                    'vehicle_id' => $vehicleId,
+                    'internal_fleet_id' => $fleetId,
+                    'public_name' => $name,
+                ],
+                auditable: null
+            );
+        });
+    }
+
+    protected function handleStatusChange(
+        Vehicle $vehicle,
+        VehicleStatus $oldStatus,
+        VehicleStatus $newStatus,
+        ?User $actor = null,
+        ?string $reason = null
+    ): void {
+        // When a vehicle is retired, close any open-ended driver assignments
+        if ($newStatus === VehicleStatus::Retired) {
+            $now = Carbon::now('Asia/Colombo');
+            $activeAssignments = $vehicle->driverAssignments()->whereNull('ends_at')->get();
+            foreach ($activeAssignments as $assignment) {
+                if ($assignment instanceof VehicleDriverAssignment) {
+                    $assignment->update(['ends_at' => $now]);
+                    $this->auditService->record(
+                        action: 'fleet.driver_assignment.closed',
+                        actor: $actor,
+                        summary: "Auto-closed driver assignment for retired vehicle {$vehicle->public_name}",
+                        metadata: ['assignment_id' => $assignment->id, 'closed_at' => $now->toIso8601String()],
+                        auditable: $assignment
+                    );
+                }
+            }
+        }
+
+        $oldStatusValue = $oldStatus->value;
+        $newStatusValue = $newStatus->value;
+
+        $this->auditService->record(
+            action: 'fleet.vehicle.status_changed',
+            actor: $actor,
+            summary: "Changed status of vehicle {$vehicle->public_name} from {$oldStatusValue} to {$newStatusValue}",
+            metadata: [
+                'vehicle_id' => $vehicle->id,
+                'old_status' => $oldStatusValue,
+                'new_status' => $newStatusValue,
+                'reason' => $reason,
+            ],
+            auditable: $vehicle
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    protected function normalizeAttributesForDiff(array $attributes): array
+    {
+        $normalized = [];
+        foreach ($attributes as $key => $val) {
+            if ($val instanceof \BackedEnum) {
+                $normalized[$key] = $val->value;
+            } elseif ($val instanceof \UnitEnum) {
+                $normalized[$key] = $val->name;
+            } elseif ($val instanceof CarbonInterface) {
+                $normalized[$key] = $val->toIso8601String();
+            } elseif (is_array($val)) {
+                $normalized[$key] = json_encode($val);
+            } else {
+                $normalized[$key] = (string) $val;
+            }
+        }
+
+        return $normalized;
     }
 
     protected function validateTurnaroundBuffer(int $minutes): void

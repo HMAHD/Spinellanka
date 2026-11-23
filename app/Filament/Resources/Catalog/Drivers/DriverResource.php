@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Catalog\Drivers;
 
 use App\Domain\Catalog\Enums\DriverStatus;
+use App\Domain\Catalog\Services\DriverService;
 use App\Filament\Resources\Catalog\Drivers\Pages\ManageDrivers;
 use App\Models\Driver;
 use BackedEnum;
@@ -111,8 +112,14 @@ class DriverResource extends Resource
             ])
             ->paginationMode(PaginationMode::Simple)
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->using(fn (Driver $record, array $data) => app(DriverService::class)->updateDriver($record, $data, auth()->user())),
+                DeleteAction::make()
+                    ->using(function (Driver $record): bool {
+                        app(DriverService::class)->deleteDriver($record, auth()->user());
+
+                        return true;
+                    }),
             ]);
     }
 
@@ -123,4 +130,3 @@ class DriverResource extends Resource
         ];
     }
 }
-
