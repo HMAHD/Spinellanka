@@ -45,10 +45,11 @@ Open the repository in Claude Code after installation. Project settings enable:
 
 - EGM 0.1.1 from `google/elephant-goldfish-model` commit `70406c4d22cc7ea8299637c2c5b44625c48b3f08`.
 - Matt Pocock skills from the official marketplace. Current verified plugin version is 1.3.1.
+- Ponytail code review plugin pinned to `DietrichGebert/ponytail` `v5.3.3`.
 - Modern Web Guidance from commit `64a6d708f5a43f2cd3fde5d4d7db3905ba1bdf65`; the skill is vendored in `.agents/skills/` and locked by `skills-lock.json`.
 - Graft 0.16.0 through `.mcp.json` and committed hooks.
 
-Run `./scripts/check-environment` again. Official marketplace plugin settings do not pin Matt Pocock's version. The check reports drift from 1.3.1 so both maintainers can align before work. The Skills CLI also lacks a committed Caveman content lock; keep its source unchanged during a shared work cycle and compare the installed `SKILL.md` when drift is reported.
+Run `./scripts/check-environment` again. Official marketplace plugin settings do not pin Matt Pocock's version. The check reports drift from 1.3.1 so both maintainers can align before work. Ponytail plugin baseline `v5.3.3` is verified against `.claude/settings.json` and the local plugin cache. The Skills CLI also lacks a committed Caveman content lock; keep its source unchanged during a shared work cycle and compare the installed `SKILL.md` when drift is reported.
 
 Ask Matt is intentionally user-invoked: `/mattpocock-skills:ask-matt`. EGM writes design artifacts under `docs/designs/`. Use `/egm-lite` for explicit small-change protocols; use `/egm-brainstorm`, `/egm-draft`, `/egm-review`, and `/egm-resolve` for formal designs.
 

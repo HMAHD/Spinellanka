@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+#
+# scripts/rollback-release
+# Rolls back the active release to the immediately preceding release on cPanel.
+# Follows the rollback procedure defined in docs/planning/05-cpanel-deployment-and-operations.md
+#
+
+set -euo pipefail
+
+BASE_DIR="${SPINELLANKA_BASE_DIR:-}"
+PHP_BIN="${CPANEL_PHP_BIN:-${PHP_BIN:-php}}"
+TARGET_RELEASE="${TARGET_RELEASE:-}"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --base-dir)
+            BASE_DIR="$2"
+            shift 2
+            ;;
+        --target-release)
+            TARGET_RELEASE="$2"
+            shift 2
+            ;;
+        --php-bin)
+            PHP_BIN="$2"
+            shift 2
+            ;;
+        *)
+            printf 'Unknown argument: %s\n' "$1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z "$BASE_DIR" ]]; then
+    printf 'ERROR: SPINELLANKA_BASE_DIR or --base-dir must be provided.\n' >&2
+    exit 1
+fi
+
+LOCK_DIR="$BASE_DIR/deploy.lock.d"
+PID_FILE="$LOCK_DIR/pid"
+
+# 1. Acquire concurrency lock
+acquire_lock() {
+    if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+        if [[ -f "$PID_FILE" ]]; then
+            local pid
+            pid="$(cat "$PID_FILE" 2>/dev/null || echo '')"
+            if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+                printf 'ERROR: Another deployment or rollback is actively holding the lock (PID %s).\n' "$pid" >&2
+                return 1
+            fi
+        fi
+        rm -rf "$LOCK_DIR"
+        if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+            printf 'ERROR: Another deployment or rollback is actively holding the lock.\n' >&2
+            return 1
+        fi
+    fi
+    echo "$$" > "$PID_FILE"
+    return 0
+}
+
+if ! acquire_lock; then
+    exit 1
+fi
+
+cleanup() {
+    rm -rf "$LOCK_DIR"
+}
+trap cleanup EXIT INT TERM
+
+printf '=== Initiating Spinellanka Release Rollback ===\n'
+
+# 2. Determine previous release
+CURRENT_RELEASE=""
+if [[ -L "$BASE_DIR/current" ]]; then
+    CURRENT_RELEASE="$(basename "$(readlink "$BASE_DIR/current")")"
+    printf 'Current active release: %s\n' "$CURRENT_RELEASE"
+fi
+
+if [[ -z "$TARGET_RELEASE" ]]; then
+    # Find the most recent release that is NOT current and NOT marked .failed
+    cd "$BASE_DIR/releases"
+    TARGET_RELEASE="$(ls -1dt 20* 2>/dev/null | grep -v '\.failed$' | grep -v "^${CURRENT_RELEASE}$" | head -n 1 || true)"
+fi
+
+if [[ -z "$TARGET_RELEASE" || ! -d "$BASE_DIR/releases/$TARGET_RELEASE" ]]; then
+    printf 'ERROR: No previous valid release directory found to roll back to!\n' >&2
+    exit 1
+fi
+
+printf 'Target rollback release: %s\n' "$TARGET_RELEASE"
+TARGET_DIR="$BASE_DIR/releases/$TARGET_RELEASE"
+
+# 3. Atomic Symlink Switch
+printf 'Atomically repointing current symlink to %s...\n' "$TARGET_RELEASE"
+TMP_LINK="$BASE_DIR/current.tmp.$$"
+ln -sfn "$TARGET_DIR" "$TMP_LINK"
+
+if command -v mv >/dev/null 2>&1 && mv -Tf "$TMP_LINK" "$BASE_DIR/current" 2>/dev/null; then
+    :
+else
+    "$PHP_BIN" -r 'rename($argv[1], $argv[2]);' "$TMP_LINK" "$BASE_DIR/current"
+fi
+
+# 4. Rebuild Caches & Restart Workers
+printf 'Recaching configuration and restarting queue workers...\n'
+(
+    cd "$BASE_DIR/current"
+    "$PHP_BIN" artisan config:cache
+    "$PHP_BIN" artisan route:cache
+    "$PHP_BIN" artisan view:cache
+    "$PHP_BIN" artisan queue:restart 2>/dev/null || true
+    "$PHP_BIN" artisan up 2>/dev/null || true
+)
+"$PHP_BIN" -r 'clearstatcache(true);'
+
+# 5. Verify Health of Restored Release
+printf 'Verifying health of rolled-back release...\n'
+HEALTH_FAILED=false
+verify_route() {
+    local route="$1"
+    local desc="$2"
+    printf '  Checking %s (%s)... ' "$desc" "$route"
+    
+    local status
+    status=$("$PHP_BIN" -r '
+        $_SERVER["HTTP_HOST"] = "localhost";
+        $_SERVER["REQUEST_URI"] = "'"$route"'";
+        $_SERVER["REQUEST_METHOD"] = "GET";
+        require "'"$BASE_DIR"'/current/public/index.php";
+    ' >/dev/null 2>&1 && echo "200" || echo "FAIL")
+    
+    if [[ "$status" == "200" ]]; then
+        printf 'OK\n'
+    else
+        printf 'FAILED\n'
+        HEALTH_FAILED=true
+    fi
+}
+
+verify_route "/up" "Laravel /up health check"
+verify_route "/" "Public home route"
+
+if [[ "$HEALTH_FAILED" == "true" ]]; then
+    printf 'CRITICAL: Rolled-back release health check failed!\n' >&2
+    exit 2
+fi
+
+printf '=== Rollback to %s Completed Successfully ===\n' "$TARGET_RELEASE"
+

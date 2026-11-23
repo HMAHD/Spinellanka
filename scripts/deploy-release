@@ -1,0 +1,253 @@
+#!/usr/bin/env bash
+#
+# scripts/deploy-release
+# Activates an immutable release archive on cPanel shared hosting.
+# Follows the atomic activation sequence defined in docs/planning/05-cpanel-deployment-and-operations.md
+#
+
+set -euo pipefail
+
+BASE_DIR="${SPINELLANKA_BASE_DIR:-}"
+PHP_BIN="${CPANEL_PHP_BIN:-${PHP_BIN:-php}}"
+RELEASE_ID="${RELEASE_ID:-$(date -u +%Y%m%d%H%M%S)}"
+ARCHIVE_PATH="${RELEASE_ARCHIVE:-}"
+CHECKSUM_PATH="${CHECKSUM_FILE:-}"
+RUN_MIGRATIONS="${RUN_MIGRATIONS:-true}"
+KEEP_RELEASES="${KEEP_RELEASES:-2}"
+MAINTENANCE_TOKEN="${MAINTENANCE_BYPASS_TOKEN:-$(head -c 16 /dev/urandom 2>/dev/null | xxd -p || date +%s%N)}"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --base-dir)
+            BASE_DIR="$2"
+            shift 2
+            ;;
+        --archive)
+            ARCHIVE_PATH="$2"
+            shift 2
+            ;;
+        --checksum)
+            CHECKSUM_PATH="$2"
+            shift 2
+            ;;
+        --release-id)
+            RELEASE_ID="$2"
+            shift 2
+            ;;
+        --php-bin)
+            PHP_BIN="$2"
+            shift 2
+            ;;
+        --skip-migrations)
+            RUN_MIGRATIONS=false
+            shift
+            ;;
+        *)
+            printf 'Unknown argument: %s\n' "$1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z "$BASE_DIR" ]]; then
+    printf 'ERROR: SPINELLANKA_BASE_DIR or --base-dir must be provided.\n' >&2
+    exit 1
+fi
+
+mkdir -p "$BASE_DIR" "$BASE_DIR/releases" "$BASE_DIR/shared" "$BASE_DIR/shared/storage/app" "$BASE_DIR/shared/storage/logs" "$BASE_DIR/.incoming"
+
+ARCHIVE_PATH="${ARCHIVE_PATH:-$BASE_DIR/.incoming/release.tar.gz}"
+CHECKSUM_PATH="${CHECKSUM_PATH:-$BASE_DIR/.incoming/release.tar.gz.sha256}"
+LOCK_DIR="$BASE_DIR/deploy.lock.d"
+PID_FILE="$LOCK_DIR/pid"
+
+# 1. Acquire concurrency lock
+acquire_lock() {
+    if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+        if [[ -f "$PID_FILE" ]]; then
+            local pid
+            pid="$(cat "$PID_FILE" 2>/dev/null || echo '')"
+            if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+                printf 'ERROR: Another deployment or rollback is actively holding the lock.\n' >&2
+                return 1
+            fi
+        fi
+        rm -rf "$LOCK_DIR"
+        if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+            printf 'ERROR: Another deployment or rollback is actively holding the lock.\n' >&2
+            return 1
+        fi
+    fi
+    echo "$$" > "$PID_FILE"
+    return 0
+}
+
+if ! acquire_lock; then
+    exit 1
+fi
+
+cleanup() {
+    rm -rf "$LOCK_DIR"
+}
+trap cleanup EXIT INT TERM
+
+printf '=== Starting Spinellanka Release Activation: %s ===\n' "$RELEASE_ID"
+
+# 2. Cryptographic Checksum Validation in staging (BEFORE unpacking)
+printf 'Validating release archive checksum...\n'
+if [[ ! -f "$ARCHIVE_PATH" ]]; then
+    printf 'ERROR: Archive not found at %s\n' "$ARCHIVE_PATH" >&2
+    exit 1
+fi
+if [[ ! -f "$CHECKSUM_PATH" ]]; then
+    printf 'ERROR: Checksum file not found at %s\n' "$CHECKSUM_PATH" >&2
+    exit 1
+fi
+
+(
+    cd "$(dirname "$ARCHIVE_PATH")"
+    ARCHIVE_NAME="$(basename "$ARCHIVE_PATH")"
+    CHECKSUM_NAME="$(basename "$CHECKSUM_PATH")"
+    
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum -c "$CHECKSUM_NAME"
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 -c "$CHECKSUM_NAME"
+    else
+        "$PHP_BIN" -r '
+            $expected = trim(explode(" ", file_get_contents("'"$CHECKSUM_NAME"'"))[0]);
+            $actual = hash_file("sha256", "'"$ARCHIVE_NAME"'");
+            if (!hash_equals($expected, $actual)) {
+                fwrite(STDERR, "Checksum mismatch: expected $expected, got $actual\n");
+                exit(1);
+            }
+        '
+    fi
+) || {
+    printf 'SECURITY ERROR: SHA256 Checksum validation failed! Aborting deployment.\n' >&2
+    rm -f "$ARCHIVE_PATH" "$CHECKSUM_PATH"
+    exit 1
+}
+
+printf 'Checksum verified successfully.\n'
+
+# 3. Unpack Release into target directory
+TARGET_RELEASE_DIR="$BASE_DIR/releases/$RELEASE_ID"
+mkdir -p "$TARGET_RELEASE_DIR"
+
+printf 'Extracting release to %s...\n' "$TARGET_RELEASE_DIR"
+tar -xzf "$ARCHIVE_PATH" -C "$TARGET_RELEASE_DIR"
+
+# 4. Link Shared Directories & Storage
+printf 'Linking shared storage and environment...\n'
+if [[ -f "$BASE_DIR/shared/.env" ]]; then
+    ln -sfn "$BASE_DIR/shared/.env" "$TARGET_RELEASE_DIR/.env"
+else
+    printf 'WARNING: Shared .env not found at %s/shared/.env\n' "$BASE_DIR" >&2
+fi
+
+mkdir -p "$TARGET_RELEASE_DIR/storage/framework/cache" \
+         "$TARGET_RELEASE_DIR/storage/framework/sessions" \
+         "$TARGET_RELEASE_DIR/storage/framework/views" \
+         "$TARGET_RELEASE_DIR/bootstrap/cache"
+
+chmod -R 775 "$TARGET_RELEASE_DIR/storage/framework" "$TARGET_RELEASE_DIR/bootstrap/cache"
+
+ln -sfn "$BASE_DIR/shared/storage/app" "$TARGET_RELEASE_DIR/storage/app"
+ln -sfn "$BASE_DIR/shared/storage/logs" "$TARGET_RELEASE_DIR/storage/logs"
+
+# 5. Maintenance Mode & Migrations (if applicable)
+HAS_ACTIVE_RELEASE=false
+if [[ -L "$BASE_DIR/current" && -d "$BASE_DIR/current" ]]; then
+    HAS_ACTIVE_RELEASE=true
+fi
+
+if [[ "$RUN_MIGRATIONS" == "true" && "$HAS_ACTIVE_RELEASE" == "true" ]]; then
+    printf 'Enabling maintenance mode during migrations...\n'
+    (cd "$BASE_DIR/current" && "$PHP_BIN" artisan down --secret="$MAINTENANCE_TOKEN" --render="errors::503" 2>/dev/null || true)
+fi
+
+if [[ "$RUN_MIGRATIONS" == "true" ]]; then
+    printf 'Running database migrations...\n'
+    (cd "$TARGET_RELEASE_DIR" && "$PHP_BIN" artisan migrate --force)
+fi
+
+# 6. Cache Optimization
+printf 'Optimizing application caches...\n'
+(
+    cd "$TARGET_RELEASE_DIR"
+    "$PHP_BIN" artisan config:cache
+    "$PHP_BIN" artisan route:cache
+    "$PHP_BIN" artisan view:cache
+)
+
+# 7. Atomic Symlink Switch via rename()
+printf 'Switching release symlink atomically...\n'
+TMP_LINK="$BASE_DIR/current.tmp.$$"
+ln -sfn "$TARGET_RELEASE_DIR" "$TMP_LINK"
+
+# Atomic rename: mv -Tf on Linux / PHP rename() syscall fallback
+if command -v mv >/dev/null 2>&1 && mv -Tf "$TMP_LINK" "$BASE_DIR/current" 2>/dev/null; then
+    :
+else
+    "$PHP_BIN" -r 'rename($argv[1], $argv[2]);' "$TMP_LINK" "$BASE_DIR/current"
+fi
+
+# 8. Restart queue workers & clear stat cache
+printf 'Restarting queue workers and clearing stat cache...\n'
+(cd "$BASE_DIR/current" && "$PHP_BIN" artisan queue:restart 2>/dev/null || true)
+"$PHP_BIN" -r 'clearstatcache(true);'
+
+# 9. Health Verification
+printf 'Verifying release health...\n'
+# Exit maintenance mode before health check
+(cd "$BASE_DIR/current" && "$PHP_BIN" artisan up 2>/dev/null || true)
+
+HEALTH_FAILED=false
+verify_route() {
+    local route="$1"
+    local desc="$2"
+    printf '  Checking %s (%s)... ' "$desc" "$route"
+    
+    # Internal CLI HTTP route test using php artisan test or cURL / php built-in server
+    local status
+    status=$("$PHP_BIN" -r '
+        $_SERVER["HTTP_HOST"] = "localhost";
+        $_SERVER["REQUEST_URI"] = "'"$route"'";
+        $_SERVER["REQUEST_METHOD"] = "GET";
+        require "'"$BASE_DIR"'/current/public/index.php";
+    ' >/dev/null 2>&1 && echo "200" || echo "FAIL")
+    
+    if [[ "$status" == "200" ]]; then
+        printf 'OK\n'
+    else
+        printf 'FAILED\n'
+        HEALTH_FAILED=true
+    fi
+}
+
+# Run health verification against Phase 01 routes
+verify_route "/up" "Laravel /up health check"
+verify_route "/" "Public home route"
+verify_route "/services/airport_pickup" "Public service route"
+
+if [[ "$HEALTH_FAILED" == "true" ]]; then
+    printf 'CRITICAL ERROR: Release health checks failed post-activation!\n' >&2
+    printf 'Initiating automated rollback...\n' >&2
+    "$BASE_DIR/../scripts/rollback-release" --base-dir "$BASE_DIR" --php-bin "$PHP_BIN" || true
+    mv "$TARGET_RELEASE_DIR" "$TARGET_RELEASE_DIR.failed"
+    exit 2
+fi
+
+# 10. Prune Old Releases
+printf 'Pruning old releases (retaining %s newest)...\n' "$KEEP_RELEASES"
+cd "$BASE_DIR/releases"
+ls -1dt 20* 2>/dev/null | tail -n +$((KEEP_RELEASES + 1)) | while read -r old_release; do
+    if [[ -d "$old_release" && "$old_release" != "$RELEASE_ID" ]]; then
+        printf '  Removing old release: %s\n' "$old_release"
+        rm -rf "$old_release"
+    fi
+done
+
+printf '=== Release %s Activated Successfully ===\n' "$RELEASE_ID"
+

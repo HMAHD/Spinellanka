@@ -20,6 +20,37 @@ Confirm these capabilities before framework scaffolding. Failure of a required i
 
 If the host cannot meet document-root, PHP CLI, or cron requirements, move to a suitable cPanel tier or managed VPS. Do not copy Laravel's full application into a web-visible directory as a workaround.
 
+## Hosting capability assessment verdict
+
+**Assessment Date**: 2026-11-23  
+**Verdict**: Blocked — hosting  
+**Deployment Status**: Disabled (activation blocked until gates pass)  
+**Responsible Owner**: Hosting/Technical Owner (Client)  
+**Required Action**: Supply factual capability evidence or upgrade hosting plan to satisfy the 11 gates.
+
+### Capability evaluation status
+
+| # | Capability Gate | Required Baseline | Evaluation Status | Finding / Evidence Required |
+|---|---|---|---|---|
+| 1 | PHP Web Runtime | PHP 8.3+; PHP 8.4 preferred | Pending Verification | Live web runtime version not supplied; must be verified via hosting probe |
+| 2 | PHP CLI Runtime | Exact major/minor version parity with web | Pending Parity | CLI supports PHP 8.4; web runtime parity pending hosting facts |
+| 3 | Extensions | 15 required extensions loaded | Passed (CLI) | All 15 required extensions loaded in CLI; web runtime verification required |
+| 4 | Database | MariaDB 10.11+ / MySQL 8.0 (InnoDB + transactions) | Blocked | Production database credentials not provisioned; local environment uses SQLite |
+| 5 | Web Root Isolation | Domain DocumentRoot targets `current/public` outside `public_html` | Blocked / Pending | Account DocumentRoot assignment unverified; cannot place code in `public_html` |
+| 6 | Filesystem Isolation | Application resides outside public root; writable storage/cache | Passed (Design) | Release directory model established outside web root |
+| 7 | CLI/Deploy Transport | SSH / Terminal non-interactive shell access | Pending | SSH credentials/keys unprovisioned |
+| 8 | Scheduler | 1-minute cron with non-overlapping execution | Pending | 1-minute cron capability unconfirmed on account |
+| 9 | TLS | Valid certificate with forced HTTPS | Pending | Production domain and SSL certificate unprovisioned |
+| 10 | Backups | Automated database dump utility and tested restore | Blocked | `mysqldump`/`mariadb-dump` and automated backup schedule unverified |
+| 11 | Limits & Environment | >= 256MB PHP memory, atomic symlink (`mv -Tf`) | Blocked | Host memory allocation and atomic symlink support unconfirmed |
+
+### Blocked Gates & Upgrade Recommendations
+
+1. **Gate 4 (Database) & Gate 5 (DocumentRoot):** The client hosting account must provide a dedicated MariaDB 10.11+ or MySQL 8.0 database with InnoDB transaction support and allow the domain document root to target `/home/<account>/spinellanka/current/public`. If the primary domain document root is hardcoded to `public_html` and cannot be remapped, Spinellanka must be configured as an Addon Domain or upgraded to a tier supporting custom document roots.
+2. **Gate 10 (Backups) & Gate 11 (Limits):** Ensure the hosting plan allocates at least 256MB PHP memory and provides `mysqldump` CLI access.
+3. **Error Reporting:** PII-scrubbed error reporting (e.g. Sentry SaaS with data-processing agreement) must be approved by the technical/privacy owner prior to any production-like staging rehearsal.
+4. **Deployment State:** Deployment automation remains disabled (`.github/workflows/deploy.yml` asserts `Verdict: Accepted`). Phase 01 merges in the `Blocked — hosting` state. Phase 18 cannot become Ready until an accepted host passes capability assessment and staging rehearsal.
+
 ## Directory model
 
 Use release directories outside the web root:
