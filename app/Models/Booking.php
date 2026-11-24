@@ -50,6 +50,7 @@ use Illuminate\Support\Str;
  * @property-read User|null $assignedStaff
  * @property-read AirportPickupDetail|null $airportPickupDetail
  * @property-read AirportTransferDetail|null $airportTransferDetail
+ * @property-read RideDetail|null $rideDetail
  */
 class Booking extends Model
 {
@@ -131,6 +132,33 @@ class Booking extends Model
                 'chosen_pickup_time' => $detail->chosen_pickup_time ? $detail->chosen_pickup_time->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s') : '',
                 'passenger_count' => $detail->passenger_count,
                 'luggage_count' => $detail->luggage_count,
+                'vehicle_id' => $this->vehicle_id,
+                'total_amount_minor_units' => $this->total_amount_minor_units,
+            ];
+
+            return hash('sha256', serialize($payloadData));
+        }
+
+        if ($this->rideDetail) {
+            $detail = $this->rideDetail;
+            $stopsData = [];
+            foreach ($detail->stops as $stop) {
+                $stopsData[] = [
+                    'order' => $stop->stop_order,
+                    'location' => $stop->location_text,
+                    'wait' => $stop->planned_waiting_minutes,
+                ];
+            }
+            $payloadData = [
+                'type' => 'ride',
+                'pickup_time' => $detail->pickup_time ? $detail->pickup_time->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s') : '',
+                'origin_text' => $detail->origin_text,
+                'destination_text' => $detail->destination_text,
+                'has_return' => $detail->has_return,
+                'return_pickup_time' => $detail->return_pickup_time ? $detail->return_pickup_time->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s') : null,
+                'passenger_count' => $detail->passenger_count,
+                'luggage_count' => $detail->luggage_count,
+                'stops' => $stopsData,
                 'vehicle_id' => $this->vehicle_id,
                 'total_amount_minor_units' => $this->total_amount_minor_units,
             ];
@@ -231,6 +259,14 @@ class Booking extends Model
     public function airportTransferDetail(): HasOne
     {
         return $this->hasOne(AirportTransferDetail::class);
+    }
+
+    /**
+     * @return HasOne<RideDetail, $this>
+     */
+    public function rideDetail(): HasOne
+    {
+        return $this->hasOne(RideDetail::class);
     }
 
     /**
