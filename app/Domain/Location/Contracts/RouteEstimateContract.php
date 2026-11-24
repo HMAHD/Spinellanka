@@ -14,4 +14,3 @@ interface RouteEstimateContract
         LocationCoordinate $destination,
     ): ?RouteEstimateResult;
 }
-

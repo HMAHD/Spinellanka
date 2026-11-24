@@ -15,4 +15,3 @@ final class RouteEstimateResult
         public readonly array $metadata = [],
     ) {}
 }
-

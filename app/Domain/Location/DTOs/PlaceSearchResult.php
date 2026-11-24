@@ -14,4 +14,3 @@ final class PlaceSearchResult
         public readonly ?string $secondaryText = null,
     ) {}
 }
-

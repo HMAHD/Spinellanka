@@ -19,4 +19,3 @@ final class VehicleSuitabilityItem
         public readonly ?EstimateResult $estimate = null,
     ) {}
 }
-

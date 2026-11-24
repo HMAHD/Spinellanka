@@ -16,4 +16,3 @@ interface PlaceSearchContract
 
     public function getDetails(string $placeId): ?PlaceSearchResult;
 }
-

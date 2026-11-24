@@ -14,4 +14,3 @@ final class BookingSubmissionResult
         public readonly string $privateUrl,
     ) {}
 }
-

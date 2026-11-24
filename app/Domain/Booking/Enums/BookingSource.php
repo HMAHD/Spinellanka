@@ -26,4 +26,3 @@ enum BookingSource: string
         return $this !== self::Web;
     }
 }
-

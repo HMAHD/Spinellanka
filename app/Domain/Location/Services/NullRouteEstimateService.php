@@ -49,4 +49,3 @@ class NullRouteEstimateService implements RouteEstimateContract
         );
     }
 }
-

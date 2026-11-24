@@ -57,4 +57,3 @@ class AirportPickupDetail extends Model
         return $this->belongsTo(Booking::class);
     }
 }
-

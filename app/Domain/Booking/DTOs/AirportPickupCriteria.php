@@ -30,4 +30,3 @@ final class AirportPickupCriteria
         public readonly array $extraIds = [],
     ) {}
 }
-

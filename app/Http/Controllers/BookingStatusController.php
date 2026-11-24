@@ -57,4 +57,3 @@ class BookingStatusController extends Controller
             ->header('Cache-Control', 'no-store, private');
     }
 }
-

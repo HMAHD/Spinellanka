@@ -30,4 +30,3 @@ class BookingPolicyAcceptanceFactory extends Factory
         ];
     }
 }
-

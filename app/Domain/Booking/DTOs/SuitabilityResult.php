@@ -17,4 +17,3 @@ final class SuitabilityResult
         public readonly Collection $unsuitable,
     ) {}
 }
-

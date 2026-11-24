@@ -31,4 +31,3 @@ class GuestAccessTokenFactory extends Factory
         ];
     }
 }
-

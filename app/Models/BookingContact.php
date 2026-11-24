@@ -54,4 +54,3 @@ class BookingContact extends Model
         return $this->belongsTo(Booking::class);
     }
 }
-

@@ -50,4 +50,3 @@ enum BookingStatus: string
         return in_array($this, [self::Declined, self::Cancelled, self::Expired], true);
     }
 }
-

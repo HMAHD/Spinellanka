@@ -17,4 +17,3 @@ enum ContactType: string
         };
     }
 }
-

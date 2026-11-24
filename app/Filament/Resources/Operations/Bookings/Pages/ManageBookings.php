@@ -141,4 +141,3 @@ class ManageBookings extends ManageRecords
         ];
     }
 }
-

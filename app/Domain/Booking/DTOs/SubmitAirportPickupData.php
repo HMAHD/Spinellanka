@@ -29,4 +29,3 @@ final class SubmitAirportPickupData
         public readonly ?string $userAgent = null,
     ) {}
 }
-

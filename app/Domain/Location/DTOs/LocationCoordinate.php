@@ -11,4 +11,3 @@ final class LocationCoordinate
         public readonly float $longitude,
     ) {}
 }
-
