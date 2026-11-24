@@ -8,6 +8,7 @@ use App\Domain\Booking\Enums\BookingSource;
 use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\Enums\ConfirmationChannel;
 use App\Domain\Booking\Services\BookingLifecycleService;
+use App\Domain\Booking\ServiceType;
 use App\Domain\Identity\Permission;
 use App\Filament\Resources\Operations\Bookings\Pages\ManageBookings;
 use App\Models\Booking;
@@ -82,20 +83,57 @@ class BookingResource extends Resource
                             ->disabled(),
                     ])->columns(4),
 
-                Section::make('Flight & Destination')
+                Section::make('Flight & Route Details')
                     ->schema([
                         TextInput::make('flight_number')
-                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state($record?->airportPickupDetail?->flight_number))
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->airportTransferDetail
+                                    ? $record->airportTransferDetail->flight_number
+                                    : ($record?->airportPickupDetail->flight_number ?? 'N/A')
+                            ))
                             ->disabled(),
-                        TextInput::make('arrival_time')
-                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state($record?->airportPickupDetail?->arrival_time?->format('Y-m-d H:i').' (Asia/Colombo)'))
+                        TextInput::make('flight_timing')
+                            ->label('Flight Time')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->airportTransferDetail
+                                    ? 'Departs: '.$record->airportTransferDetail->departure_time?->format('Y-m-d H:i').' (Asia/Colombo)'
+                                    : ($record?->airportPickupDetail ? 'Arrives: '.$record->airportPickupDetail->arrival_time?->format('Y-m-d H:i').' (Asia/Colombo)' : 'N/A')
+                            ))
                             ->disabled(),
-                        TextInput::make('destination_text')
-                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state($record?->airportPickupDetail?->destination_text))
+                        TextInput::make('pickup_timing')
+                            ->label('Pickup Time')
+                            ->visible(fn (?Booking $record) => $record?->service_type === ServiceType::AirportTransfer)
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->airportTransferDetail
+                                    ? $record->airportTransferDetail->chosen_pickup_time?->format('Y-m-d H:i').' (Rec: '.$record->airportTransferDetail->recommended_pickup_time?->format('H:i').')'
+                                    : 'N/A'
+                            ))
+                            ->disabled(),
+                        TextInput::make('safety_status')
+                            ->label('Timing Safety Status')
+                            ->visible(fn (?Booking $record) => $record?->service_type === ServiceType::AirportTransfer)
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->airportTransferDetail?->is_unsafe_time
+                                    ? '⚠️ Later than recommended (Warning Accepted by Client)'
+                                    : '✓ Within safe recommended margin'
+                            ))
+                            ->disabled(),
+                        TextInput::make('route_location')
+                            ->label('Route Location')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->airportTransferDetail
+                                    ? 'Origin: '.$record->airportTransferDetail->origin_text
+                                    : ($record?->airportPickupDetail ? 'Destination: '.$record->airportPickupDetail->destination_text : 'N/A')
+                            ))
+                            ->columnSpanFull()
                             ->disabled(),
                         TextInput::make('passengers_luggage')
                             ->label('Party Size')
-                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state("{$record?->airportPickupDetail?->passenger_count} Pass / {$record?->airportPickupDetail?->luggage_count} Bags"))
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->airportTransferDetail
+                                    ? "{$record->airportTransferDetail->passenger_count} Pass / {$record->airportTransferDetail->luggage_count} Bags"
+                                    : ($record?->airportPickupDetail ? "{$record->airportPickupDetail->passenger_count} Pass / {$record->airportPickupDetail->luggage_count} Bags" : 'N/A')
+                            ))
                             ->disabled(),
                     ])->columns(2),
 
@@ -134,13 +172,17 @@ class BookingResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['vehicle', 'airportPickupDetail', 'booker', 'leadTraveler']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['vehicle', 'airportPickupDetail', 'airportTransferDetail', 'booker', 'leadTraveler']))
             ->columns([
                 TextColumn::make('reference')
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
+
+                TextColumn::make('service_type')
+                    ->badge()
+                    ->formatStateUsing(fn (ServiceType $state): string => $state->label()),
 
                 TextColumn::make('status')
                     ->badge()
@@ -153,17 +195,28 @@ class BookingResource extends Resource
                     })
                     ->formatStateUsing(fn (BookingStatus $state): string => $state->label()),
 
-                TextColumn::make('airportPickupDetail.flight_number')
+                TextColumn::make('flight')
                     ->label('Flight')
+                    ->getStateUsing(fn (Booking $record): string => $record->airportTransferDetail
+                        ? $record->airportTransferDetail->flight_number
+                        : ($record->airportPickupDetail ? $record->airportPickupDetail->flight_number : 'N/A')
+                    )
                     ->searchable(),
 
-                TextColumn::make('airportPickupDetail.arrival_time')
-                    ->label('Arrival (Colombo)')
-                    ->dateTime('d M Y H:i', 'Asia/Colombo')
+                TextColumn::make('service_time')
+                    ->label('Timing')
+                    ->getStateUsing(fn (Booking $record): string => $record->airportTransferDetail
+                        ? ($record->airportTransferDetail->is_unsafe_time ? '⚠️ ' : '').$record->airportTransferDetail->chosen_pickup_time->format('d M H:i').' (Pickup)'
+                        : ($record->airportPickupDetail && $record->airportPickupDetail->arrival_time ? $record->airportPickupDetail->arrival_time->format('d M H:i').' (Arrival)' : 'N/A')
+                    )
                     ->sortable(),
 
-                TextColumn::make('airportPickupDetail.destination_text')
-                    ->label('Destination')
+                TextColumn::make('route')
+                    ->label('Route / Location')
+                    ->getStateUsing(fn (Booking $record): string => $record->airportTransferDetail
+                        ? 'From: '.$record->airportTransferDetail->origin_text
+                        : ($record->airportPickupDetail ? 'To: '.$record->airportPickupDetail->destination_text : 'N/A')
+                    )
                     ->limit(25)
                     ->searchable(),
 

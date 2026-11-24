@@ -30,6 +30,7 @@ class BookingStatusController extends Controller
                 'vehicle.publicApprovedMedia',
                 'estimate.items',
                 'airportPickupDetail',
+                'airportTransferDetail',
                 'contacts',
                 'policyAcceptances',
             ])
@@ -51,6 +52,7 @@ class BookingStatusController extends Controller
                 'leadTraveler' => $booking->leadTraveler,
                 'booker' => $booking->booker,
                 'detail' => $booking->airportPickupDetail,
+                'transferDetail' => $booking->airportTransferDetail,
             ])
             ->header('X-Robots-Tag', 'noindex, nofollow')
             ->header('Referrer-Policy', 'no-referrer')
