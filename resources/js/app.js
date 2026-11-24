@@ -1,5 +1,3 @@
-import "@fontsource-variable/inter";
-
 const isPopoverOpen = (element) =>
   element.matches(":is(:popover-open, .\\:popover-open)");
 

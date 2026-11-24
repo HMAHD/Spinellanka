@@ -14,9 +14,9 @@
         "format:check": "prettier --check resources tests vite.config.js"
     },
     "devDependencies": {
-        "@fontsource-variable/inter": "^5.2.8",
         "@oddbird/popover-polyfill": "^0.6.0",
         "@tailwindcss/vite": "^4.1.17",
+        "allo-font": "^1.0.3",
         "concurrently": "^10.0.3",
         "laravel-vite-plugin": "^3.1.0",
         "prettier": "^3.6.2",

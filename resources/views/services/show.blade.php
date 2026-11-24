@@ -44,9 +44,6 @@
     </ul>
   </section>
 
-  <footer class="service-footer">
-    <a href="{{ route('home') }}">Spinellanka home</a>
-    <p>&copy; {{ now()->year }} Spinellanka</p>
-  </footer>
+  @include('partials.footer')
 </main>
 @endsection

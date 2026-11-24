@@ -10,10 +10,10 @@ use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Domain\Catalog\Enums\VehicleType;
 use Carbon\Carbon;
 use Database\Factories\VehicleFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Collection;
 
 /**
  * @use HasFactory<VehicleFactory>
@@ -46,6 +46,8 @@ use Illuminate\Support\Collection;
  * @property Carbon $updated_at
  * @property-read Collection<int, VehicleMedia> $media
  * @property-read Collection<int, VehicleDriverAssignment> $driverAssignments
+ * @property-read Collection<int, VehicleScheduleBlock> $scheduleBlocks
+ * @property-read Collection<int, BookingHold> $holds
  * @property-read Collection<int, PricingRule> $pricingRules
  * @property-read Collection<int, Estimate> $estimates
  */
@@ -112,11 +114,62 @@ class Vehicle extends Model
     }
 
     /**
+     * @return HasMany<VehicleMedia, $this>
+     */
+    public function publicApprovedMedia(): HasMany
+    {
+        return $this->media()
+            ->where('is_approved', true)
+            ->where('disk', 'public')
+            ->orderBy('sort_order');
+    }
+
+    /**
+     * Get the human-readable labels of services this vehicle is eligible for.
+     *
+     * @return array<string>
+     */
+    public function eligibleServiceLabels(): array
+    {
+        $services = [];
+        if ($this->eligible_for_pickup) {
+            $services[] = 'Airport Pickup';
+        }
+        if ($this->eligible_for_transfer) {
+            $services[] = 'Airport Transfer';
+        }
+        if ($this->eligible_for_ride) {
+            $services[] = 'Ride';
+        }
+        if ($this->eligible_for_rent) {
+            $services[] = 'Rent (Self-Drive)';
+        }
+
+        return $services;
+    }
+
+    /**
      * @return HasMany<VehicleDriverAssignment, $this>
      */
     public function driverAssignments(): HasMany
     {
         return $this->hasMany(VehicleDriverAssignment::class);
+    }
+
+    /**
+     * @return HasMany<VehicleScheduleBlock, $this>
+     */
+    public function scheduleBlocks(): HasMany
+    {
+        return $this->hasMany(VehicleScheduleBlock::class);
+    }
+
+    /**
+     * @return HasMany<BookingHold, $this>
+     */
+    public function holds(): HasMany
+    {
+        return $this->hasMany(BookingHold::class);
     }
 
     /**

@@ -15,9 +15,12 @@ test('catalog migrations can be completely rolled back and re-applied without co
     expect(Schema::hasTable('extras'))->toBeTrue();
     expect(Schema::hasTable('extra_compatibility'))->toBeTrue();
 
-    // If downstream pricing tables exist, roll them back first so catalog can be tested in isolation
+    // Rollback any dependent downstream migrations (pricing and availability) first if present
     if (Schema::hasTable('estimates')) {
         Artisan::call('migrate:rollback', ['--step' => 5]);
+    }
+    if (Schema::hasTable('booking_holds') || Schema::hasTable('vehicle_schedule_blocks')) {
+        Artisan::call('migrate:rollback', ['--step' => 2]);
     }
 
     // Rollback the 6 catalog migration steps
