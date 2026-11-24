@@ -9,6 +9,11 @@ test('pricing migrations can be completely rolled back and re-applied without co
     // Ensure all tables are migrated in this connection
     Artisan::call('migrate');
 
+    // If downstream booking tables exist, roll them back first so pricing can be tested in isolation
+    if (Schema::hasTable('bookings')) {
+        Artisan::call('migrate:rollback', ['--step' => 5]);
+    }
+
     // Assert pricing tables exist
     expect(Schema::hasTable('estimate_items'))->toBeTrue();
     expect(Schema::hasTable('estimates'))->toBeTrue();
