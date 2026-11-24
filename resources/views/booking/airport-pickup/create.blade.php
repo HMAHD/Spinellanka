@@ -49,7 +49,7 @@
 
               <div class="form-group">
                 <label for="flight_number">Flight Number <span class="required">*</span></label>
-                <input type="text" id="flight_number" name="flight_number" value="{{ old('flight_number', $criteria?->flightNumber) }}" placeholder="e.g. UL504, EK650, QR664" required class="form-input @error('flight_number') is-invalid @enderror" aria-describedby="flight-hint">
+                <input type="text" id="flight_number" name="flight_number" value="{{ old('flight_number', $criteria?->flightNumber) }}" placeholder="e.g. UL504, EK650, QR664" required autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" class="form-input @error('flight_number') is-invalid @enderror" aria-describedby="flight-hint">
                 <small id="flight-hint" class="form-hint">Format: 2-letter airline code and number.</small>
                 @error('flight_number') <span class="form-error">{{ $message }}</span> @enderror
               </div>
@@ -76,7 +76,7 @@
 
             <div class="form-group">
               <label for="destination_text">Destination Hotel or Address <span class="required">*</span></label>
-              <input type="text" id="destination_text" name="destination_text" value="{{ old('destination_text', $criteria?->destinationText) }}" placeholder="e.g. Galle Face Hotel, Colombo 03 or Jetwing Lighthouse, Galle" required class="form-input @error('destination_text') is-invalid @enderror" aria-describedby="dest-hint">
+              <input type="text" id="destination_text" name="destination_text" value="{{ old('destination_text', $criteria?->destinationText) }}" placeholder="e.g. Galle Face Hotel, Colombo 03 or Jetwing Lighthouse, Galle" required autocomplete="street-address" enterkeyhint="next" class="form-input @error('destination_text') is-invalid @enderror" aria-describedby="dest-hint">
               <small id="dest-hint" class="form-hint">Type your destination or select a known hub below. We preserve exact text and verify the route.</small>
               @error('destination_text') <span class="form-error">{{ $message }}</span> @enderror
             </div>
@@ -96,14 +96,14 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="passenger_count">Passengers <span class="required">*</span></label>
-                <input type="number" id="passenger_count" name="passenger_count" value="{{ old('passenger_count', $criteria?->passengerCount ?? 2) }}" min="1" max="10" required class="form-input @error('passenger_count') is-invalid @enderror">
+                <input type="number" id="passenger_count" name="passenger_count" value="{{ old('passenger_count', $criteria?->passengerCount ?? 2) }}" min="1" max="10" inputmode="numeric" enterkeyhint="next" required class="form-input @error('passenger_count') is-invalid @enderror">
                 <small class="form-hint">Total travelers including children.</small>
                 @error('passenger_count') <span class="form-error">{{ $message }}</span> @enderror
               </div>
 
               <div class="form-group">
                 <label for="luggage_count">Luggage Bags (Large / Check-in) <span class="required">*</span></label>
-                <input type="number" id="luggage_count" name="luggage_count" value="{{ old('luggage_count', $criteria?->luggageCount ?? 2) }}" min="0" max="10" required class="form-input @error('luggage_count') is-invalid @enderror">
+                <input type="number" id="luggage_count" name="luggage_count" value="{{ old('luggage_count', $criteria?->luggageCount ?? 2) }}" min="0" max="10" inputmode="numeric" enterkeyhint="done" required class="form-input @error('luggage_count') is-invalid @enderror">
                 <small class="form-hint">Standard 23kg check-in suitcases.</small>
                 @error('luggage_count') <span class="form-error">{{ $message }}</span> @enderror
               </div>

@@ -45,7 +45,7 @@
 
     <div class="booking-content-grid">
       <div class="booking-form-card">
-        <form action="{{ route('booking.airport-pickup.submit') }}" method="POST" class="booking-form" novalidate>
+        <form action="{{ route('booking.airport-pickup.submit') }}" method="POST" class="booking-form" novalidate onsubmit="if (this.dataset.submitting) { return false; } this.dataset.submitting = '1'; const btn = this.querySelector('button[type=submit]'); if (btn) { setTimeout(() => { btn.disabled = true; }, 0); btn.innerText = 'Submitting...'; }">
           @csrf
 
           <!-- Booker Contact (Person Paying or Making Arrangement) -->
@@ -56,13 +56,13 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="booker_first_name">First Name <span class="required">*</span></label>
-                <input type="text" id="booker_first_name" name="booker_first_name" value="{{ old('booker_first_name') }}" required class="form-input @error('booker_first_name') is-invalid @enderror">
+                <input type="text" id="booker_first_name" name="booker_first_name" value="{{ old('booker_first_name') }}" required autocomplete="given-name" autocapitalize="words" enterkeyhint="next" class="form-input @error('booker_first_name') is-invalid @enderror">
                 @error('booker_first_name') <span class="form-error">{{ $message }}</span> @enderror
               </div>
 
               <div class="form-group">
                 <label for="booker_last_name">Last Name <span class="required">*</span></label>
-                <input type="text" id="booker_last_name" name="booker_last_name" value="{{ old('booker_last_name') }}" required class="form-input @error('booker_last_name') is-invalid @enderror">
+                <input type="text" id="booker_last_name" name="booker_last_name" value="{{ old('booker_last_name') }}" required autocomplete="family-name" autocapitalize="words" enterkeyhint="next" class="form-input @error('booker_last_name') is-invalid @enderror">
                 @error('booker_last_name') <span class="form-error">{{ $message }}</span> @enderror
               </div>
             </div>
@@ -70,14 +70,14 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="booker_phone">International Phone / WhatsApp <span class="required">*</span></label>
-                <input type="tel" id="booker_phone" name="booker_phone" value="{{ old('booker_phone') }}" placeholder="+44 7700 900123" required class="form-input @error('booker_phone') is-invalid @enderror" aria-describedby="booker-phone-hint">
+                <input type="tel" id="booker_phone" name="booker_phone" value="{{ old('booker_phone') }}" placeholder="+44 7700 900123" required autocomplete="tel" inputmode="tel" enterkeyhint="next" class="form-input @error('booker_phone') is-invalid @enderror" aria-describedby="booker-phone-hint">
                 <small id="booker-phone-hint" class="form-hint">Include country code (e.g. +44, +1, +49, +61). Primary dispatch channel.</small>
                 @error('booker_phone') <span class="form-error">{{ $message }}</span> @enderror
               </div>
 
               <div class="form-group">
                 <label for="booker_email">Email Address (Optional)</label>
-                <input type="email" id="booker_email" name="booker_email" value="{{ old('booker_email') }}" placeholder="name@example.com" class="form-input @error('booker_email') is-invalid @enderror">
+                <input type="email" id="booker_email" name="booker_email" value="{{ old('booker_email') }}" placeholder="name@example.com" autocomplete="email" inputmode="email" enterkeyhint="next" class="form-input @error('booker_email') is-invalid @enderror">
                 <small class="form-hint">For receiving reference link &amp; itinerary summary.</small>
                 @error('booker_email') <span class="form-error">{{ $message }}</span> @enderror
               </div>
@@ -92,6 +92,7 @@
             <p class="section-desc">The primary passenger physically arriving on flight {{ $criteria->flightNumber }}.</p>
 
             <div class="form-checkbox-group">
+              <input type="hidden" name="lead_traveler_same" value="0">
               <label class="checkbox-label">
                 <input type="checkbox" id="lead_traveler_same" name="lead_traveler_same" value="1" {{ old('lead_traveler_same', '1') === '1' ? 'checked' : '' }} onchange="document.getElementById('separate-traveler-fields').style.display = this.checked ? 'none' : 'block'">
                 <span>Lead traveler is the same person as the booker above</span>
@@ -102,22 +103,22 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="lead_traveler_first_name">Traveler First Name</label>
-                  <input type="text" id="lead_traveler_first_name" name="lead_traveler_first_name" value="{{ old('lead_traveler_first_name') }}" class="form-input">
+                  <input type="text" id="lead_traveler_first_name" name="lead_traveler_first_name" value="{{ old('lead_traveler_first_name') }}" autocomplete="given-name" autocapitalize="words" enterkeyhint="next" class="form-input">
                 </div>
                 <div class="form-group">
                   <label for="lead_traveler_last_name">Traveler Last Name</label>
-                  <input type="text" id="lead_traveler_last_name" name="lead_traveler_last_name" value="{{ old('lead_traveler_last_name') }}" class="form-input">
+                  <input type="text" id="lead_traveler_last_name" name="lead_traveler_last_name" value="{{ old('lead_traveler_last_name') }}" autocomplete="family-name" autocapitalize="words" enterkeyhint="next" class="form-input">
                 </div>
               </div>
               <div class="form-row">
                 <div class="form-group">
                   <label for="lead_traveler_phone">Traveler Mobile / WhatsApp</label>
-                  <input type="tel" id="lead_traveler_phone" name="lead_traveler_phone" value="{{ old('lead_traveler_phone') }}" placeholder="+44 ..." class="form-input">
+                  <input type="tel" id="lead_traveler_phone" name="lead_traveler_phone" value="{{ old('lead_traveler_phone') }}" placeholder="+44 ..." autocomplete="tel" inputmode="tel" enterkeyhint="next" class="form-input">
                   <small class="form-hint">Used by our airport greeter to locate traveler upon touchdown.</small>
                 </div>
                 <div class="form-group">
                   <label for="lead_traveler_email">Traveler Email (Optional)</label>
-                  <input type="email" id="lead_traveler_email" name="lead_traveler_email" value="{{ old('lead_traveler_email') }}" class="form-input">
+                  <input type="email" id="lead_traveler_email" name="lead_traveler_email" value="{{ old('lead_traveler_email') }}" autocomplete="email" inputmode="email" enterkeyhint="next" class="form-input">
                 </div>
               </div>
             </div>

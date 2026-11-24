@@ -141,9 +141,9 @@
               <div class="contact-box">
                 <h4>Booker (Primary Contact)</h4>
                 <p><strong>{{ $booker->fullName() }}</strong></p>
-                <p>WhatsApp / Phone: {{ $booker->phone }}</p>
+                <p>WhatsApp / Phone: {{ strlen($booker->phone) > 6 ? substr($booker->phone, 0, 4) . ' ••••• ' . substr($booker->phone, -3) : $booker->phone }}</p>
                 @if($booker->email)
-                  <p>Email: {{ $booker->email }}</p>
+                  <p>Email: {{ str_contains($booker->email, '@') ? substr($booker->email, 0, 1) . '•••••@' . explode('@', $booker->email)[1] : $booker->email }}</p>
                 @endif
               </div>
             @endif
@@ -152,7 +152,7 @@
               <div class="contact-box">
                 <h4>Lead Traveler at CMB Airport</h4>
                 <p><strong>{{ $leadTraveler->fullName() }}</strong></p>
-                <p>Phone: {{ $leadTraveler->phone }}</p>
+                <p>Phone: {{ strlen($leadTraveler->phone) > 6 ? substr($leadTraveler->phone, 0, 4) . ' ••••• ' . substr($leadTraveler->phone, -3) : $leadTraveler->phone }}</p>
               </div>
             @endif
           </div>
