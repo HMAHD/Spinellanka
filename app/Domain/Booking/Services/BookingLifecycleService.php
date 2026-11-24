@@ -61,6 +61,10 @@ class BookingLifecycleService
             throw new InvalidArgumentException("Booking {$booking->reference} cannot be confirmed from status {$booking->status->value}.");
         }
 
+        if ($booking->expires_at && $booking->expires_at->isPast() && $booking->status !== BookingStatus::UnderReview) {
+            throw new InvalidArgumentException("Booking {$booking->reference} has expired and was not placed under review. Re-estimate required.");
+        }
+
         if (! $staff->can(Permission::BookingConfirm->value) && ! $staff->hasPermissionTo(Permission::BookingConfirm->value)) {
             throw new InvalidArgumentException('Actor does not have booking.confirm permission.');
         }
@@ -92,6 +96,7 @@ class BookingLifecycleService
                 );
             }
 
+            $policyVersion = (string) config('booking.policy_version', '2026.1');
             $now = Carbon::now('Asia/Colombo');
             $booking->update([
                 'status' => BookingStatus::Confirmed,
@@ -112,6 +117,7 @@ class BookingLifecycleService
                     'notes' => trim($notes),
                     'staff_id' => $staff->id,
                     'override_reason' => $overrideReason,
+                    'policy_version' => $policyVersion,
                 ],
                 auditable: $booking,
                 actorType: 'staff'
@@ -175,6 +181,10 @@ class BookingLifecycleService
             throw new InvalidArgumentException("Booking {$booking->reference} cannot be cancelled from status {$booking->status->value}.");
         }
 
+        if ($actor && ! $actor->can(Permission::BookingCancel->value) && ! $actor->hasPermissionTo(Permission::BookingCancel->value)) {
+            throw new InvalidArgumentException('Actor does not have booking.cancel permission.');
+        }
+
         if (trim($reason) === '') {
             throw new InvalidArgumentException('Cancellation reason cannot be empty.');
         }
@@ -218,6 +228,16 @@ class BookingLifecycleService
         }
 
         return DB::transaction(function () use ($booking) {
+            if ($booking->vehicle_id) {
+                Vehicle::where('id', $booking->vehicle_id)->lockForUpdate()->first();
+            }
+
+            $booking->refresh();
+
+            if ($booking->status !== BookingStatus::Submitted) {
+                return $booking;
+            }
+
             if ($booking->scheduleBlock) {
                 $this->availabilityService->releaseBlock(
                     block: $booking->scheduleBlock,

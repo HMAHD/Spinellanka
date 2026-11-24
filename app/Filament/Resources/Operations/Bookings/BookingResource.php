@@ -191,7 +191,7 @@ class BookingResource extends Resource
                     ->label('Review')
                     ->icon(Heroicon::OutlinedEye)
                     ->color('info')
-                    ->visible(fn (Booking $record): bool => $record->status === BookingStatus::Submitted)
+                    ->visible(fn (Booking $record): bool => $record->status === BookingStatus::Submitted && (auth()->user()?->can(Permission::BookingReview->value) ?? false))
                     ->requiresConfirmation()
                     ->action(function (Booking $record): void {
                         app(BookingLifecycleService::class)->markUnderReview($record, auth()->user());
@@ -202,7 +202,7 @@ class BookingResource extends Resource
                     ->label('Confirm')
                     ->icon(Heroicon::OutlinedCheckCircle)
                     ->color('success')
-                    ->visible(fn (Booking $record): bool => $record->canBeConfirmed())
+                    ->visible(fn (Booking $record): bool => $record->canBeConfirmed() && (auth()->user()?->can(Permission::BookingConfirm->value) ?? false))
                     ->modalHeading('Confirm Airport Pickup Booking')
                     ->modalDescription('Verify direct customer communication outcome and schedule availability before confirming.')
                     ->form([
@@ -240,7 +240,7 @@ class BookingResource extends Resource
                     ->label('Decline')
                     ->icon(Heroicon::OutlinedXCircle)
                     ->color('danger')
-                    ->visible(fn (Booking $record): bool => $record->canBeDeclined())
+                    ->visible(fn (Booking $record): bool => $record->canBeDeclined() && (auth()->user()?->can(Permission::BookingReview->value) ?? false))
                     ->modalHeading('Decline Booking Request')
                     ->form([
                         Textarea::make('decline_reason')
@@ -257,7 +257,7 @@ class BookingResource extends Resource
                     ->label('Cancel')
                     ->icon(Heroicon::OutlinedNoSymbol)
                     ->color('gray')
-                    ->visible(fn (Booking $record): bool => $record->status === BookingStatus::Confirmed)
+                    ->visible(fn (Booking $record): bool => $record->canBeCancelled() && (auth()->user()?->can(Permission::BookingCancel->value) ?? false))
                     ->form([
                         Textarea::make('cancellation_reason')
                             ->label('Cancellation Reason')

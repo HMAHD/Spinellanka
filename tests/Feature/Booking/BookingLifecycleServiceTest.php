@@ -35,6 +35,7 @@ beforeEach(function (): void {
     ]);
     $this->staff->givePermissionTo(Permission::BookingReview->value);
     $this->staff->givePermissionTo(Permission::BookingConfirm->value);
+    $this->staff->givePermissionTo(Permission::BookingCancel->value);
 });
 
 test('staff lifecycle transitions: mark under review, confirm with communication notes, decline, cancel', function (): void {
@@ -141,4 +142,51 @@ test('expire-pending command releases schedule blocks for stale requests', funct
         ->and($block->fresh()->blocks_availability)->toBeFalse();
 
     expect(AuditEvent::where('action', 'booking.expired')->exists())->toBeTrue();
+});
+
+test('expire-pending command does not expire bookings under review', function (): void {
+    $vehicle = Vehicle::factory()->create();
+    $block = VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'kind' => ScheduleBlockKind::SubmittedRequest,
+        'status' => ScheduleBlockStatus::Active,
+        'blocks_availability' => true,
+    ]);
+
+    $underReviewBooking = Booking::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'schedule_block_id' => $block->id,
+        'status' => BookingStatus::UnderReview,
+        'expires_at' => Carbon::now('Asia/Colombo')->subMinute(),
+    ]);
+
+    Artisan::call('booking:expire-pending');
+
+    expect($underReviewBooking->fresh()->status)->toBe(BookingStatus::UnderReview)
+        ->and($block->fresh()->status)->toBe(ScheduleBlockStatus::Active)
+        ->and($block->fresh()->blocks_availability)->toBeTrue();
+});
+
+test('confirming expired booking not under review throws exception', function (): void {
+    $vehicle = Vehicle::factory()->create();
+    $block = VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'kind' => ScheduleBlockKind::SubmittedRequest,
+        'status' => ScheduleBlockStatus::Active,
+        'blocks_availability' => true,
+    ]);
+
+    $expiredBooking = Booking::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'schedule_block_id' => $block->id,
+        'status' => BookingStatus::Submitted,
+        'expires_at' => Carbon::now('Asia/Colombo')->subMinute(),
+    ]);
+
+    expect(fn () => $this->lifecycleService->confirm(
+        booking: $expiredBooking,
+        staff: $this->staff,
+        channel: ConfirmationChannel::WhatsApp,
+        notes: 'Trying to confirm stale booking.'
+    ))->toThrow(InvalidArgumentException::class, 'has expired and was not placed under review');
 });

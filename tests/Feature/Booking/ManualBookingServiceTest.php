@@ -85,4 +85,3 @@ test('staff can create manual confirmed airport pickup booking', function (): vo
 
     expect(AuditEvent::where('action', 'booking.manual_created')->exists())->toBeTrue();
 });
-

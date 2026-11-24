@@ -18,6 +18,7 @@ use App\Domain\Pricing\Services\EstimateService;
 use App\Models\AirportPickupDetail;
 use App\Models\Booking;
 use App\Models\BookingContact;
+use App\Models\GuestAccessToken;
 use App\Models\User;
 use App\Models\Vehicle;
 use Carbon\Carbon;
@@ -164,6 +165,14 @@ class ManualBookingService
                 'meet_and_greet' => $criteria->meetAndGreet,
                 'name_board_text' => $criteria->nameBoardText,
                 'waiting_instructions' => $criteria->waitingInstructions,
+            ]);
+
+            // Mint guest access token for reservation tracking
+            $plainToken = GuestAccessToken::generateToken();
+            GuestAccessToken::create([
+                'booking_id' => $booking->id,
+                'token_hash' => GuestAccessToken::hashToken($plainToken),
+                'expires_at' => Carbon::now('Asia/Colombo')->addDays(30),
             ]);
 
             $this->auditService->record(

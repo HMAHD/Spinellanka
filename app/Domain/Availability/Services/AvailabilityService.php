@@ -774,6 +774,10 @@ class AvailabilityService
 
             $block->refresh();
 
+            if ($block->status !== ScheduleBlockStatus::Active || $block->kind !== ScheduleBlockKind::SubmittedRequest) {
+                throw new InvalidArgumentException("Schedule block ID {$block->id} cannot be confirmed from status {$block->status->value} and kind {$block->kind->value}.");
+            }
+
             // Determine service type if available from hold or source
             $serviceType = $block->hold?->service_type;
             if ($serviceType === null && $block->source_type === Booking::class && $block->source_id) {
@@ -797,6 +801,7 @@ class AvailabilityService
             $block->update([
                 'kind' => ScheduleBlockKind::ConfirmedBooking,
                 'status' => ScheduleBlockStatus::Active,
+                'blocks_availability' => true,
                 'expires_at' => null,
             ]);
 

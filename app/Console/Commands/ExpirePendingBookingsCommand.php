@@ -34,7 +34,7 @@ class ExpirePendingBookingsCommand extends Command
         $this->components->info('Scanning for expired pending bookings...');
 
         $now = Carbon::now('Asia/Colombo');
-        $staleBookings = Booking::whereIn('status', [BookingStatus::Submitted->value, BookingStatus::UnderReview->value])
+        $staleBookings = Booking::where('status', BookingStatus::Submitted->value)
             ->whereNotNull('expires_at')
             ->where('expires_at', '<=', $now)
             ->get();
@@ -50,4 +50,3 @@ class ExpirePendingBookingsCommand extends Command
         return self::SUCCESS;
     }
 }
-
