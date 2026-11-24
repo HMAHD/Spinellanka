@@ -11,6 +11,10 @@ Schedule::command('availability:expire-holds')
     ->everyMinute()
     ->withoutOverlapping();
 
+Schedule::command('booking:expire-pending')
+    ->everyMinute()
+    ->withoutOverlapping();
+
 Schedule::command('availability:cleanup-stale')
     ->daily()
     ->withoutOverlapping();

@@ -14,6 +14,7 @@ use App\Domain\Availability\Exceptions\ScheduleConflictException;
 use App\Domain\Availability\Exceptions\UnauthorizedOverrideException;
 use App\Domain\Booking\ServiceType;
 use App\Domain\Identity\Permission;
+use App\Models\Booking;
 use App\Models\BookingHold;
 use App\Models\Driver;
 use App\Models\User;
@@ -666,6 +667,159 @@ class AvailabilityService
             );
 
             return true;
+        });
+    }
+
+    /**
+     * Atomically convert an active checkout hold into a submitted request schedule block.
+     * Preserves exact interval coverage under vehicle lock, avoiding any release-then-reacquire window.
+     *
+     * @throws ScheduleConflictException If hold is missing, expired, or inactive.
+     */
+    public function convertHoldToSubmittedBlock(
+        string $plainHoldToken,
+        Carbon $expiresAt,
+        string $sourceType,
+        int $sourceId,
+        ?User $actor = null,
+    ): VehicleScheduleBlock {
+        $tokenHash = BookingHold::hashToken($plainHoldToken);
+
+        return DB::transaction(function () use ($tokenHash, $expiresAt, $sourceType, $sourceId, $actor) {
+            /** @var BookingHold|null $hold */
+            $hold = BookingHold::where('hold_token_hash', $tokenHash)->first();
+
+            if (! $hold) {
+                $now = Carbon::now('Asia/Colombo');
+                throw new ScheduleConflictException(
+                    conflicts: new Collection,
+                    vehicleId: 0,
+                    requestedStart: $now,
+                    requestedEnd: $now,
+                    message: 'Checkout hold does not exist or invalid token.'
+                );
+            }
+
+            // Lock vehicle row first (deterministic locking hierarchy)
+            Vehicle::where('id', $hold->vehicle_id)->lockForUpdate()->firstOrFail();
+
+            // Re-verify hold under lock
+            $hold->refresh();
+            $now = Carbon::now('Asia/Colombo');
+            if ($hold->status !== HoldStatus::Active || $hold->expires_at->lte($now)) {
+                $this->expireStaleHoldsForVehicle($hold->vehicle_id);
+                /** @var VehicleScheduleBlock|null $existingBlock */
+                $existingBlock = $hold->scheduleBlock;
+                $start = $existingBlock ? $existingBlock->effective_start : $now;
+                $end = $existingBlock ? $existingBlock->effective_end : $now;
+
+                throw new ScheduleConflictException(
+                    conflicts: new Collection,
+                    vehicleId: $hold->vehicle_id,
+                    requestedStart: $start,
+                    requestedEnd: $end,
+                    message: 'Checkout hold has expired or is no longer active.'
+                );
+            }
+
+            /** @var VehicleScheduleBlock $block */
+            $block = $hold->scheduleBlock()->lockForUpdate()->firstOrFail();
+
+            // Update VehicleScheduleBlock FIRST, BookingHold SECOND
+            $block->update([
+                'kind' => ScheduleBlockKind::SubmittedRequest,
+                'source_type' => $sourceType,
+                'source_id' => $sourceId,
+                'blocks_availability' => true,
+                'status' => ScheduleBlockStatus::Active,
+                'expires_at' => $expiresAt,
+            ]);
+
+            $hold->update([
+                'status' => HoldStatus::Converted,
+                'released_at' => $now,
+            ]);
+
+            $this->auditService->record(
+                action: 'availability.hold.converted_to_request',
+                actor: $actor,
+                summary: "Converted checkout hold to submitted request for vehicle ID {$hold->vehicle_id}",
+                metadata: [
+                    'hold_id' => $hold->id,
+                    'schedule_block_id' => $block->id,
+                    'source_type' => $sourceType,
+                    'source_id' => $sourceId,
+                    'expires_at' => $expiresAt->toIso8601String(),
+                ],
+                auditable: $block,
+                actorType: $actor ? 'staff' : 'guest'
+            );
+
+            return $block;
+        });
+    }
+
+    /**
+     * Atomically transition a submitted request schedule block into a confirmed booking.
+     * Rechecks vehicle and driver availability under lock, ignoring this block's ID.
+     */
+    public function confirmSubmittedBlock(
+        VehicleScheduleBlock $block,
+        ?User $actor = null,
+        ?string $overrideReason = null,
+    ): VehicleScheduleBlock {
+        return DB::transaction(function () use ($block, $actor, $overrideReason) {
+            // Lock Vehicle row first
+            $vehicle = Vehicle::where('id', $block->vehicle_id)->lockForUpdate()->firstOrFail();
+
+            $block->refresh();
+
+            if ($block->status !== ScheduleBlockStatus::Active || $block->kind !== ScheduleBlockKind::SubmittedRequest) {
+                throw new InvalidArgumentException("Schedule block ID {$block->id} cannot be confirmed from status {$block->status->value} and kind {$block->kind->value}.");
+            }
+
+            // Determine service type if available from hold or source
+            $serviceType = $block->hold?->service_type;
+            if ($serviceType === null && $block->source_type === Booking::class && $block->source_id) {
+                $serviceType = Booking::where('id', $block->source_id)->value('service_type');
+            }
+
+            // Recheck availability ignoring this block
+            $conflicts = $this->getConflictingBlocks(
+                vehicle: $vehicle,
+                effectiveStart: $block->effective_start,
+                effectiveEnd: $block->effective_end,
+                service: $serviceType,
+                ignoreBlockId: $block->id,
+            );
+
+            if ($conflicts->isNotEmpty()) {
+                $this->validateOverrideAuthorization($actor, $overrideReason);
+            }
+
+            // Update block to ConfirmedBooking; confirmed bookings do not expire automatically
+            $block->update([
+                'kind' => ScheduleBlockKind::ConfirmedBooking,
+                'status' => ScheduleBlockStatus::Active,
+                'blocks_availability' => true,
+                'expires_at' => null,
+            ]);
+
+            $this->auditService->record(
+                action: 'availability.schedule_block.confirmed',
+                actor: $actor,
+                summary: "Confirmed schedule block ID {$block->id} for vehicle ID {$block->vehicle_id}",
+                metadata: [
+                    'block_id' => $block->id,
+                    'vehicle_id' => $block->vehicle_id,
+                    'has_conflicts' => $conflicts->isNotEmpty(),
+                    'override_reason' => $overrideReason,
+                ],
+                auditable: $block,
+                actorType: 'staff'
+            );
+
+            return $block;
         });
     }
 
