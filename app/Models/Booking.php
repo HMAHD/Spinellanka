@@ -49,6 +49,7 @@ use Illuminate\Support\Str;
  * @property-read VehicleScheduleBlock|null $scheduleBlock
  * @property-read User|null $assignedStaff
  * @property-read AirportPickupDetail|null $airportPickupDetail
+ * @property-read AirportTransferDetail|null $airportTransferDetail
  */
 class Booking extends Model
 {
@@ -102,23 +103,42 @@ class Booking extends Model
 
     public function computeRequestHash(): string
     {
-        $detail = $this->airportPickupDetail;
-        if (! $detail) {
-            return hash('sha256', serialize(['vehicle_id' => $this->vehicle_id]));
+        if ($this->airportPickupDetail) {
+            $detail = $this->airportPickupDetail;
+            $payloadData = [
+                'type' => 'airport_pickup',
+                'airport' => $detail->airport,
+                'flight_number' => $detail->flight_number,
+                'arrival_time' => $detail->arrival_time ? $detail->arrival_time->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s') : '',
+                'destination_text' => $detail->destination_text,
+                'passenger_count' => $detail->passenger_count,
+                'luggage_count' => $detail->luggage_count,
+                'vehicle_id' => $this->vehicle_id,
+                'total_amount_minor_units' => $this->total_amount_minor_units,
+            ];
+
+            return hash('sha256', serialize($payloadData));
         }
 
-        $payloadData = [
-            'airport' => $detail->airport,
-            'flight_number' => $detail->flight_number,
-            'arrival_time' => $detail->arrival_time ? $detail->arrival_time->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s') : '',
-            'destination_text' => $detail->destination_text,
-            'passenger_count' => $detail->passenger_count,
-            'luggage_count' => $detail->luggage_count,
-            'vehicle_id' => $this->vehicle_id,
-            'total_amount_minor_units' => $this->total_amount_minor_units,
-        ];
+        if ($this->airportTransferDetail) {
+            $detail = $this->airportTransferDetail;
+            $payloadData = [
+                'type' => 'airport_transfer',
+                'airport' => $detail->airport,
+                'flight_number' => $detail->flight_number,
+                'departure_time' => $detail->departure_time ? $detail->departure_time->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s') : '',
+                'origin_text' => $detail->origin_text,
+                'chosen_pickup_time' => $detail->chosen_pickup_time ? $detail->chosen_pickup_time->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s') : '',
+                'passenger_count' => $detail->passenger_count,
+                'luggage_count' => $detail->luggage_count,
+                'vehicle_id' => $this->vehicle_id,
+                'total_amount_minor_units' => $this->total_amount_minor_units,
+            ];
 
-        return hash('sha256', serialize($payloadData));
+            return hash('sha256', serialize($payloadData));
+        }
+
+        return hash('sha256', serialize(['vehicle_id' => $this->vehicle_id]));
     }
 
     public function isPending(): bool
@@ -203,6 +223,14 @@ class Booking extends Model
     public function airportPickupDetail(): HasOne
     {
         return $this->hasOne(AirportPickupDetail::class);
+    }
+
+    /**
+     * @return HasOne<AirportTransferDetail, $this>
+     */
+    public function airportTransferDetail(): HasOne
+    {
+        return $this->hasOne(AirportTransferDetail::class);
     }
 
     /**
