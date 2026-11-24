@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('ride_detail_id')->constrained('ride_details')->cascadeOnDelete();
             $table->unsignedSmallInteger('stop_order');
-            $table->string('location_text', 255);
+            $table->string('location_text', 500);
             $table->decimal('latitude', 10, 7)->nullable();
             $table->decimal('longitude', 10, 7)->nullable();
             $table->unsignedSmallInteger('planned_waiting_minutes')->default(0);

@@ -26,6 +26,14 @@ test('ride views and client scripts contain zero geolocation api calls or device
         expect($content)->not->toContain('live-tracking')
             ->and($content)->not->toContain('driver-location-socket');
     }
+
+    // Also scan all compiled/source js files in resources/js
+    $jsFiles = glob(resource_path('js/**/*.js')) ?: [];
+    foreach ($jsFiles as $jsFile) {
+        $content = file_get_contents($jsFile);
+        expect($content)->not->toContain('navigator.geolocation')
+            ->and($content)->not->toContain('watchPosition');
+    }
 });
 
 test('status view exposes the narrow presentation boundary with text fallback for phase 12', function (): void {
@@ -37,4 +45,12 @@ test('status view exposes the narrow presentation boundary with text fallback fo
         ->and($statusView)->toContain('data-destination=')
         ->and($statusView)->toContain('data-stops=')
         ->and($statusView)->toContain('class="route-text-itinerary"');
+});
+
+test('ride views do not contain hidden client coordinate inputs', function (): void {
+    $createView = file_get_contents(resource_path('views/booking/ride/create.blade.php'));
+
+    expect($createView)->not->toContain('type="hidden" name="user_latitude"')
+        ->and($createView)->not->toContain('type="hidden" name="user_longitude"')
+        ->and($createView)->not->toContain('name="current_location"');
 });

@@ -13,8 +13,6 @@ use App\Domain\Booking\Services\BookingSubmissionService;
 use App\Domain\Booking\Services\RideSuitabilityService;
 use App\Domain\Booking\ServiceType;
 use App\Domain\Catalog\Enums\VehicleStatus;
-use App\Domain\Location\Contracts\PlaceSearchContract;
-use App\Domain\Location\Contracts\RouteEstimateContract;
 use App\Domain\Pricing\DTOs\EstimateRequestData;
 use App\Domain\Pricing\Services\EstimateService;
 use App\Domain\Pricing\Services\PricingService;
@@ -35,8 +33,6 @@ class RideBookingController extends Controller
         protected PricingService $pricingService,
         protected EstimateService $estimateService,
         protected BookingSubmissionService $submissionService,
-        protected PlaceSearchContract $placeSearchService,
-        protected RouteEstimateContract $routeEstimateService,
     ) {}
 
     public function create(Request $request): Response
@@ -121,7 +117,7 @@ class RideBookingController extends Controller
                 ->withErrors(['stops' => "Cumulative planned stop waiting cannot exceed {$maxCumulativeWaiting} minutes (8 hours)."]);
         }
 
-        $defaultLegDuration = (int) config('booking.ride.default_leg_duration_minutes', 120);
+        $defaultLegDuration = (int) config('booking.ride.default_trip_duration_minutes', 180);
         $effectiveOutboundDuration = $defaultLegDuration + $totalWaitingMinutes;
         $outboundArrival = (clone $pickupDateTime)->addMinutes($effectiveOutboundDuration);
 
@@ -147,7 +143,7 @@ class RideBookingController extends Controller
                     ->withErrors(['return_time' => 'Invalid return pickup date and time format.']);
             }
 
-            $minReturnGapMinutes = (int) config('booking.ride.min_return_gap_minutes', 60);
+            $minReturnGapMinutes = (int) config('booking.ride.min_return_pickup_gap_minutes', 60);
             $earliestReturnTime = (clone $outboundArrival)->addMinutes($minReturnGapMinutes);
 
             if ($returnDateTime->lt($earliestReturnTime)) {
@@ -277,13 +273,13 @@ class RideBookingController extends Controller
                 ->with('error', $e->getMessage());
         }
 
-        // 2. Create return checkout hold if return leg requested
+        // 2. Create return checkout hold if return leg requested and calculate estimate
         $returnHoldResult = null;
-        if ($criteria->hasReturn && $criteria->returnPickupTime !== null) {
-            $returnStartsAt = (clone $criteria->returnPickupTime)->setTimezone('Asia/Colombo');
-            $returnEndsAt = (clone $returnStartsAt)->addMinutes($criteria->effectiveReturnDurationMinutes());
+        try {
+            if ($criteria->hasReturn && $criteria->returnPickupTime !== null) {
+                $returnStartsAt = (clone $criteria->returnPickupTime)->setTimezone('Asia/Colombo');
+                $returnEndsAt = (clone $returnStartsAt)->addMinutes($criteria->effectiveReturnDurationMinutes());
 
-            try {
                 $returnHoldResult = $this->availabilityService->createHold(
                     vehicle: $vehicle,
                     start: $returnStartsAt,
@@ -291,40 +287,52 @@ class RideBookingController extends Controller
                     service: ServiceType::Ride,
                     groupId: $groupId,
                 );
-            } catch (ScheduleConflictException $e) {
-                // Roll back outbound hold atomically
-                $this->availabilityService->releaseHold($outboundHoldResult->plainToken, 'return_hold_failed');
-
-                return redirect()->route('booking.ride.vehicles')
-                    ->with('error', 'The vehicle is not available for the requested return time. Please choose another vehicle or time.');
             }
+
+            // 3. Calculate and snapshot pricing estimate
+            $totalDistanceKm = ($criteria->outboundDistanceKm ?? 0.0) + ($criteria->returnDistanceKm ?? 0.0);
+            $totalDurationMinutes = $criteria->effectiveOutboundDurationMinutes() + ($criteria->hasReturn ? $criteria->effectiveReturnDurationMinutes() : 0);
+
+            $estimateRequest = new EstimateRequestData(
+                serviceType: ServiceType::Ride,
+                vehicleId: $vehicle->id,
+                serviceDate: $startsAt,
+                distanceKm: $totalDistanceKm > 0 ? $totalDistanceKm : null,
+                durationHours: $totalDurationMinutes > 0 ? (float) ($totalDurationMinutes / 60) : null,
+                stopCount: count($criteria->stops),
+                waitingHours: (int) ceil($criteria->totalWaitingMinutes() / 60),
+                extraIds: $criteria->extraIds,
+                assumptions: [
+                    'origin' => $criteria->originText,
+                    'destination' => $criteria->destinationText,
+                    'has_return' => $criteria->hasReturn,
+                    'stops_count' => count($criteria->stops),
+                    'total_waiting_minutes' => $criteria->totalWaitingMinutes(),
+                    'pickup_time' => $criteria->pickupTime->toIso8601String(),
+                    'return_pickup_time' => $criteria->returnPickupTime?->toIso8601String(),
+                ],
+            );
+
+            $estimateResult = $this->pricingService->calculateEstimate($estimateRequest);
+            $estimate = $this->estimateService->snapshotEstimate($estimateResult, $estimateRequest);
+        } catch (ScheduleConflictException $e) {
+            // Roll back outbound hold atomically
+            $this->availabilityService->releaseHold($outboundHoldResult->plainToken, 'return_hold_failed');
+
+            return redirect()->route('booking.ride.vehicles')
+                ->with('error', 'The vehicle is not available for the requested return time. Please choose another vehicle or time.');
+        } catch (\Throwable $e) {
+            // Release any acquired holds on unexpected failure
+            $this->availabilityService->releaseHold($outboundHoldResult->plainToken, 'estimate_failed');
+            if ($returnHoldResult) {
+                $this->availabilityService->releaseHold($returnHoldResult->plainToken, 'estimate_failed');
+            }
+
+            report($e);
+
+            return redirect()->route('booking.ride.vehicles')
+                ->with('error', 'Unable to reserve vehicle or calculate pricing. Please try again.');
         }
-
-        // 3. Calculate and snapshot pricing estimate
-        $totalDistanceKm = ($criteria->outboundDistanceKm ?? 0.0) + ($criteria->returnDistanceKm ?? 0.0);
-        $totalDurationMinutes = $criteria->effectiveOutboundDurationMinutes() + ($criteria->hasReturn ? $criteria->effectiveReturnDurationMinutes() : 0);
-
-        $estimateRequest = new EstimateRequestData(
-            serviceType: ServiceType::Ride,
-            vehicleId: $vehicle->id,
-            serviceDate: $startsAt,
-            distanceKm: $totalDistanceKm > 0 ? $totalDistanceKm : null,
-            durationHours: $totalDurationMinutes > 0 ? (float) ($totalDurationMinutes / 60) : null,
-            stopCount: count($criteria->stops),
-            waitingHours: (int) ceil($criteria->totalWaitingMinutes() / 60),
-            assumptions: [
-                'origin' => $criteria->originText,
-                'destination' => $criteria->destinationText,
-                'has_return' => $criteria->hasReturn,
-                'stops_count' => count($criteria->stops),
-                'total_waiting_minutes' => $criteria->totalWaitingMinutes(),
-                'pickup_time' => $criteria->pickupTime->toIso8601String(),
-                'return_pickup_time' => $criteria->returnPickupTime?->toIso8601String(),
-            ],
-        );
-
-        $estimateResult = $this->pricingService->calculateEstimate($estimateRequest);
-        $estimate = $this->estimateService->snapshotEstimate($estimateResult, $estimateRequest);
 
         $request->session()->put('ride_hold', [
             'vehicle_id' => $vehicle->id,
@@ -431,6 +439,12 @@ class RideBookingController extends Controller
         if (! $criteria || ! $holdSession) {
             return redirect()->route('booking.ride')
                 ->with('error', 'Checkout hold expired. Please reselect your vehicle.');
+        }
+
+        $holdExpiresAt = Carbon::parse($holdSession['expires_at']);
+        if ($holdExpiresAt->isPast()) {
+            return redirect()->route('booking.ride.vehicles')
+                ->with('error', 'Checkout hold has expired. Please reselect your vehicle.');
         }
 
         $leadTravelerSame = $request->boolean('lead_traveler_same');

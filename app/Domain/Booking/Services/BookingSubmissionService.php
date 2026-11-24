@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Booking\Services;
 
 use App\Domain\Audit\Services\AuditService;
+use App\Domain\Availability\Enums\HoldStatus;
 use App\Domain\Availability\Enums\ScheduleBlockKind;
 use App\Domain\Availability\Enums\ScheduleBlockStatus;
 use App\Domain\Availability\Services\AvailabilityService;
@@ -21,6 +22,7 @@ use App\Models\AirportPickupDetail;
 use App\Models\AirportTransferDetail;
 use App\Models\Booking;
 use App\Models\BookingContact;
+use App\Models\BookingHold;
 use App\Models\BookingPolicyAcceptance;
 use App\Models\GuestAccessToken;
 use App\Models\RideDetail;
@@ -512,7 +514,7 @@ class BookingSubmissionService
                 sourceId: $booking->id,
             );
 
-            // If the converted hold belongs to a group, update sibling blocks in that group
+            // If the converted hold belongs to a group, update sibling blocks and holds in that group
             if ($block->group_id) {
                 VehicleScheduleBlock::where('group_id', $block->group_id)
                     ->where('id', '!=', $block->id)
@@ -522,6 +524,13 @@ class BookingSubmissionService
                         'source_type' => Booking::class,
                         'source_id' => $booking->id,
                         'expires_at' => $pendingExpiresAt,
+                    ]);
+
+                BookingHold::where('group_id', $block->group_id)
+                    ->where('status', HoldStatus::Active->value)
+                    ->update([
+                        'status' => HoldStatus::Converted->value,
+                        'released_at' => Carbon::now('Asia/Colombo'),
                     ]);
             }
 

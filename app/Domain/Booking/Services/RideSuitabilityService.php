@@ -74,6 +74,8 @@ class RideSuitabilityService
                 $returnDriver = $this->driverAssignmentService->getEffectiveDriver($vehicle, $returnStart);
                 if (! $returnDriver) {
                     $reasons[] = 'No active driver currently assigned to this vehicle for return journey.';
+                } elseif ($outboundDriver && $outboundDriver->id !== $returnDriver->id) {
+                    $reasons[] = 'Vehicle chauffeur assignment changes between outbound and return dates.';
                 }
             }
 
@@ -119,6 +121,7 @@ class RideSuitabilityService
                 durationHours: $totalDurationMinutes > 0 ? (float) ($totalDurationMinutes / 60) : null,
                 stopCount: count($criteria->stops),
                 waitingHours: (int) ceil($criteria->totalWaitingMinutes() / 60),
+                extraIds: $criteria->extraIds,
                 assumptions: [
                     'origin' => $criteria->originText,
                     'destination' => $criteria->destinationText,

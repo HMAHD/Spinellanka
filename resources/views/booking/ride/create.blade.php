@@ -122,13 +122,13 @@
 
                     <!-- Accessible Reorder & Removal Controls -->
                     <div class="stop-actions" style="display: flex; gap: 0.35rem; align-items: center;">
-                      <button type="submit" name="action" value="move_up_{{ $idx }}" class="icon-button stop-move-up" aria-label="Move stop {{ $idx + 1 }} up" {{ $idx === 0 ? 'disabled' : '' }} style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--color-border, #cbd5e1); border-radius: 4px; background: white;">
+                      <button type="submit" formnovalidate name="action" value="move_up_{{ $idx }}" class="icon-button stop-move-up js-move-up" aria-label="Move stop {{ $idx + 1 }} up" {{ $idx === 0 ? 'disabled' : '' }} style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--color-border, #cbd5e1); border-radius: 4px; background: white;">
                         &uarr;
                       </button>
-                      <button type="submit" name="action" value="move_down_{{ $idx }}" class="icon-button stop-move-down" aria-label="Move stop {{ $idx + 1 }} down" {{ $idx === count($stopsList) - 1 ? 'disabled' : '' }} style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--color-border, #cbd5e1); border-radius: 4px; background: white;">
+                      <button type="submit" formnovalidate name="action" value="move_down_{{ $idx }}" class="icon-button stop-move-down js-move-down" aria-label="Move stop {{ $idx + 1 }} down" {{ $idx === count($stopsList) - 1 ? 'disabled' : '' }} style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--color-border, #cbd5e1); border-radius: 4px; background: white;">
                         &darr;
                       </button>
-                      <button type="submit" name="action" value="remove_stop_{{ $idx }}" class="icon-button stop-remove" aria-label="Remove stop {{ $idx + 1 }}" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border: 1px solid #fecaca; border-radius: 4px; background: #fff5f5; color: #dc2626;">
+                      <button type="submit" formnovalidate name="action" value="remove_stop_{{ $idx }}" class="icon-button stop-remove js-remove" aria-label="Remove stop {{ $idx + 1 }}" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border: 1px solid #fecaca; border-radius: 4px; background: #fff5f5; color: #dc2626;">
                         &times;
                       </button>
                     </div>
@@ -250,6 +250,7 @@
             <li><strong>Dedicated Chauffeur:</strong> English-speaking permanent chauffeur vetted by Spinellanka operations.</li>
             <li><strong>Expressway Tolls Included:</strong> Southern (E01), Outer Circular (E02), and Katunayake (E03) tolls included in base rate.</li>
             <li><strong>Grace Period:</strong> 45-minute courtesy waiting at pickup origin before no-show fee applies.</li>
+            <li><strong>Route Policy:</strong> {{ config('booking.ride.route_change_policy') }}</li>
             <li><strong>Transparent Pricing:</strong> Immediate itemized estimate or seamless Custom Quote review for non-standard routes.</li>
           </ul>
         </div>

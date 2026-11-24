@@ -15,20 +15,20 @@ return new class extends Migration
     {
         Schema::create('ride_details', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('booking_id')->constrained('bookings')->cascadeOnDelete();
+            $table->foreignId('booking_id')->unique()->constrained('bookings')->cascadeOnDelete();
             $table->dateTime('pickup_time');
-            $table->string('origin_text', 255);
+            $table->string('origin_text', 500);
             $table->decimal('origin_latitude', 10, 7)->nullable();
             $table->decimal('origin_longitude', 10, 7)->nullable();
             $table->text('origin_notes')->nullable();
-            $table->string('destination_text', 255);
+            $table->string('destination_text', 500);
             $table->decimal('destination_latitude', 10, 7)->nullable();
             $table->decimal('destination_longitude', 10, 7)->nullable();
             $table->text('destination_notes')->nullable();
             $table->boolean('has_return')->default(false);
             $table->dateTime('return_pickup_time')->nullable();
-            $table->string('return_origin_text', 255)->nullable();
-            $table->string('return_destination_text', 255)->nullable();
+            $table->string('return_origin_text', 500)->nullable();
+            $table->string('return_destination_text', 500)->nullable();
             $table->text('return_notes')->nullable();
             $table->unsignedSmallInteger('passenger_count');
             $table->unsignedSmallInteger('luggage_count');
@@ -40,7 +40,6 @@ return new class extends Migration
             $table->json('route_map_data')->nullable();
             $table->timestamps();
 
-            $table->index(['booking_id'], 'idx_ride_details_booking');
             $table->index(['pickup_time'], 'idx_ride_details_pickup_time');
         });
     }

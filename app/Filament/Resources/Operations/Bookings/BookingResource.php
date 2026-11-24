@@ -163,7 +163,7 @@ class BookingResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['vehicle', 'airportPickupDetail', 'airportTransferDetail', 'booker', 'leadTraveler']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['vehicle', 'airportPickupDetail', 'airportTransferDetail', 'rideDetail', 'booker', 'leadTraveler']))
             ->columns([
                 TextColumn::make('reference')
                     ->searchable()
@@ -187,27 +187,33 @@ class BookingResource extends Resource
                     ->formatStateUsing(fn (BookingStatus $state): string => $state->label()),
 
                 TextColumn::make('flight')
-                    ->label('Flight')
-                    ->getStateUsing(fn (Booking $record): string => $record->airportTransferDetail
-                        ? $record->airportTransferDetail->flight_number
-                        : ($record->airportPickupDetail ? $record->airportPickupDetail->flight_number : 'N/A')
-                    )
+                    ->label('Flight / Service')
+                    ->getStateUsing(fn (Booking $record): string => match (true) {
+                        $record->airportTransferDetail !== null => $record->airportTransferDetail->flight_number,
+                        $record->airportPickupDetail !== null => $record->airportPickupDetail->flight_number,
+                        $record->rideDetail !== null => 'Chauffeured Ride',
+                        default => 'N/A',
+                    })
                     ->searchable(),
 
                 TextColumn::make('service_time')
                     ->label('Timing')
-                    ->getStateUsing(fn (Booking $record): string => $record->airportTransferDetail
-                        ? ($record->airportTransferDetail->is_unsafe_time ? '⚠️ ' : '').$record->airportTransferDetail->chosen_pickup_time->format('d M H:i').' (Pickup)'
-                        : ($record->airportPickupDetail && $record->airportPickupDetail->arrival_time ? $record->airportPickupDetail->arrival_time->format('d M H:i').' (Arrival)' : 'N/A')
-                    )
+                    ->getStateUsing(fn (Booking $record): string => match (true) {
+                        $record->airportTransferDetail !== null => ($record->airportTransferDetail->is_unsafe_time ? '⚠️ ' : '').$record->airportTransferDetail->chosen_pickup_time->format('d M H:i').' (Pickup)',
+                        $record->airportPickupDetail !== null && $record->airportPickupDetail->arrival_time !== null => $record->airportPickupDetail->arrival_time->format('d M H:i').' (Arrival)',
+                        $record->rideDetail !== null => $record->rideDetail->pickup_time->format('d M H:i').' (Pickup)',
+                        default => 'N/A',
+                    })
                     ->sortable(),
 
                 TextColumn::make('route')
                     ->label('Route / Location')
-                    ->getStateUsing(fn (Booking $record): string => $record->airportTransferDetail
-                        ? 'From: '.$record->airportTransferDetail->origin_text
-                        : ($record->airportPickupDetail ? 'To: '.$record->airportPickupDetail->destination_text : 'N/A')
-                    )
+                    ->getStateUsing(fn (Booking $record): string => match (true) {
+                        $record->airportTransferDetail !== null => 'From: '.$record->airportTransferDetail->origin_text,
+                        $record->airportPickupDetail !== null => 'To: '.$record->airportPickupDetail->destination_text,
+                        $record->rideDetail !== null => $record->rideDetail->origin_text.' → '.$record->rideDetail->destination_text,
+                        default => 'N/A',
+                    })
                     ->limit(25)
                     ->searchable(),
 

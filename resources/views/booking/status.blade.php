@@ -178,7 +178,7 @@
                   <div class="itinerary-stop" style="display: flex; gap: 0.75rem; align-items: flex-start; margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px dashed var(--color-border, #e2e8f0);">
                     <span style="font-weight: bold; color: var(--color-success, #16a34a);">&hookleftarrow;</span>
                     <div>
-                      <strong>Return Leg:</strong> {{ $rideDetail->destination_text }} &rarr; {{ $rideDetail->origin_text }}
+                      <strong>Return Leg:</strong> {{ $rideDetail->return_origin_text ?: $rideDetail->destination_text }} &rarr; {{ $rideDetail->return_destination_text ?: $rideDetail->origin_text }}
                       <span style="display: block; font-size: 0.8rem; color: var(--color-text-muted, #94a3b8);">Scheduled: {{ $rideDetail->return_pickup_time?->format('D, d M Y @ H:i') }}</span>
                     </div>
                   </div>
@@ -376,25 +376,46 @@
         <!-- Next Steps Card -->
         <div class="booking-card next-steps-card" aria-labelledby="dispatch-steps-heading">
           <h2 id="dispatch-steps-heading" class="card-heading">What Happens Next?</h2>
-          <ol class="dispatch-steps-list">
-            <li>
-              <strong>Flight Dispatch Review:</strong>
-              <p>Our team verifies driver availability, airport gate logistics, and flight schedule.</p>
-            </li>
-            <li>
-              <strong>Direct WhatsApp Outreach:</strong>
-              <p>We message your provided international number to confirm arrival details and driver contact.</p>
-            </li>
-            <li>
-              <strong>Terminal Meet &amp; Greet:</strong>
-              <p>Your driver waits inside the arrivals hall holding your name board.</p>
-            </li>
-          </ol>
+          @if($booking->service_type === \App\Domain\Booking\ServiceType::Ride)
+            <ol class="dispatch-steps-list">
+              <li>
+                <strong>Itinerary &amp; Route Review:</strong>
+                <p>Our operations desk verifies driver schedule, planned stop feasibility, and expressway routing.</p>
+              </li>
+              <li>
+                <strong>Direct WhatsApp Confirmation:</strong>
+                <p>We message your primary WhatsApp number with confirmed quote details and chauffeur allocation.</p>
+              </li>
+              <li>
+                <strong>Doorstep Chauffeur Arrival:</strong>
+                <p>Your dedicated chauffeur arrives at the pickup address with a 45-minute courtesy waiting window.</p>
+              </li>
+            </ol>
+            <div class="support-action-box">
+              <p>Need to adjust your itinerary or timing?</p>
+              <a href="{{ route('contact') }}" class="support-btn">Contact Operations Desk</a>
+            </div>
+          @else
+            <ol class="dispatch-steps-list">
+              <li>
+                <strong>Flight Dispatch Review:</strong>
+                <p>Our team verifies driver availability, airport gate logistics, and flight schedule.</p>
+              </li>
+              <li>
+                <strong>Direct WhatsApp Outreach:</strong>
+                <p>We message your provided international number to confirm arrival details and driver contact.</p>
+              </li>
+              <li>
+                <strong>Terminal Meet &amp; Greet:</strong>
+                <p>Your driver waits inside the arrivals hall holding your name board.</p>
+              </li>
+            </ol>
 
-          <div class="support-action-box">
-            <p>Need to update your flight or arrival time?</p>
-            <a href="{{ route('contact') }}" class="support-btn">Contact Dispatch Support</a>
-          </div>
+            <div class="support-action-box">
+              <p>Need to update your flight or arrival time?</p>
+              <a href="{{ route('contact') }}" class="support-btn">Contact Dispatch Support</a>
+            </div>
+          @endif
         </div>
       </aside>
     </div>

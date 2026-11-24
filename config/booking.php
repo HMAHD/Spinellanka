@@ -31,6 +31,7 @@ return [
         'max_planned_waiting_minutes_per_stop' => 300, // 5 hours per stop
         'max_cumulative_waiting_minutes' => 480, // 8 hours total planned waiting
         'min_return_pickup_gap_minutes' => 60, // 60 mins after outbound arrival + cumulative waiting
+        'max_return_horizon_days' => 30, // Maximum days between outbound and return leg
         'same_exact_vehicle_required' => true, // Multi-leg outbound & return must use same vehicle & driver
         'driver_wait_before_no_show_minutes' => 45, // Minutes driver waits at origin before no-show
         'expressway_tolls_included' => true, // Expressway tolls included in chauffeured rate

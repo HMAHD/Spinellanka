@@ -222,6 +222,7 @@
             <p class="sidebar-fee-note">
               &bull; Southern/Central expressway tolls included<br>
               &bull; 45-min courtesy waiting at origin included<br>
+              &bull; Unplanned route adjustments settled with operations desk<br>
               &bull; Site admission tickets &amp; parking fees excluded
             </p>
           </div>
