@@ -4,6 +4,10 @@ namespace App\Providers;
 
 use App\Domain\Audit\Services\AuditService;
 use App\Domain\Identity\Role;
+use App\Domain\Location\Contracts\PlaceSearchContract;
+use App\Domain\Location\Contracts\RouteEstimateContract;
+use App\Domain\Location\Services\NullPlaceSearchService;
+use App\Domain\Location\Services\NullRouteEstimateService;
 use App\Models\AuditEvent;
 use App\Models\Driver;
 use App\Models\User;
@@ -20,7 +24,15 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Bind provider-neutral integration contracts here as adapters are selected.
+        $this->app->bind(
+            PlaceSearchContract::class,
+            NullPlaceSearchService::class,
+        );
+
+        $this->app->bind(
+            RouteEstimateContract::class,
+            NullRouteEstimateService::class,
+        );
     }
 
     public function boot(): void
