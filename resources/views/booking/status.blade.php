@@ -39,7 +39,13 @@
 
       <h1 id="status-title">
         @if($booking->status === \App\Domain\Booking\Enums\BookingStatus::Confirmed)
-          Your Airport Pickup is Confirmed
+          @if($booking->service_type === \App\Domain\Booking\ServiceType::Ride)
+            Your Chauffeured Ride is Confirmed
+          @elseif($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer)
+            Your Airport Transfer is Confirmed
+          @else
+            Your Airport Pickup is Confirmed
+          @endif
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Declined)
           Reservation Request Declined
         @else
@@ -69,7 +75,121 @@
     <div class="booking-grid">
       <!-- Left Column: Flight & Vehicle Details -->
       <div class="booking-main-col">
-        @if($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer && isset($transferDetail) && $transferDetail)
+        @if($booking->service_type === \App\Domain\Booking\ServiceType::Ride && isset($rideDetail) && $rideDetail)
+          <!-- Point-to-Point / Multi-Stop Chauffeured Ride Details -->
+          <section class="booking-card" aria-labelledby="ride-details-heading">
+            <h2 id="ride-details-heading" class="card-heading">Ride Itinerary &amp; Journey Details</h2>
+            <dl class="details-grid">
+              <div>
+                <dt>Pickup Origin</dt>
+                <dd><strong>{{ $rideDetail->origin_text }}</strong></dd>
+              </div>
+              <div>
+                <dt>Pickup Date &amp; Time</dt>
+                <dd>
+                  <strong>{{ $rideDetail->pickup_time?->format('D, d M Y @ H:i') }}</strong>
+                  <small class="tz-badge">Sri Lanka Time (Asia/Colombo / UTC+05:30)</small>
+                </dd>
+              </div>
+              <div>
+                <dt>Final Destination</dt>
+                <dd><strong>{{ $rideDetail->destination_text }}</strong></dd>
+              </div>
+              <div>
+                <dt>Travel Party</dt>
+                <dd>{{ $rideDetail->passenger_count }} Passengers &bull; {{ $rideDetail->luggage_count }} Checked Luggage Bags</dd>
+              </div>
+              @if($rideDetail->stops && $rideDetail->stops->isNotEmpty())
+                <div style="grid-column: 1 / -1;">
+                  <dt>Scheduled En-Route Stops ({{ $rideDetail->stops->count() }})</dt>
+                  <dd>
+                    <ol class="ride-stops-summary-list" style="margin: 0.5rem 0 0 1.25rem; padding: 0;">
+                      @foreach($rideDetail->stops->sortBy('stop_order') as $st)
+                        <li style="margin-bottom: 0.35rem;">
+                          <strong>{{ $st->location_text }}</strong>
+                          @if($st->planned_waiting_minutes > 0)
+                            <span class="wait-tag" style="display: inline-block; margin-left: 0.5rem; font-size: 0.8rem; background: var(--color-surface-sunken, #f1f5f9); padding: 0.15rem 0.4rem; border-radius: 4px;">
+                              ⏱ {{ $st->planned_waiting_minutes }} min planned waiting
+                            </span>
+                          @endif
+                        </li>
+                      @endforeach
+                    </ol>
+                  </dd>
+                </div>
+              @endif
+              @if($rideDetail->has_return)
+                <div style="grid-column: 1 / -1;">
+                  <dt>Return Journey Leg</dt>
+                  <dd>
+                    <strong>Scheduled Return Pickup: {{ $rideDetail->return_pickup_time?->format('D, d M Y @ H:i') }}</strong>
+                    <p style="margin: 0.25rem 0 0; font-size: 0.875rem; color: var(--color-text-secondary, #64748b);">
+                      Route: {{ $rideDetail->return_origin_text ?: $rideDetail->destination_text }} &rarr; {{ $rideDetail->return_destination_text ?: $rideDetail->origin_text }} (Same exact vehicle and dedicated chauffeur).
+                    </p>
+                  </dd>
+                </div>
+              @endif
+            </dl>
+
+            <!-- Phase 12 Presentation Boundary: Route Map Container with Zero Geolocation & Accessible Text Itinerary Fallback -->
+            <div id="ride-route-map"
+                 class="ride-route-map-boundary"
+                 data-origin="{{ $rideDetail->origin_text }}"
+                 data-destination="{{ $rideDetail->destination_text }}"
+                 data-has-return="{{ $rideDetail->has_return ? '1' : '0' }}"
+                 data-stops='@json($rideDetail->stops->map(fn($s) => ["order" => $s->stop_order, "location" => $s->location_text, "waiting" => $s->planned_waiting_minutes]))'
+                 style="margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--color-border, #e2e8f0); border-radius: 8px; background: var(--color-surface, #ffffff);"
+                 aria-label="Route Itinerary Overview">
+              <div class="map-placeholder-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <span style="font-weight: 600; font-size: 0.925rem; display: flex; align-items: center; gap: 0.5rem;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  Journey Route Overview
+                </span>
+                <span class="route-badge" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background: var(--color-brand-surface, #e0f2fe); color: var(--color-brand, #0284c7); border-radius: 4px; font-weight: 500;">
+                  Chauffeured Itinerary
+                </span>
+              </div>
+              <!-- Accessible Text Itinerary Fallback (survives without JS / map provider) -->
+              <div class="route-text-itinerary" aria-label="Step-by-step route itinerary">
+                <div class="itinerary-stop" style="display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0.5rem;">
+                  <span style="font-weight: bold; color: var(--color-brand, #0284c7);">A.</span>
+                  <div>
+                    <strong>Origin:</strong> {{ $rideDetail->origin_text }}
+                  </div>
+                </div>
+                @foreach($rideDetail->stops->sortBy('stop_order') as $st)
+                  <div class="itinerary-stop" style="display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0.5rem; padding-left: 0.5rem;">
+                    <span style="font-weight: bold; color: var(--color-text-secondary, #64748b);">{{ chr(65 + $loop->iteration) }}.</span>
+                    <div>
+                      <strong>En-Route Stop {{ $st->stop_order }}:</strong> {{ $st->location_text }}
+                      @if($st->planned_waiting_minutes > 0)
+                        <span style="font-size: 0.8rem; color: var(--color-text-muted, #94a3b8);">({{ $st->planned_waiting_minutes }} min waiting)</span>
+                      @endif
+                    </div>
+                  </div>
+                @endforeach
+                <div class="itinerary-stop" style="display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0.5rem;">
+                  <span style="font-weight: bold; color: var(--color-brand, #0284c7);">{{ chr(65 + 1 + $rideDetail->stops->count()) }}.</span>
+                  <div>
+                    <strong>Destination:</strong> {{ $rideDetail->destination_text }}
+                  </div>
+                </div>
+                @if($rideDetail->has_return)
+                  <div class="itinerary-stop" style="display: flex; gap: 0.75rem; align-items: flex-start; margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px dashed var(--color-border, #e2e8f0);">
+                    <span style="font-weight: bold; color: var(--color-success, #16a34a);">&hookleftarrow;</span>
+                    <div>
+                      <strong>Return Leg:</strong> {{ $rideDetail->destination_text }} &rarr; {{ $rideDetail->origin_text }}
+                      <span style="display: block; font-size: 0.8rem; color: var(--color-text-muted, #94a3b8);">Scheduled: {{ $rideDetail->return_pickup_time?->format('D, d M Y @ H:i') }}</span>
+                    </div>
+                  </div>
+                @endif
+              </div>
+              <p style="margin: 0.75rem 0 0; font-size: 0.75rem; color: var(--color-text-muted, #94a3b8);">
+                * Route preview is illustrative. Chauffeur selects the optimal expressway route based on real-time traffic and highway conditions. Live dispatch tracking is not active during the request review stage.
+              </p>
+            </div>
+          </section>
+        @elseif($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer && isset($transferDetail) && $transferDetail)
           <!-- Flight Departure & Transfer Details -->
           <section class="booking-card" aria-labelledby="transfer-details-heading">
             <h2 id="transfer-details-heading" class="card-heading">Departure Flight &amp; Transfer Details</h2>
@@ -174,7 +294,10 @@
                 <ul class="vehicle-perks">
                   <li>Chauffeured English-speaking driver included</li>
                   <li>{{ $booking->vehicle->has_ac ? 'Air conditioned' : 'Non-AC' }}</li>
-                  @if($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer)
+                  @if($booking->service_type === \App\Domain\Booking\ServiceType::Ride)
+                    <li>Southern / Central expressway tolls included in base rate</li>
+                    <li>45-minute courtesy waiting time at origin included</li>
+                  @elseif($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer)
                     <li>Katunayake Expressway tolls and airport departure drop-off fees included</li>
                   @else
                     <li>Complimentary 90-minute customs and baggage waiting time</li>
