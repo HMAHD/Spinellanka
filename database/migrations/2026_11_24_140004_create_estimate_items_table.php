@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('currency', 3)->default('USD');
             $table->boolean('is_deposit')->default(false);
             $table->boolean('is_tax')->default(false);
+            $table->boolean('is_discount')->default(false);
             $table->timestamps();
 
             $table->index(['estimate_id', 'sort_order'], 'idx_estimate_items_order');

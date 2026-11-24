@@ -15,8 +15,8 @@ final class EstimateRequestData
      */
     public function __construct(
         public readonly ServiceType $serviceType,
-        public readonly ?int $vehicleId,
-        public readonly Carbon $serviceDate,
+        public readonly ?int $vehicleId = null,
+        public readonly ?Carbon $serviceDate = null,
         public readonly ?float $distanceKm = null,
         public readonly ?float $durationHours = null,
         public readonly ?int $rentalDays = null,

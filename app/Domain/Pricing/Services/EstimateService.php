@@ -65,6 +65,7 @@ class EstimateService
                     'currency' => $itemData->totalAmount->currency,
                     'is_deposit' => $itemData->isDeposit,
                     'is_tax' => $itemData->isTax,
+                    'is_discount' => $itemData->isDiscount,
                 ]);
             }
 

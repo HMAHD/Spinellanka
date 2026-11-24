@@ -29,6 +29,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $currency
  * @property bool $is_deposit
  * @property bool $is_tax
+ * @property bool $is_discount
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read Estimate $estimate
@@ -54,6 +55,7 @@ class EstimateItem extends Model
             'total_amount_minor_units' => 'integer',
             'is_deposit' => 'boolean',
             'is_tax' => 'boolean',
+            'is_discount' => 'boolean',
         ];
     }
 

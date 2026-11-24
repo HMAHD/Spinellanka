@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Domain\Pricing\Services;
 
 use App\Domain\Booking\ServiceType;
+use App\Domain\Catalog\Enums\ExtraPricingType;
+use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Domain\Pricing\DTOs\EstimateItemData;
 use App\Domain\Pricing\DTOs\EstimateRequestData;
 use App\Domain\Pricing\DTOs\EstimateResult;
 use App\Domain\Pricing\Enums\PricingComponentType;
 use App\Domain\Pricing\Enums\PricingUnit;
 use App\Domain\Pricing\ValueObjects\Money;
+use App\Models\Extra;
 use App\Models\PricingRule;
+use App\Models\PricingRuleComponent;
 use App\Models\Vehicle;
 use Carbon\Carbon;
 
@@ -32,8 +36,8 @@ class PricingService
     ): ?PricingRule {
         $date = ($serviceDate ?? Carbon::now('Asia/Colombo'))->setTimezone('Asia/Colombo');
 
-        // Check vehicle eligibility first if vehicle provided
-        if ($vehicle !== null && ! $vehicle->isEligibleForService($serviceType)) {
+        // Check vehicle eligibility and active status first if vehicle provided
+        if ($vehicle !== null && (! $vehicle->isEligibleForService($serviceType) || $vehicle->status !== VehicleStatus::Active)) {
             return null;
         }
 
@@ -80,6 +84,10 @@ class PricingService
             return EstimateResult::customQuote('Selected vehicle not found in catalog.');
         }
 
+        if ($vehicle !== null && $vehicle->status !== VehicleStatus::Active) {
+            return EstimateResult::customQuote("Vehicle '{$vehicle->public_name}' is not currently active for service.");
+        }
+
         if ($vehicle !== null && ! $vehicle->isEligibleForService($request->serviceType)) {
             return EstimateResult::customQuote("Vehicle '{$vehicle->public_name}' is not eligible for {$request->serviceType->label()}.");
         }
@@ -95,7 +103,7 @@ class PricingService
 
         // Evaluate input sufficiency across all components in the matched rule
         foreach ($rule->components as $component) {
-            $sufficiencyCheck = $this->checkInputSufficiency($component->unit, $request);
+            $sufficiencyCheck = $this->checkInputSufficiency($component, $request);
             if (! $sufficiencyCheck['sufficient']) {
                 return EstimateResult::customQuote($sufficiencyCheck['reason'], $rule->id, $rule->version);
             }
@@ -109,13 +117,22 @@ class PricingService
         $items = [];
         $sortOrder = 1;
 
-        // Pass 1: Base, distance, duration, stops, waiting, delivery, deposits, extras
+        // Pass 1: Base, distance, duration, stops, waiting, delivery, deposits
         foreach ($rule->components as $component) {
             if ($component->component_type === PricingComponentType::Tax || $component->component_type === PricingComponentType::Discount) {
                 continue;
             }
 
-            $quantity = $this->resolveQuantity($component->unit, $request);
+            $quantity = $this->resolveQuantity($component, $request);
+
+            // Enforce min_units and max_units if configured on rule component
+            if ($component->min_units !== null && $quantity < (float) $component->min_units) {
+                $quantity = (float) $component->min_units;
+            }
+            if ($component->max_units !== null && (float) $component->max_units > 0 && $quantity > (float) $component->max_units) {
+                $quantity = (float) $component->max_units;
+            }
+
             $unitPrice = $component->money;
             $lineTotal = $component->unit === PricingUnit::Flat
                 ? $unitPrice
@@ -142,8 +159,43 @@ class PricingService
                 sortOrder: $sortOrder++,
                 isDeposit: $isDeposit,
                 isTax: false,
+                isDiscount: false,
                 ruleComponentId: $component->id
             );
+        }
+
+        // Pass 1b: Catalog Extras requested by customer
+        if (! empty($request->extraIds)) {
+            $extras = Extra::whereIn('id', $request->extraIds)
+                ->where('is_active', true)
+                ->get();
+
+            foreach ($extras as $extra) {
+                $extraQuantity = $extra->pricing_type === ExtraPricingType::PerDay
+                    ? (float) ($request->rentalDays ?? 1.0)
+                    : 1.0;
+                $extraUnitPrice = Money::of($extra->price_minor_units, $extra->currency);
+                $extraLineTotal = $extra->pricing_type === ExtraPricingType::PerDay
+                    ? Money::of((int) round($extra->price_minor_units * $extraQuantity), $extra->currency)
+                    : $extraUnitPrice;
+
+                $subtotal = $subtotal->add($extraLineTotal);
+                $taxableBase = $taxableBase->add($extraLineTotal);
+
+                $items[] = new EstimateItemData(
+                    componentType: PricingComponentType::Extra,
+                    description: "Extra: {$extra->name}",
+                    unit: $extra->pricing_type === ExtraPricingType::PerDay ? PricingUnit::PerDay : PricingUnit::Flat,
+                    quantity: $extraQuantity,
+                    unitPrice: $extraUnitPrice,
+                    totalAmount: $extraLineTotal,
+                    sortOrder: $sortOrder++,
+                    isDeposit: false,
+                    isTax: false,
+                    isDiscount: false,
+                    ruleComponentId: null
+                );
+            }
         }
 
         // Pass 2: Discounts (reduce subtotal and taxable base)
@@ -178,6 +230,7 @@ class PricingService
                 sortOrder: $sortOrder++,
                 isDeposit: false,
                 isTax: false,
+                isDiscount: true,
                 ruleComponentId: $component->id
             );
         }
@@ -204,6 +257,7 @@ class PricingService
                 sortOrder: $sortOrder++,
                 isDeposit: false,
                 isTax: true,
+                isDiscount: false,
                 ruleComponentId: $component->id
             );
         }
@@ -211,19 +265,18 @@ class PricingService
         // Grand Total = Subtotal (Service) + Tax + Deposit (Segregated)
         $grandTotal = $subtotal->add($taxTotal)->add($depositTotal);
 
-        // Approximate LKR conversion via ExchangeRateService
-        $approximateLkr = $this->exchangeRateService->approximateLkr($grandTotal, $request->serviceDate);
-        $latestExchangeBasis = $this->exchangeRateService->getLatestRate($request->serviceDate);
+        // Approximate LKR conversion via ExchangeRateService at quotation time
+        $conversion = $this->exchangeRateService->approximateLkrWithBasis($grandTotal, Carbon::now('Asia/Colombo'));
 
         return EstimateResult::calculated(
             subtotal: $subtotal,
             taxTotal: $taxTotal,
             depositTotal: $depositTotal,
             grandTotal: $grandTotal,
-            approximateLkr: $approximateLkr,
+            approximateLkr: $conversion['approximate_lkr'],
             pricingRuleId: $rule->id,
             ruleVersion: $rule->version,
-            exchangeRateBasisId: $latestExchangeBasis?->id,
+            exchangeRateBasisId: $conversion['basis']?->id,
             items: $items
         );
     }
@@ -231,9 +284,15 @@ class PricingService
     /**
      * @return array{sufficient: bool, reason: string|null}
      */
-    protected function checkInputSufficiency(PricingUnit $unit, EstimateRequestData $request): array
+    protected function checkInputSufficiency(PricingRuleComponent $component, EstimateRequestData $request): array
     {
-        return match ($unit) {
+        if ($component->component_type === PricingComponentType::Waiting && $component->unit === PricingUnit::PerHour) {
+            return ($request->waitingHours === null || $request->waitingHours < 0)
+                ? ['sufficient' => false, 'reason' => 'Waiting duration in hours is required for waiting fee calculation.']
+                : ['sufficient' => true, 'reason' => null];
+        }
+
+        return match ($component->unit) {
             PricingUnit::PerKm => ($request->distanceKm === null || $request->distanceKm <= 0)
                 ? ['sufficient' => false, 'reason' => 'Distance in kilometers is required for distance-based pricing.']
                 : ['sufficient' => true, 'reason' => null],
@@ -243,16 +302,20 @@ class PricingService
             PricingUnit::PerDay => ($request->rentalDays === null || $request->rentalDays <= 0)
                 ? ['sufficient' => false, 'reason' => 'Rental duration in 24-hour days is required for daily hire pricing.']
                 : ['sufficient' => true, 'reason' => null],
-            PricingUnit::PerStop => ($request->stopCount === null)
-                ? ['sufficient' => false, 'reason' => 'Stop count is required for stop-based pricing.']
+            PricingUnit::PerStop => ($request->stopCount === null || $request->stopCount < 0)
+                ? ['sufficient' => false, 'reason' => 'Stop count is required and must be non-negative for stop-based pricing.']
                 : ['sufficient' => true, 'reason' => null],
             default => ['sufficient' => true, 'reason' => null],
         };
     }
 
-    protected function resolveQuantity(PricingUnit $unit, EstimateRequestData $request): float
+    protected function resolveQuantity(PricingRuleComponent $component, EstimateRequestData $request): float
     {
-        return match ($unit) {
+        if ($component->component_type === PricingComponentType::Waiting && $component->unit === PricingUnit::PerHour) {
+            return (float) ($request->waitingHours ?? 0.0);
+        }
+
+        return match ($component->unit) {
             PricingUnit::Flat => 1.00,
             PricingUnit::PerKm => (float) ($request->distanceKm ?? 1.00),
             PricingUnit::PerHour => (float) ($request->durationHours ?? 1.00),

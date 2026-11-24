@@ -20,6 +20,7 @@ final class EstimateItemData
         public readonly int $sortOrder = 0,
         public readonly bool $isDeposit = false,
         public readonly bool $isTax = false,
+        public readonly bool $isDiscount = false,
         public readonly ?int $ruleComponentId = null,
     ) {}
 }
