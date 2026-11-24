@@ -22,4 +22,9 @@ enum VehicleType: string implements HasLabel
             self::Compact => 'Compact',
         };
     }
+
+    public function label(): string
+    {
+        return $this->getLabel();
+    }
 }
