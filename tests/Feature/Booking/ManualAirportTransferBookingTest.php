@@ -94,6 +94,53 @@ test('staff with booking.confirm permission can manually create confirmed airpor
         'origin_text' => 'Bentota Beach Hotel',
         'is_unsafe_time' => 1,
     ]);
+
+    // Verify request hash matches computed hash for data integrity
+    expect($booking->computeRequestHash())->toBe($booking->request_hash);
+});
+
+test('manual airport transfer can record separate lead traveler details', function (): void {
+    $vehicle = Vehicle::factory()->create([
+        'eligible_for_transfer' => true,
+    ]);
+
+    $departure = Carbon::now('Asia/Colombo')->addDays(2)->setHour(20)->setMinute(0);
+    $criteria = new AirportTransferCriteria(
+        airport: 'CMB',
+        flightNumber: 'EK651',
+        departureTime: $departure,
+        originText: 'Cinnamon Grand, Colombo',
+        passengerCount: 2,
+        luggageCount: 2,
+        recommendedPickupTime: (clone $departure)->subHours(4),
+        chosenPickupTime: (clone $departure)->subHours(4),
+    );
+
+    $manualData = [
+        'source' => BookingSource::ManualWhatsApp,
+        'criteria' => $criteria,
+        'vehicle_id' => $vehicle->id,
+        'estimate_reference' => null,
+        'booker_first_name' => 'Corporate',
+        'booker_last_name' => 'Booker',
+        'booker_phone' => '+44 20 7946 0991',
+        'booker_email' => 'corp@example.com',
+        'lead_traveler_first_name' => 'Actual',
+        'lead_traveler_last_name' => 'Passenger',
+        'lead_traveler_phone' => '+44 7911 554433',
+        'lead_traveler_email' => 'passenger@example.com',
+        'confirmation_channel' => ConfirmationChannel::WhatsApp,
+        'confirmation_notes' => 'Booked on behalf of guest.',
+    ];
+
+    $booking = $this->manualBookingService->createManualAirportTransfer($manualData, $this->staff);
+
+    expect($booking->booker)->not->toBeNull()
+        ->and($booking->booker->first_name)->toBe('Corporate')
+        ->and($booking->leadTraveler)->not->toBeNull()
+        ->and($booking->leadTraveler->first_name)->toBe('Actual')
+        ->and($booking->leadTraveler->phone)->toBe('+44 7911 554433')
+        ->and($booking->computeRequestHash())->toBe($booking->request_hash);
 });
 
 test('manual booking fails without booking.confirm permission', function (): void {

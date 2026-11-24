@@ -233,8 +233,9 @@ class ManageBookings extends ManageRecords
                     $chosenPickupTime = Carbon::parse($data['chosen_pickup_time'])->setTimezone('Asia/Colombo');
 
                     $calc = app(AirportTransferRecommendationCalculator::class);
-                    $recommendedPickupTime = $calc->calculateRecommendedPickupTime($departureTime, 180);
-                    $isUnsafe = $calc->isUnsafeChoice($departureTime, $chosenPickupTime, 180);
+                    $defaultDuration = (int) config('booking.airport_transfer.default_trip_duration_minutes', 180);
+                    $recommendedPickupTime = $calc->calculateRecommendedPickupTime($departureTime, $defaultDuration);
+                    $isUnsafe = $calc->isUnsafeChoice($departureTime, $chosenPickupTime, $defaultDuration);
 
                     $criteria = new AirportTransferCriteria(
                         airport: 'CMB',

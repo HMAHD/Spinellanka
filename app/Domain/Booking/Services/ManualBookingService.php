@@ -207,6 +207,11 @@ class ManualBookingService
      *     booker_phone: string,
      *     booker_is_whatsapp?: bool,
      *     booker_email?: string|null,
+     *     lead_traveler_first_name?: string|null,
+     *     lead_traveler_last_name?: string|null,
+     *     lead_traveler_phone?: string|null,
+     *     lead_traveler_is_whatsapp?: bool,
+     *     lead_traveler_email?: string|null,
      *     confirmation_channel: ConfirmationChannel,
      *     confirmation_notes: string,
      *     override_reason?: string|null
@@ -256,9 +261,9 @@ class ManualBookingService
                 'type' => 'airport_transfer',
                 'airport' => $criteria->airport,
                 'flight_number' => $criteria->flightNumber,
-                'departure_time' => $criteria->departureTime->toIso8601String(),
+                'departure_time' => $criteria->departureTime->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s'),
                 'origin_text' => $criteria->originText,
-                'chosen_pickup_time' => $criteria->chosenPickupTime->toIso8601String(),
+                'chosen_pickup_time' => $criteria->chosenPickupTime->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s'),
                 'passenger_count' => $criteria->passengerCount,
                 'luggage_count' => $criteria->luggageCount,
                 'vehicle_id' => $vehicle->id,
@@ -301,14 +306,17 @@ class ManualBookingService
                 'marketing_consent' => false,
             ]);
 
+            $hasLead = ! empty($data['lead_traveler_first_name']) || ! empty($data['lead_traveler_last_name']);
             BookingContact::create([
                 'booking_id' => $booking->id,
                 'type' => ContactType::LeadTraveler,
-                'first_name' => trim($data['booker_first_name']),
-                'last_name' => trim($data['booker_last_name']),
-                'phone' => trim($data['booker_phone']),
-                'is_whatsapp' => $data['booker_is_whatsapp'] ?? true,
-                'email' => isset($data['booker_email']) && $data['booker_email'] ? trim($data['booker_email']) : null,
+                'first_name' => $hasLead ? trim((string) ($data['lead_traveler_first_name'] ?? '')) : trim($data['booker_first_name']),
+                'last_name' => $hasLead ? trim((string) ($data['lead_traveler_last_name'] ?? '')) : trim($data['booker_last_name']),
+                'phone' => $hasLead && ! empty($data['lead_traveler_phone']) ? trim((string) $data['lead_traveler_phone']) : trim($data['booker_phone']),
+                'is_whatsapp' => $hasLead && isset($data['lead_traveler_is_whatsapp']) ? (bool) $data['lead_traveler_is_whatsapp'] : ($data['booker_is_whatsapp'] ?? true),
+                'email' => $hasLead
+                    ? (isset($data['lead_traveler_email']) && $data['lead_traveler_email'] ? trim((string) $data['lead_traveler_email']) : null)
+                    : (isset($data['booker_email']) && $data['booker_email'] ? trim((string) $data['booker_email']) : null),
                 'marketing_consent' => false,
             ]);
 
