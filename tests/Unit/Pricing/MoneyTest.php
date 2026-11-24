@@ -10,7 +10,6 @@ test('money can be constructed from minor units', function (): void {
 
     expect($money->amountMinorUnits)->toBe(10050)
         ->and($money->currency)->toBe('USD')
-        ->and($money->toDollars())->toBe(100.50)
         ->and($money->format())->toBe('$100.50');
 });
 

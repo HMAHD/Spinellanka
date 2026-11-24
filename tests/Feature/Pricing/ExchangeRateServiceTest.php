@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Domain\Pricing\Services\ExchangeRateService;
 use App\Domain\Pricing\ValueObjects\Money;
 use App\Models\AuditEvent;
+use App\Models\User;
+use App\Policies\ExchangeRateBasisPolicy;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -42,4 +44,28 @@ test('approximateLkr converts USD money accurately based on latest effective rat
         ->and($lkr->amountMinorUnits)->toBe(3200000)
         ->and($lkr->currency)->toBe('LKR')
         ->and($lkr->format())->toBe('LKR 32,000.00');
+});
+
+test('approximateLkrWithBasis returns money and basis atomically using scaled integer arithmetic', function (): void {
+    $date = Carbon::now('Asia/Colombo');
+    $basis = $this->service->recordRate('308.5000', 'Indicative rate', $date);
+
+    $usd = Money::of(4500, 'USD'); // $45.00
+    $result = $this->service->approximateLkrWithBasis($usd, $date);
+
+    // 4500 * 308.50 = 1,388,250 cents = LKR 13,882.50
+    expect($result['basis'])->not->toBeNull()
+        ->and($result['basis']->id)->toBe($basis->id)
+        ->and($result['approximate_lkr'])->not->toBeNull()
+        ->and($result['approximate_lkr']->amountMinorUnits)->toBe(1388250)
+        ->and($result['approximate_lkr']->currency)->toBe('LKR');
+});
+
+test('exchange rate basis policy enforces append-only immutability by denying update and delete', function (): void {
+    $policy = app(ExchangeRateBasisPolicy::class);
+    $user = User::factory()->create();
+    $basis = $this->service->recordRate(300.0000, 'CBSL Rate');
+
+    expect($policy->update($user, $basis))->toBeFalse()
+        ->and($policy->delete($user, $basis))->toBeFalse();
 });

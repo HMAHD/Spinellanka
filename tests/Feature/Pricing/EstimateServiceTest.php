@@ -7,6 +7,7 @@ use App\Domain\Pricing\DTOs\EstimateRequestData;
 use App\Domain\Pricing\Enums\PricingComponentType;
 use App\Domain\Pricing\Enums\PricingUnit;
 use App\Domain\Pricing\Services\EstimateService;
+use App\Domain\Pricing\Services\PricingRuleService;
 use App\Domain\Pricing\Services\PricingService;
 use App\Models\AuditEvent;
 use App\Models\Estimate;
@@ -75,4 +76,99 @@ test('findByReference retrieves persisted estimate with item relations', functio
     expect($retrieved)->not->toBeNull()
         ->and($retrieved->id)->toBe($estimate->id)
         ->and($retrieved->grandTotal->amountMinorUnits)->toBe(5000);
+});
+
+test('pricing rule update increments version and preserves historical estimate item component references', function (): void {
+    $ruleService = app(PricingRuleService::class);
+
+    $rule = $ruleService->createRule([
+        'service_type' => ServiceType::AirportPickup,
+        'effective_from' => Carbon::now('Asia/Colombo')->subDays(2)->toDateTimeString(),
+        'priority' => 1,
+        'components' => [
+            [
+                'component_type' => PricingComponentType::Base,
+                'unit' => PricingUnit::Flat,
+                'amount_minor_units' => 4500,
+            ],
+        ],
+    ]);
+
+    expect($rule->version)->toBe(1);
+    $initialComponentId = $rule->components->first()->id;
+
+    // Create an estimate snapshot pointing to this rule component
+    $request = new EstimateRequestData(
+        serviceType: ServiceType::AirportPickup,
+        serviceDate: Carbon::now('Asia/Colombo')->addDays(1)
+    );
+    $result = $this->pricingService->calculateEstimate($request);
+    $estimate = $this->estimateService->snapshotEstimate($result, $request);
+
+    $snapshotItem = $estimate->items->first();
+    expect($snapshotItem->rule_component_id)->toBe($initialComponentId);
+
+    // Update the rule: modify notes and components
+    $updatedRule = $ruleService->updateRule($rule, [
+        'notes' => 'Updated airport pickup rate',
+        'components' => [
+            [
+                'id' => $initialComponentId,
+                'component_type' => PricingComponentType::Base,
+                'unit' => PricingUnit::Flat,
+                'amount_minor_units' => 5000,
+            ],
+            [
+                'component_type' => PricingComponentType::Waiting,
+                'unit' => PricingUnit::PerHour,
+                'amount_minor_units' => 2000,
+            ],
+        ],
+    ]);
+
+    // Rule version must be bumped
+    expect($updatedRule->version)->toBe(2);
+
+    // Historical estimate item's rule_component_id must NOT be nullified
+    $snapshotItem->refresh();
+    expect($snapshotItem->rule_component_id)->toBe($initialComponentId);
+});
+
+test('pricing rule clone creates inactive draft with all components copied', function (): void {
+    $ruleService = app(PricingRuleService::class);
+
+    $rule = $ruleService->createRule([
+        'service_type' => ServiceType::Ride,
+        'effective_from' => Carbon::now('Asia/Colombo')->subDays(1)->toDateTimeString(),
+        'priority' => 3,
+        'notes' => 'Standard ride rule',
+        'components' => [
+            [
+                'component_type' => PricingComponentType::Base,
+                'unit' => PricingUnit::Flat,
+                'amount_minor_units' => 2000,
+            ],
+            [
+                'component_type' => PricingComponentType::Distance,
+                'unit' => PricingUnit::PerKm,
+                'amount_minor_units' => 150,
+            ],
+        ],
+    ]);
+
+    $cloned = $ruleService->cloneRule($rule);
+
+    expect($cloned->id)->not->toBe($rule->id)
+        ->and($cloned->is_active)->toBeFalse()
+        ->and($cloned->version)->toBe(1)
+        ->and($cloned->priority)->toBe(3)
+        ->and($cloned->notes)->toContain("Cloned from rule #{$rule->id}")
+        ->and($cloned->components)->toHaveCount(2);
+
+    $cloneAudit = AuditEvent::where('action', 'pricing.rule.cloned')
+        ->where('auditable_id', $cloned->id)
+        ->first();
+
+    expect($cloneAudit)->not->toBeNull()
+        ->and($cloneAudit->metadata['source_rule_id'])->toBe($rule->id);
 });
