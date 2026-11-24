@@ -151,11 +151,7 @@
                   <strong>{{ $uv->make }} {{ $uv->model }} ({{ $uv->year }})</strong>
                   <span>Max: {{ $uv->passenger_capacity }} Pass / {{ $uv->luggage_capacity }} Bags</span>
                 </div>
-                <ul class="uv-reasons">
-                  @foreach($item->reasons as $reason)
-                    <li>{{ $reason }}</li>
-                  @endforeach
-                </ul>
+                <ul class="uv-reasons">@foreach($item->reasons as $reason)<li>{{ $reason }}</li>@endforeach</ul>
               </div>
             @endforeach
           </div>

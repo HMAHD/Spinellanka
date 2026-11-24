@@ -338,3 +338,93 @@ test('handles expired hold gracefully by blocking submission', function (): void
     $response->assertRedirect(route('booking.airport-transfer.vehicles'));
     $response->assertSessionHas('error');
 });
+
+test('fails validation when custom pickup mode is selected but time is missing', function (): void {
+    $departureDate = Carbon::now('Asia/Colombo')->addDays(3)->format('Y-m-d');
+
+    $response = $this->from(route('booking.airport-transfer'))->post(route('booking.airport-transfer.search'), [
+        'airport' => 'CMB',
+        'flight_number' => 'UL504',
+        'departure_date' => $departureDate,
+        'departure_time' => '20:00',
+        'origin_text' => 'Galle Fort Heritage Villa',
+        'passenger_count' => 2,
+        'luggage_count' => 2,
+        'pickup_timing_mode' => 'custom',
+        'custom_pickup_date' => '',
+        'custom_pickup_time' => '',
+    ]);
+
+    $response->assertRedirect(route('booking.airport-transfer'));
+    $response->assertSessionHasErrors('custom_pickup_time');
+});
+
+test('degrades gracefully to custom quote display when pricing rules are absent', function (): void {
+    $vehicle = Vehicle::factory()->create([
+        'make' => 'Toyota',
+        'model' => 'Prius Hybrid',
+        'license_plate' => 'WP-KV-1234',
+        'eligible_for_transfer' => true,
+        'status' => VehicleStatus::Active,
+        'passenger_capacity' => 3,
+        'luggage_capacity' => 2,
+        'turnaround_buffer_minutes' => 30,
+    ]);
+
+    $driver = Driver::factory()->create(['status' => DriverStatus::Active]);
+    VehicleDriverAssignment::create([
+        'vehicle_id' => $vehicle->id,
+        'driver_id' => $driver->id,
+        'is_permanent' => true,
+        'starts_at' => Carbon::now('Asia/Colombo')->subDays(10),
+    ]);
+
+    // Note: No PricingRule created for this vehicle -> Estimate will be CustomQuote
+
+    $departureDate = Carbon::now('Asia/Colombo')->addDays(3)->format('Y-m-d');
+    $this->post(route('booking.airport-transfer.search'), [
+        'airport' => 'CMB',
+        'flight_number' => 'EK651',
+        'departure_date' => $departureDate,
+        'departure_time' => '21:00',
+        'origin_text' => 'Unrated Boutique Villa, Mirissa',
+        'passenger_count' => 2,
+        'luggage_count' => 2,
+    ]);
+
+    // Step 2: Vehicles view shows "Custom Quote" badge
+    $response = $this->get(route('booking.airport-transfer.vehicles'));
+    $response->assertOk()
+        ->assertSee('Custom Quote')
+        ->assertDontSee('$0.00');
+
+    // Hold and advance to Step 3: Contact
+    $this->post(route('booking.airport-transfer.hold'), ['vehicle_id' => $vehicle->id]);
+
+    $responseContact = $this->get(route('booking.airport-transfer.contact'));
+    $responseContact->assertOk()
+        ->assertSee('Custom Quote')
+        ->assertDontSee('$0.00 USD');
+
+    // Submit booking and follow redirect to private status page
+    $submitResponse = $this->post(route('booking.airport-transfer.submit'), [
+        'booker_first_name' => 'Custom',
+        'booker_last_name' => 'Quote',
+        'booker_phone' => '+44 7700 900555',
+        'terms_accepted' => 1,
+        'privacy_accepted' => 1,
+    ]);
+
+    $submitResponse->assertRedirect();
+    $statusUrl = $submitResponse->headers->get('Location');
+
+    $booking = Booking::where('service_type', ServiceType::AirportTransfer)->first();
+    expect($booking)->not->toBeNull()
+        ->and($booking->total_amount_minor_units)->toBeNull();
+
+    // Verify token status page displays "Custom Quote" rather than "USD $0.00"
+    $responseStatus = $this->get($statusUrl);
+    $responseStatus->assertOk()
+        ->assertSee('Custom Quote')
+        ->assertDontSee('USD $0.00');
+});

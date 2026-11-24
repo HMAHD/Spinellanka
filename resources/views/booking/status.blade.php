@@ -71,8 +71,8 @@
       <div class="booking-main-col">
         @if($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer && isset($transferDetail) && $transferDetail)
           <!-- Flight Departure & Transfer Details -->
-          <section class="booking-card" aria-labelledby="flight-details-heading">
-            <h2 id="flight-details-heading" class="card-heading">Departure Flight &amp; Transfer Details</h2>
+          <section class="booking-card" aria-labelledby="transfer-details-heading">
+            <h2 id="transfer-details-heading" class="card-heading">Departure Flight &amp; Transfer Details</h2>
             <dl class="details-grid">
               <div>
                 <dt>Departure Airport</dt>
@@ -230,7 +230,11 @@
 
           <div class="total-row">
             <span>Total Estimated Fee:</span>
-            <strong>USD ${{ number_format(($booking->total_amount_minor_units ?? 0) / 100, 2) }}</strong>
+            @if($booking->total_amount_minor_units !== null)
+              <strong>USD ${{ number_format($booking->total_amount_minor_units / 100, 2) }}</strong>
+            @else
+              <strong>Custom Quote</strong>
+            @endif
           </div>
 
           @if($booking->approximate_lkr_amount_minor_units)

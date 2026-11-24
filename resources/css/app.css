@@ -1779,7 +1779,9 @@ h1:focus-visible {
   color: var(--ink);
   background-color: var(--white);
   box-sizing: border-box;
-  transition: border-color var(--t-hover), box-shadow var(--t-hover);
+  transition:
+    border-color var(--t-hover),
+    box-shadow var(--t-hover);
 }
 
 .form-input:focus-visible {
@@ -1859,7 +1861,9 @@ h1:focus-visible {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  transition: background-color var(--t-hover), border-color var(--t-hover);
+  transition:
+    background-color var(--t-hover),
+    border-color var(--t-hover);
 }
 
 .quick-pill:hover {
@@ -1881,7 +1885,9 @@ h1:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: background-color var(--t-hover), transform var(--t-press);
+  transition:
+    background-color var(--t-hover),
+    transform var(--t-press);
 }
 
 .primary-button:hover {
@@ -1954,7 +1960,9 @@ h1:focus-visible {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform var(--t-hover), box-shadow var(--t-hover);
+  transition:
+    transform var(--t-hover),
+    box-shadow var(--t-hover);
 }
 
 .vehicle-card:hover {
@@ -2092,7 +2100,9 @@ h1:focus-visible {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color var(--t-hover), transform var(--t-press);
+  transition:
+    background-color var(--t-hover),
+    transform var(--t-press);
 }
 
 .select-vehicle-btn:hover {
@@ -2138,8 +2148,15 @@ h1:focus-visible {
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
 }
 
 /* Status Page */
@@ -2198,10 +2215,18 @@ h1:focus-visible {
   border-radius: 9999px;
 }
 
-.status-dot.amber { background-color: #f59e0b; }
-.status-dot.green { background-color: #22c55e; }
-.status-dot.red { background-color: #ef4444; }
-.status-dot.gray { background-color: #94a3b8; }
+.status-dot.amber {
+  background-color: #f59e0b;
+}
+.status-dot.green {
+  background-color: #22c55e;
+}
+.status-dot.red {
+  background-color: #ef4444;
+}
+.status-dot.gray {
+  background-color: #94a3b8;
+}
 
 .booking-ref-badge {
   font-size: 0.9375rem;
@@ -2398,7 +2423,9 @@ h1:focus-visible {
   border-radius: 0.5rem;
   background: var(--white, #ffffff);
   cursor: pointer;
-  transition: border-color var(--t-hover, 150ms) ease, box-shadow var(--t-hover, 150ms) ease;
+  transition:
+    border-color var(--t-hover, 150ms) ease,
+    box-shadow var(--t-hover, 150ms) ease;
 }
 
 .radio-card:hover {

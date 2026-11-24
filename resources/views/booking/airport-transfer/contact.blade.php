@@ -35,11 +35,7 @@
     @if($errors->any())
       <div class="alert alert-error" role="alert">
         <strong>Please correct the following errors:</strong>
-        <ul>
-          @foreach($errors->all() as $error)
-            <li>{{ $error }}</li>
-          @endforeach
-        </ul>
+        <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
       </div>
     @endif
 
@@ -230,7 +226,7 @@
           </dl>
 
           <div class="summary-total-box">
-            @if($estimate)
+            @if($estimate && $estimate->total_amount_minor_units !== null)
               <div class="total-row">
                 <span>Estimated Total:</span>
                 <strong class="total-amount">${{ number_format($estimate->total_amount_minor_units / 100, 2) }} {{ $estimate->currency }}</strong>
@@ -243,6 +239,7 @@
                 <span>Estimated Total:</span>
                 <strong class="total-amount">Custom Quote</strong>
               </div>
+              <p class="lkr-hint">Specific route pricing will be confirmed by staff.</p>
             @endif
           </div>
         </div>

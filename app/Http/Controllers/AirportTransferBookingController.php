@@ -125,7 +125,13 @@ class AirportTransferBookingController extends Controller
         $warningAccepted = false;
 
         $timingMode = $validated['pickup_timing_mode'] ?? 'recommended';
-        if ($timingMode === 'custom' && ! empty($validated['custom_pickup_date']) && ! empty($validated['custom_pickup_time'])) {
+        if ($timingMode === 'custom') {
+            if (empty($validated['custom_pickup_date']) || empty($validated['custom_pickup_time'])) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['custom_pickup_time' => 'Please specify your preferred custom pickup date and time.']);
+            }
+
             $parsedChosen = Carbon::createFromFormat(
                 'Y-m-d H:i',
                 "{$validated['custom_pickup_date']} {$validated['custom_pickup_time']}",

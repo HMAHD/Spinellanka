@@ -32,11 +32,8 @@
     @if($errors->any())
       <div class="alert alert-error" role="alert">
         <strong>Please check the following timing or entry details:</strong>
-        <ul>
-          @foreach($errors->all() as $error)
-            <li>{{ $error }}</li>
-          @endforeach
-        </ul>
+        <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+        <p class="error-support-note" style="margin-top: 0.5rem; font-size: 0.875rem;">Need assistance or have an urgent departure? Please <a href="{{ route('contact') }}" style="text-decoration: underline;">contact our support desk</a>.</p>
       </div>
     @endif
 
@@ -209,7 +206,7 @@
 
       <aside class="booking-sidebar">
         <div class="info-card">
-          <h3>Airport Transfer Standards</h3>
+          <h2 class="card-heading" style="font-size: 1.125rem;">Airport Transfer Standards</h2>
           <ul class="benefit-list">
             <li><strong>Exact Vehicle Guarantee:</strong> You reserve the specific vehicle model and registration plate shown.</li>
             <li><strong>Chauffeured Service:</strong> Dedicated, vetted professional driver assigned to your journey.</li>
