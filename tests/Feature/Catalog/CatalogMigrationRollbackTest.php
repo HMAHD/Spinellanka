@@ -15,6 +15,11 @@ test('catalog migrations can be completely rolled back and re-applied without co
     expect(Schema::hasTable('extras'))->toBeTrue();
     expect(Schema::hasTable('extra_compatibility'))->toBeTrue();
 
+    // Rollback any dependent availability migrations first if present
+    if (Schema::hasTable('booking_holds') || Schema::hasTable('vehicle_schedule_blocks')) {
+        Artisan::call('migrate:rollback', ['--step' => 2]);
+    }
+
     // Rollback the 6 catalog migration steps
     $exitCode = Artisan::call('migrate:rollback', ['--step' => 6]);
     expect($exitCode)->toBe(0);
