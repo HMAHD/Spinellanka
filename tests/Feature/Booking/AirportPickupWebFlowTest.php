@@ -5,11 +5,13 @@ declare(strict_types=1);
 use App\Domain\Availability\Enums\ScheduleBlockKind;
 use App\Domain\Availability\Services\AvailabilityService;
 use App\Domain\Booking\Enums\BookingStatus;
+use App\Domain\Booking\Enums\ContactType;
 use App\Domain\Booking\ServiceType;
 use App\Domain\Catalog\Enums\DriverStatus;
 use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Domain\Pricing\Enums\PricingComponentType;
 use App\Models\Booking;
+use App\Models\BookingHold;
 use App\Models\Driver;
 use App\Models\GuestAccessToken;
 use App\Models\PricingRule;
@@ -67,7 +69,7 @@ test('guest can navigate the entire 4-step airport pickup flow through web route
         ->assertSee('CMB')
         ->assertSee('Scheduled Arrival Date');
 
-    // Step 2: Submit search criteria
+    // Step 2: Submit search criteria (Post-Redirect-Get)
     $arrivalDate = Carbon::now('Asia/Colombo')->addDays(3)->format('Y-m-d');
     $step2 = $this->post(route('booking.airport-pickup.search'), [
         'airport' => 'CMB',
@@ -82,19 +84,25 @@ test('guest can navigate the entire 4-step airport pickup flow through web route
         'name_board_text' => 'Dr. Livingston',
     ]);
 
-    $step2->assertOk()
+    $step2->assertRedirect(route('booking.airport-pickup.vehicles'));
+
+    $step2Follow = $this->get(route('booking.airport-pickup.vehicles'));
+    $step2Follow->assertOk()
         ->assertSee('Select Your Vehicle')
         ->assertSee('KDH Luxury Van')
         ->assertSee('WP-CAD-1024')
         ->assertSee('$75.00')
         ->assertSee('Select & Hold Vehicle');
 
-    // Step 3: Hold the vehicle for 15 minutes
+    // Step 3: Hold the vehicle for 15 minutes (Post-Redirect-Get)
     $step3 = $this->post(route('booking.airport-pickup.hold'), [
         'vehicle_id' => $vehicle->id,
     ]);
 
-    $step3->assertOk()
+    $step3->assertRedirect(route('booking.airport-pickup.contact'));
+
+    $step3Follow = $this->get(route('booking.airport-pickup.contact'));
+    $step3Follow->assertOk()
         ->assertSee('Vehicle Hold Active')
         ->assertSee('15 minutes')
         ->assertSee('Booker Contact Information')
@@ -172,4 +180,142 @@ test('status page returns identical 404 on invalid, expired, or revoked token wi
     $token->update(['revoked_at' => null, 'expires_at' => Carbon::now('Asia/Colombo')->subDay()]);
     $this->get(route('booking.status', ['reference' => $booking->reference, 'token' => $plainToken]))
         ->assertNotFound();
+});
+
+test('submitting with lead traveler different from booker creates distinct lead traveler contact', function (): void {
+    $vehicle = Vehicle::factory()->create([
+        'status' => VehicleStatus::Active,
+        'eligible_for_pickup' => true,
+        'passenger_capacity' => 6,
+        'luggage_capacity' => 6,
+    ]);
+
+    $driver = Driver::factory()->create(['status' => DriverStatus::Active]);
+    VehicleDriverAssignment::create([
+        'vehicle_id' => $vehicle->id,
+        'driver_id' => $driver->id,
+        'is_permanent' => true,
+        'starts_at' => Carbon::now('Asia/Colombo')->subDays(10),
+    ]);
+
+    $rule = PricingRule::factory()->create([
+        'service_type' => ServiceType::AirportPickup,
+        'vehicle_id' => $vehicle->id,
+        'effective_from' => Carbon::now('Asia/Colombo')->subDays(10),
+    ]);
+
+    PricingRuleComponent::factory()->create([
+        'pricing_rule_id' => $rule->id,
+        'component_type' => PricingComponentType::Base,
+        'amount_minor_units' => 7500,
+        'currency' => 'USD',
+    ]);
+
+    $arrivalDate = Carbon::now('Asia/Colombo')->addDays(3)->format('Y-m-d');
+    $this->post(route('booking.airport-pickup.search'), [
+        'airport' => 'CMB',
+        'flight_number' => 'UL504',
+        'arrival_date' => $arrivalDate,
+        'arrival_time' => '15:45',
+        'destination_text' => 'Heritance Ahungalla',
+        'passenger_count' => 3,
+        'luggage_count' => 3,
+    ])->assertRedirect(route('booking.airport-pickup.vehicles'));
+
+    $this->post(route('booking.airport-pickup.hold'), [
+        'vehicle_id' => $vehicle->id,
+    ])->assertRedirect(route('booking.airport-pickup.contact'));
+
+    $response = $this->post(route('booking.airport-pickup.submit'), [
+        'booker_first_name' => 'John',
+        'booker_last_name' => 'Booker',
+        'booker_phone' => '+447700900111',
+        'booker_is_whatsapp' => '1',
+        'booker_email' => 'booker@example.com',
+        'lead_traveler_same' => '0',
+        'lead_traveler_first_name' => 'Alice',
+        'lead_traveler_last_name' => 'Traveler',
+        'lead_traveler_phone' => '+447700900222',
+        'lead_traveler_is_whatsapp' => '1',
+        'lead_traveler_email' => 'alice@example.com',
+        'terms_accepted' => '1',
+        'privacy_accepted' => '1',
+    ]);
+
+    $response->assertRedirect();
+    $booking = Booking::latest()->first();
+
+    $booker = $booking->contacts()->where('type', ContactType::Booker)->first();
+    $traveler = $booking->contacts()->where('type', ContactType::LeadTraveler)->first();
+
+    expect($booker->first_name)->toBe('John')
+        ->and($booker->phone)->toBe('+447700900111')
+        ->and($traveler->first_name)->toBe('Alice')
+        ->and($traveler->phone)->toBe('+447700900222');
+});
+
+test('submitting after hold expires redirects cleanly to vehicles with error flash message instead of 500 crash', function (): void {
+    $vehicle = Vehicle::factory()->create([
+        'status' => VehicleStatus::Active,
+        'eligible_for_pickup' => true,
+        'passenger_capacity' => 6,
+        'luggage_capacity' => 6,
+    ]);
+
+    $driver = Driver::factory()->create(['status' => DriverStatus::Active]);
+    VehicleDriverAssignment::create([
+        'vehicle_id' => $vehicle->id,
+        'driver_id' => $driver->id,
+        'is_permanent' => true,
+        'starts_at' => Carbon::now('Asia/Colombo')->subDays(10),
+    ]);
+
+    $rule = PricingRule::factory()->create([
+        'service_type' => ServiceType::AirportPickup,
+        'vehicle_id' => $vehicle->id,
+        'effective_from' => Carbon::now('Asia/Colombo')->subDays(10),
+    ]);
+
+    PricingRuleComponent::factory()->create([
+        'pricing_rule_id' => $rule->id,
+        'component_type' => PricingComponentType::Base,
+        'amount_minor_units' => 7500,
+        'currency' => 'USD',
+    ]);
+
+    $arrivalDate = Carbon::now('Asia/Colombo')->addDays(3)->format('Y-m-d');
+    $this->post(route('booking.airport-pickup.search'), [
+        'airport' => 'CMB',
+        'flight_number' => 'UL504',
+        'arrival_date' => $arrivalDate,
+        'arrival_time' => '15:45',
+        'destination_text' => 'Heritance Ahungalla',
+        'passenger_count' => 3,
+        'luggage_count' => 3,
+    ])->assertRedirect(route('booking.airport-pickup.vehicles'));
+
+    $this->post(route('booking.airport-pickup.hold'), [
+        'vehicle_id' => $vehicle->id,
+    ])->assertRedirect(route('booking.airport-pickup.contact'));
+
+    // Force hold to expire in database
+    $holdSession = session('airport_pickup_hold');
+    $hold = BookingHold::find($holdSession['hold_id']);
+    $hold->update([
+        'expires_at' => Carbon::now('Asia/Colombo')->subMinute(),
+    ]);
+
+    // Submit request after hold expiration
+    $response = $this->post(route('booking.airport-pickup.submit'), [
+        'booker_first_name' => 'Amelia',
+        'booker_last_name' => 'Earhart',
+        'booker_phone' => '+447700900555',
+        'booker_is_whatsapp' => '1',
+        'lead_traveler_same' => '1',
+        'terms_accepted' => '1',
+        'privacy_accepted' => '1',
+    ]);
+
+    $response->assertRedirect(route('booking.airport-pickup.vehicles'))
+        ->assertSessionHas('error');
 });

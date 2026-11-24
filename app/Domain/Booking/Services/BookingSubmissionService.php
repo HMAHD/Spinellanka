@@ -72,7 +72,7 @@ class BookingSubmissionService
             $payloadData = [
                 'airport' => $data->criteria->airport,
                 'flight_number' => $data->criteria->flightNumber,
-                'arrival_time' => $data->criteria->arrivalTime->toIso8601String(),
+                'arrival_time' => $data->criteria->arrivalTime->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s'),
                 'destination_text' => $data->criteria->destinationText,
                 'passenger_count' => $data->criteria->passengerCount,
                 'luggage_count' => $data->criteria->luggageCount,
@@ -198,7 +198,7 @@ class BookingSubmissionService
                     'reference' => $booking->reference,
                     'vehicle_id' => $data->vehicleId,
                     'flight_number' => $data->criteria->flightNumber,
-                    'arrival_time' => $data->criteria->arrivalTime->toIso8601String(),
+                    'arrival_time' => $data->criteria->arrivalTime->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s'),
                     'total_amount_minor_units' => $booking->total_amount_minor_units,
                     'expires_at' => $pendingExpiresAt->toIso8601String(),
                 ],
@@ -246,4 +246,3 @@ class BookingSubmissionService
         ]);
     }
 }
-

@@ -31,11 +31,13 @@ Route::get('/services/{service}', function (string $service) {
     ]);
 })->name('services.show');
 
-Route::prefix('booking')->name('booking.')->group(function (): void {
+Route::prefix('booking')->name('booking.')->middleware('throttle:60,1')->group(function (): void {
     Route::get('/airport-pickup', [AirportPickupBookingController::class, 'create'])->name('airport-pickup');
     Route::post('/airport-pickup/search', [AirportPickupBookingController::class, 'search'])->name('airport-pickup.search');
+    Route::get('/airport-pickup/vehicles', [AirportPickupBookingController::class, 'vehicles'])->name('airport-pickup.vehicles');
     Route::post('/airport-pickup/hold', [AirportPickupBookingController::class, 'hold'])->name('airport-pickup.hold');
-    Route::post('/airport-pickup/submit', [AirportPickupBookingController::class, 'submit'])->name('airport-pickup.submit');
+    Route::get('/airport-pickup/contact', [AirportPickupBookingController::class, 'contact'])->name('airport-pickup.contact');
+    Route::post('/airport-pickup/submit', [AirportPickupBookingController::class, 'submit'])->middleware('throttle:10,1')->name('airport-pickup.submit');
     Route::get('/{reference}/{token}', [BookingStatusController::class, 'show'])->name('status');
 });
 

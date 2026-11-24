@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Availability\Exceptions\ScheduleConflictException;
 use App\Domain\Availability\Services\AvailabilityService;
 use App\Domain\Booking\DTOs\AirportPickupCriteria;
 use App\Domain\Booking\DTOs\SubmitAirportPickupData;
 use App\Domain\Booking\Services\AirportPickupSuitabilityService;
 use App\Domain\Booking\Services\BookingSubmissionService;
 use App\Domain\Booking\ServiceType;
+use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Domain\Location\Contracts\PlaceSearchContract;
 use App\Domain\Location\Contracts\RouteEstimateContract;
 use App\Domain\Location\DTOs\LocationCoordinate;
 use App\Domain\Pricing\DTOs\EstimateRequestData;
 use App\Domain\Pricing\Services\EstimateService;
 use App\Domain\Pricing\Services\PricingService;
+use App\Models\Estimate;
 use App\Models\Vehicle;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -80,18 +83,22 @@ class AirportPickupBookingController extends Controller
         $destLng = null;
 
         if (! empty($validated['place_id'])) {
-            $placeDetails = $this->placeSearchService->getDetails($validated['place_id']);
-            if ($placeDetails && $placeDetails->coordinate) {
-                $destLat = $placeDetails->coordinate->latitude;
-                $destLng = $placeDetails->coordinate->longitude;
+            try {
+                $placeDetails = $this->placeSearchService->getDetails($validated['place_id']);
+                if ($placeDetails && $placeDetails->coordinate) {
+                    $destLat = $placeDetails->coordinate->latitude;
+                    $destLng = $placeDetails->coordinate->longitude;
 
-                // CMB coordinates
-                $origin = new LocationCoordinate(7.1808, 79.8841);
-                $routeResult = $this->routeEstimateService->estimateRoute($origin, $placeDetails->coordinate);
-                if ($routeResult) {
-                    $distanceKm = $routeResult->distanceKm;
-                    $durationHours = round($routeResult->durationMinutes / 60.0, 1);
+                    // CMB coordinates
+                    $origin = new LocationCoordinate(7.1808, 79.8841);
+                    $routeResult = $this->routeEstimateService->estimateRoute($origin, $placeDetails->coordinate);
+                    if ($routeResult) {
+                        $distanceKm = $routeResult->distanceKm;
+                        $durationHours = round($routeResult->durationMinutes / 60.0, 1);
+                    }
                 }
+            } catch (\Throwable $e) {
+                report($e);
             }
         }
 
@@ -112,10 +119,35 @@ class AirportPickupBookingController extends Controller
             nameBoardText: $validated['name_board_text'] ?? null,
         );
 
-        $suitability = $this->suitabilityService->evaluate($criteria);
-
         // Store criteria in session
         $request->session()->put('airport_pickup_criteria', $criteria);
+
+        return redirect()->route('booking.airport-pickup.vehicles');
+    }
+
+    public function vehicles(Request $request): Response|RedirectResponse
+    {
+        /** @var AirportPickupCriteria|null $criteria */
+        $criteria = $request->session()->get('airport_pickup_criteria');
+        if (! $criteria && app()->environment('local', 'testing') && $request->has('preview')) {
+            $criteria = new AirportPickupCriteria(
+                airport: 'CMB',
+                flightNumber: 'UL504',
+                arrivalTime: Carbon::now('Asia/Colombo')->addDays(3)->setTime(14, 30),
+                destinationText: 'Heritance Ahungalla, Galle Road',
+                passengerCount: 3,
+                luggageCount: 3,
+                meetAndGreet: true,
+                nameBoardText: 'Dr. Livingston & Family',
+            );
+        }
+
+        if (! $criteria) {
+            return redirect()->route('booking.airport-pickup')
+                ->with('error', 'Flight arrival details expired. Please enter criteria again.');
+        }
+
+        $suitability = $this->suitabilityService->evaluate($criteria);
 
         return response()->view('booking.airport-pickup.vehicles', [
             'criteria' => $criteria,
@@ -139,6 +171,21 @@ class AirportPickupBookingController extends Controller
         }
 
         $vehicle = Vehicle::where('id', $validated['vehicle_id'])->firstOrFail();
+
+        if (! $vehicle->eligible_for_pickup || $vehicle->status !== VehicleStatus::Active) {
+            return redirect()->route('booking.airport-pickup.vehicles')
+                ->with('error', 'Selected vehicle is not eligible for Airport Pickup.');
+        }
+
+        // Release any existing hold before establishing a new one
+        $previousHold = $request->session()->get('airport_pickup_hold');
+        if ($previousHold && ! empty($previousHold['plain_token'])) {
+            try {
+                $this->availabilityService->releaseHold($previousHold['plain_token'], 'vehicle_reselected');
+            } catch (\Throwable) {
+                // Ignore failure on releasing expired or converted previous hold
+            }
+        }
 
         // Calculate estimate snapshot
         $startsAt = (clone $criteria->arrivalTime)->setTimezone('Asia/Colombo');
@@ -181,11 +228,64 @@ class AirportPickupBookingController extends Controller
             'estimate_reference' => $estimate->reference,
         ]);
 
+        return redirect()->route('booking.airport-pickup.contact');
+    }
+
+    public function contact(Request $request): Response|RedirectResponse
+    {
+        /** @var AirportPickupCriteria|null $criteria */
+        $criteria = $request->session()->get('airport_pickup_criteria');
+        $holdSession = $request->session()->get('airport_pickup_hold');
+
+        if ((! $criteria || ! $holdSession) && app()->environment('local', 'testing') && $request->has('preview')) {
+            $criteria = new AirportPickupCriteria(
+                airport: 'CMB',
+                flightNumber: 'UL504',
+                arrivalTime: Carbon::now('Asia/Colombo')->addDays(3)->setTime(14, 30),
+                destinationText: 'Heritance Ahungalla, Galle Road',
+                passengerCount: 3,
+                luggageCount: 3,
+                meetAndGreet: true,
+                nameBoardText: 'Dr. Livingston & Family',
+            );
+            $vehicle = Vehicle::where('status', VehicleStatus::Active)->where('eligible_for_pickup', true)->first();
+            $estimate = Estimate::where('service_type', ServiceType::AirportPickup)->latest()->first();
+            $holdExpiresAt = Carbon::now('Asia/Colombo')->addMinutes(15);
+            if ($vehicle && $estimate) {
+                return response()->view('booking.airport-pickup.contact', [
+                    'criteria' => $criteria,
+                    'vehicle' => $vehicle,
+                    'estimate' => $estimate,
+                    'holdExpiresAt' => $holdExpiresAt,
+                    'step' => 3,
+                ]);
+            }
+        }
+
+        if (! $criteria || ! $holdSession) {
+            return redirect()->route('booking.airport-pickup')
+                ->with('error', 'Checkout hold expired. Please reselect your vehicle.');
+        }
+
+        $vehicle = Vehicle::where('id', $holdSession['vehicle_id'])->first();
+        $estimate = $this->estimateService->findByReference($holdSession['estimate_reference']);
+
+        if (! $vehicle || ! $estimate) {
+            return redirect()->route('booking.airport-pickup')
+                ->with('error', 'Selected vehicle or estimate expired. Please reselect your vehicle.');
+        }
+
+        $holdExpiresAt = Carbon::parse($holdSession['expires_at']);
+        if ($holdExpiresAt->isPast()) {
+            return redirect()->route('booking.airport-pickup.vehicles')
+                ->with('error', '15-minute checkout hold has expired. Please choose a vehicle again.');
+        }
+
         return response()->view('booking.airport-pickup.contact', [
             'criteria' => $criteria,
             'vehicle' => $vehicle,
             'estimate' => $estimate,
-            'hold' => $holdResult->hold,
+            'holdExpiresAt' => $holdExpiresAt,
             'step' => 3,
         ]);
     }
@@ -218,7 +318,7 @@ class AirportPickupBookingController extends Controller
                 ->with('error', 'Checkout hold expired. Please reselect your vehicle.');
         }
 
-        $leadTravelerSame = (bool) ($validated['lead_traveler_same'] ?? true);
+        $leadTravelerSame = $request->boolean('lead_traveler_same');
 
         $submitData = new SubmitAirportPickupData(
             criteria: $criteria,
@@ -243,7 +343,17 @@ class AirportPickupBookingController extends Controller
             userAgent: $request->userAgent(),
         );
 
-        $result = $this->submissionService->submitAirportPickup($submitData);
+        try {
+            $result = $this->submissionService->submitAirportPickup($submitData);
+        } catch (ScheduleConflictException|InvalidArgumentException $e) {
+            return redirect()->route('booking.airport-pickup.vehicles')
+                ->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route('booking.airport-pickup.vehicles')
+                ->with('error', 'Unable to complete your advance request. Please reselect your vehicle.');
+        }
 
         // Clear booking session
         $request->session()->forget(['airport_pickup_criteria', 'airport_pickup_hold']);
@@ -251,4 +361,3 @@ class AirportPickupBookingController extends Controller
         return redirect()->to($result->privateUrl);
     }
 }
-

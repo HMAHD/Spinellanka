@@ -110,7 +110,7 @@ class Booking extends Model
         $payloadData = [
             'airport' => $detail->airport,
             'flight_number' => $detail->flight_number,
-            'arrival_time' => $detail->arrival_time ? $detail->arrival_time->toIso8601String() : '',
+            'arrival_time' => $detail->arrival_time ? $detail->arrival_time->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s') : '',
             'destination_text' => $detail->destination_text,
             'passenger_count' => $detail->passenger_count,
             'luggage_count' => $detail->luggage_count,

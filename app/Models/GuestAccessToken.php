@@ -38,6 +38,11 @@ class GuestAccessToken extends Model
         ];
     }
 
+    public static function generateToken(): string
+    {
+        return bin2hex(random_bytes(32));
+    }
+
     public static function hashToken(string $plainToken): string
     {
         return hash('sha256', $plainToken);
@@ -64,4 +69,3 @@ class GuestAccessToken extends Model
         return $this->belongsTo(Booking::class);
     }
 }
-
