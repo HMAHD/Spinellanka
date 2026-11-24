@@ -7,6 +7,7 @@ use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Domain\Catalog\Enums\VehicleType;
 use Carbon\Carbon;
 use Database\Factories\VehicleFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -40,6 +41,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $internal_notes
  * @property Carbon $created_at
  * @property Carbon $updated_at
+ * @property-read Collection<int, VehicleMedia> $media
+ * @property-read Collection<int, VehicleDriverAssignment> $driverAssignments
+ * @property-read Collection<int, VehicleScheduleBlock> $scheduleBlocks
+ * @property-read Collection<int, BookingHold> $holds
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, VehicleMedia> $media
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, VehicleDriverAssignment> $driverAssignments
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, VehicleScheduleBlock> $scheduleBlocks
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, BookingHold> $holds
  */
 class Vehicle extends Model
 {
@@ -109,5 +118,21 @@ class Vehicle extends Model
     public function driverAssignments(): HasMany
     {
         return $this->hasMany(VehicleDriverAssignment::class);
+    }
+
+    /**
+     * @return HasMany<VehicleScheduleBlock, $this>
+     */
+    public function scheduleBlocks(): HasMany
+    {
+        return $this->hasMany(VehicleScheduleBlock::class);
+    }
+
+    /**
+     * @return HasMany<BookingHold, $this>
+     */
+    public function holds(): HasMany
+    {
+        return $this->hasMany(BookingHold::class);
     }
 }

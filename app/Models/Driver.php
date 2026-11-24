@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Domain\Catalog\Enums\DriverStatus;
 use Carbon\Carbon;
 use Database\Factories\DriverFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +29,10 @@ use Illuminate\Support\Facades\Storage;
  * @property string|null $internal_notes
  * @property Carbon $created_at
  * @property Carbon $updated_at
+ * @property-read Collection<int, VehicleDriverAssignment> $assignments
+ * @property-read Collection<int, VehicleScheduleBlock> $scheduleBlocks
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, VehicleDriverAssignment> $assignments
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, VehicleScheduleBlock> $scheduleBlocks
  */
 class Driver extends Model
 {
@@ -77,5 +84,13 @@ class Driver extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(VehicleDriverAssignment::class);
+    }
+
+    /**
+     * @return HasMany<VehicleScheduleBlock, $this>
+     */
+    public function scheduleBlocks(): HasMany
+    {
+        return $this->hasMany(VehicleScheduleBlock::class);
     }
 }
