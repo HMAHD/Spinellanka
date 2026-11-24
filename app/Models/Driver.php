@@ -31,8 +31,8 @@ use Illuminate\Support\Facades\Storage;
  * @property Carbon $updated_at
  * @property-read Collection<int, VehicleDriverAssignment> $assignments
  * @property-read Collection<int, VehicleScheduleBlock> $scheduleBlocks
- * @property-read \Illuminate\Database\Eloquent\Collection<int, VehicleDriverAssignment> $assignments
- * @property-read \Illuminate\Database\Eloquent\Collection<int, VehicleScheduleBlock> $scheduleBlocks
+ * @property-read Collection<int, VehicleDriverAssignment> $assignments
+ * @property-read Collection<int, VehicleScheduleBlock> $scheduleBlocks
  */
 class Driver extends Model
 {

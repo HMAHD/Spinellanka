@@ -14,6 +14,11 @@ test('availability migrations can be completely rolled back and re-applied witho
     expect(Schema::hasTable('vehicle_schedule_blocks'))->toBeTrue();
     expect(Schema::hasTable('vehicles'))->toBeTrue();
 
+    // If downstream pricing tables exist, roll them back first so availability can be tested in isolation
+    if (Schema::hasTable('estimates')) {
+        Artisan::call('migrate:rollback', ['--step' => 5]);
+    }
+
     // Rollback the 2 availability migration steps
     $exitCode = Artisan::call('migrate:rollback', ['--step' => 2]);
     expect($exitCode)->toBe(0);

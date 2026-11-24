@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use App\Domain\Booking\ServiceType;
 use App\Domain\Catalog\Enums\TransmissionType;
 use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Domain\Catalog\Enums\VehicleType;
@@ -45,10 +48,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Collection<int, VehicleDriverAssignment> $driverAssignments
  * @property-read Collection<int, VehicleScheduleBlock> $scheduleBlocks
  * @property-read Collection<int, BookingHold> $holds
- * @property-read \Illuminate\Database\Eloquent\Collection<int, VehicleMedia> $media
- * @property-read \Illuminate\Database\Eloquent\Collection<int, VehicleDriverAssignment> $driverAssignments
- * @property-read \Illuminate\Database\Eloquent\Collection<int, VehicleScheduleBlock> $scheduleBlocks
- * @property-read \Illuminate\Database\Eloquent\Collection<int, BookingHold> $holds
+ * @property-read Collection<int, PricingRule> $pricingRules
+ * @property-read Collection<int, Estimate> $estimates
  */
 class Vehicle extends Model
 {
@@ -169,5 +170,34 @@ class Vehicle extends Model
     public function holds(): HasMany
     {
         return $this->hasMany(BookingHold::class);
+    }
+
+    /**
+     * @return HasMany<PricingRule, $this>
+     */
+    public function pricingRules(): HasMany
+    {
+        return $this->hasMany(PricingRule::class);
+    }
+
+    /**
+     * @return HasMany<Estimate, $this>
+     */
+    public function estimates(): HasMany
+    {
+        return $this->hasMany(Estimate::class);
+    }
+
+    /**
+     * Determine if vehicle is eligible for a specific service type.
+     */
+    public function isEligibleForService(ServiceType $serviceType): bool
+    {
+        return match ($serviceType) {
+            ServiceType::AirportPickup => $this->eligible_for_pickup,
+            ServiceType::AirportTransfer => $this->eligible_for_transfer,
+            ServiceType::Ride => $this->eligible_for_ride,
+            ServiceType::Rent => $this->eligible_for_rent,
+        };
     }
 }
