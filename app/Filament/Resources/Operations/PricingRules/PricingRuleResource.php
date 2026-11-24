@@ -14,6 +14,7 @@ use App\Filament\Resources\Operations\PricingRules\Pages\ManagePricingRules;
 use App\Models\PricingRule;
 use App\Models\Vehicle;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
@@ -159,6 +160,11 @@ class PricingRuleResource extends Resource
             ->recordActions([
                 EditAction::make()
                     ->using(fn (PricingRule $record, array $data) => app(PricingRuleService::class)->updateRule($record, $data, auth()->user())),
+                Action::make('clone')
+                    ->label('Clone')
+                    ->icon(Heroicon::OutlinedDocumentDuplicate)
+                    ->requiresConfirmation()
+                    ->action(fn (PricingRule $record) => app(PricingRuleService::class)->cloneRule($record, auth()->user())),
                 DeleteAction::make()
                     ->using(function (PricingRule $record): bool {
                         app(PricingRuleService::class)->deactivateRule($record, auth()->user());

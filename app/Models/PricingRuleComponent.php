@@ -80,7 +80,9 @@ class PricingRuleComponent extends Model
         return Attribute::make(
             get: fn (): float => $this->amount_minor_units / 100,
             set: fn (float|int|string $value): array => [
-                'amount_minor_units' => (int) round(((float) $value) * 100),
+                'amount_minor_units' => is_string($value)
+                    ? Money::ofDollars($value)->amountMinorUnits
+                    : (int) round(((float) $value) * 100),
             ]
         );
     }

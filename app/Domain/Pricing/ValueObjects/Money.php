@@ -178,11 +178,6 @@ final class Money implements JsonSerializable, Stringable
         return "{$sign}{$this->currency} ".number_format($dollars).".{$cents}";
     }
 
-    public function toDollars(): float
-    {
-        return $this->amountMinorUnits / 100;
-    }
-
     /**
      * @return array{amount_minor_units: int, currency: string, formatted: string}
      */

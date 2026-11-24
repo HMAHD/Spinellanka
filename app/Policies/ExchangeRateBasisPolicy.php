@@ -27,11 +27,11 @@ class ExchangeRateBasisPolicy
 
     public function update(User $user, ExchangeRateBasis $exchangeRateBasis): bool
     {
-        return $user->hasPermissionTo(Permission::ConfigManage->value);
+        return false;
     }
 
     public function delete(User $user, ExchangeRateBasis $exchangeRateBasis): bool
     {
-        return $user->hasPermissionTo(Permission::ConfigManage->value);
+        return false;
     }
 }

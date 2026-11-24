@@ -69,19 +69,37 @@ class ExchangeRateService
     }
 
     /**
+     * Convert USD money to approximate LKR minor units (cents equivalent) using latest basis,
+     * returning both converted Money and matched ExchangeRateBasis atomically.
+     *
+     * @return array{approximate_lkr: ?Money, basis: ?ExchangeRateBasis}
+     */
+    public function approximateLkrWithBasis(Money $usdAmount, ?Carbon $asOf = null): array
+    {
+        $basis = $this->getLatestRate($asOf);
+        if ($basis === null) {
+            return [
+                'approximate_lkr' => null,
+                'basis' => null,
+            ];
+        }
+
+        // Rate is stored with 4 decimal places (e.g. 308.5000)
+        // Scaled integer arithmetic avoids IEEE-754 precision issues
+        $rateScaled = (int) round(((float) $basis->rate) * 10000);
+        $lkrMinorUnits = (int) round(($usdAmount->amountMinorUnits * $rateScaled) / 10000);
+
+        return [
+            'approximate_lkr' => Money::of($lkrMinorUnits, 'LKR'),
+            'basis' => $basis,
+        ];
+    }
+
+    /**
      * Convert USD money to approximate LKR minor units (cents equivalent) using latest basis.
      */
     public function approximateLkr(Money $usdAmount, ?Carbon $asOf = null): ?Money
     {
-        $basis = $this->getLatestRate($asOf);
-        if ($basis === null) {
-            return null;
-        }
-
-        $rateFloat = (float) $basis->rate;
-        // Minor units of LKR: LKR also has 100 cents per rupee
-        $lkrMinorUnits = (int) round($usdAmount->amountMinorUnits * $rateFloat);
-
-        return Money::of($lkrMinorUnits, 'LKR');
+        return $this->approximateLkrWithBasis($usdAmount, $asOf)['approximate_lkr'];
     }
 }
