@@ -10,8 +10,8 @@ test('pricing migrations can be completely rolled back and re-applied without co
     Artisan::call('migrate');
 
     // If downstream booking tables exist, roll them back first so pricing can be tested in isolation
-    if (Schema::hasTable('bookings')) {
-        Artisan::call('migrate:rollback', ['--step' => 5]);
+    while (Schema::hasTable('bookings')) {
+        Artisan::call('migrate:rollback', ['--step' => 1]);
     }
 
     // Assert pricing tables exist

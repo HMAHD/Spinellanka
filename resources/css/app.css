@@ -1779,7 +1779,9 @@ h1:focus-visible {
   color: var(--ink);
   background-color: var(--white);
   box-sizing: border-box;
-  transition: border-color var(--t-hover), box-shadow var(--t-hover);
+  transition:
+    border-color var(--t-hover),
+    box-shadow var(--t-hover);
 }
 
 .form-input:focus-visible {
@@ -1859,7 +1861,9 @@ h1:focus-visible {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  transition: background-color var(--t-hover), border-color var(--t-hover);
+  transition:
+    background-color var(--t-hover),
+    border-color var(--t-hover);
 }
 
 .quick-pill:hover {
@@ -1881,7 +1885,9 @@ h1:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: background-color var(--t-hover), transform var(--t-press);
+  transition:
+    background-color var(--t-hover),
+    transform var(--t-press);
 }
 
 .primary-button:hover {
@@ -1954,7 +1960,9 @@ h1:focus-visible {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform var(--t-hover), box-shadow var(--t-hover);
+  transition:
+    transform var(--t-hover),
+    box-shadow var(--t-hover);
 }
 
 .vehicle-card:hover {
@@ -2092,7 +2100,9 @@ h1:focus-visible {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color var(--t-hover), transform var(--t-press);
+  transition:
+    background-color var(--t-hover),
+    transform var(--t-press);
 }
 
 .select-vehicle-btn:hover {
@@ -2138,8 +2148,15 @@ h1:focus-visible {
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
 }
 
 /* Status Page */
@@ -2198,10 +2215,18 @@ h1:focus-visible {
   border-radius: 9999px;
 }
 
-.status-dot.amber { background-color: #f59e0b; }
-.status-dot.green { background-color: #22c55e; }
-.status-dot.red { background-color: #ef4444; }
-.status-dot.gray { background-color: #94a3b8; }
+.status-dot.amber {
+  background-color: #f59e0b;
+}
+.status-dot.green {
+  background-color: #22c55e;
+}
+.status-dot.red {
+  background-color: #ef4444;
+}
+.status-dot.gray {
+  background-color: #94a3b8;
+}
 
 .booking-ref-badge {
   font-size: 0.9375rem;
@@ -2353,6 +2378,152 @@ h1:focus-visible {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
+}
+
+/* Airport Transfer Guidance & Warning Components */
+.guidance-callout-box {
+  background: var(--cloud-step, #f8fafc);
+  border: 1px solid var(--cloud-edge, #e2e8f0);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.guidance-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.guidance-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.guidance-subtext {
+  margin: 0.375rem 0 0 0;
+  font-size: 0.875rem;
+  color: var(--muted, #64748b);
+  line-height: 1.5;
+}
+
+.timing-choice-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.radio-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--cloud-edge, #cbd5e1);
+  border-radius: 0.5rem;
+  background: var(--white, #ffffff);
+  cursor: pointer;
+  transition:
+    border-color var(--t-hover, 150ms) ease,
+    box-shadow var(--t-hover, 150ms) ease;
+}
+
+.radio-card:hover {
+  border-color: var(--navy, #0f172a);
+}
+
+.radio-card input[type="radio"] {
+  margin-top: 0.25rem;
+  accent-color: var(--navy, #0f172a);
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.radio-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.radio-sub {
+  font-size: 0.8125rem;
+  color: var(--muted, #64748b);
+  line-height: 1.4;
+}
+
+.custom-timing-fields {
+  background: #fefce8;
+  border: 1px solid #fde047;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.warning-banner {
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.warning-title {
+  font-weight: 700;
+  color: #92400e;
+  font-size: 0.9375rem;
+  margin-bottom: 0.375rem;
+}
+
+.warning-text {
+  font-size: 0.875rem;
+  color: #78350f;
+  line-height: 1.5;
+  margin: 0 0 0.75rem 0;
+}
+
+.warning-tag {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.safe-tag {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.legal-notice-box {
+  background: var(--cloud-step, #f8fafc);
+  border: 1px solid var(--cloud-edge, #e2e8f0);
+  border-radius: 0.375rem;
+  padding: 0.875rem 1rem;
+  margin-top: 1rem;
+  font-size: 0.8125rem;
+  color: var(--muted, #475569);
+  line-height: 1.5;
+}
+
+.legal-notice-box strong {
+  color: var(--ink, #0f172a);
+}
+
+.legal-notice-box p {
+  margin: 0.25rem 0 0 0;
 }
 
 /* ==========================================================================

@@ -69,49 +69,97 @@
     <div class="booking-grid">
       <!-- Left Column: Flight & Vehicle Details -->
       <div class="booking-main-col">
-        <!-- Flight & Arrival Details -->
-        <section class="booking-card" aria-labelledby="flight-details-heading">
-          <h2 id="flight-details-heading" class="card-heading">Flight &amp; Arrival Details</h2>
-          <dl class="details-grid">
-            <div>
-              <dt>Airport</dt>
-              <dd>Bandaranaike International Airport (CMB), Katunayake</dd>
-            </div>
-            <div>
-              <dt>Flight Number</dt>
-              <dd><strong>{{ $detail?->flight_number }}</strong></dd>
-            </div>
-            <div>
-              <dt>Scheduled Arrival</dt>
-              <dd>
-                <strong>{{ $detail?->arrival_time?->format('D, d M Y @ H:i') }}</strong>
-                <small class="tz-badge">Sri Lanka Time (Asia/Colombo / UTC+05:30)</small>
-              </dd>
-            </div>
-            <div>
-              <dt>Drop-off Destination</dt>
-              <dd>
-                <strong>{{ $detail?->destination_text }}</strong>
-                @if($detail?->destination_notes)
-                  <p class="landmark-note"><em>Notes: {{ $detail->destination_notes }}</em></p>
-                @endif
-              </dd>
-            </div>
-            <div>
-              <dt>Travel Party</dt>
-              <dd>{{ $detail?->passenger_count }} Passengers &bull; {{ $detail?->luggage_count }} Checked Luggage Bags</dd>
-            </div>
-            <div>
-              <dt>Meet &amp; Greet</dt>
-              <dd>
-                {{ $detail?->meet_and_greet ? 'Included with Welcome Board' : 'Standard Pickup' }}
-                @if($detail?->name_board_text)
-                  <span class="nameboard-tag">Name Board: &ldquo;{{ $detail->name_board_text }}&rdquo;</span>
-                @endif
-              </dd>
-            </div>
-          </dl>
-        </section>
+        @if($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer && isset($transferDetail) && $transferDetail)
+          <!-- Flight Departure & Transfer Details -->
+          <section class="booking-card" aria-labelledby="transfer-details-heading">
+            <h2 id="transfer-details-heading" class="card-heading">Departure Flight &amp; Transfer Details</h2>
+            <dl class="details-grid">
+              <div>
+                <dt>Departure Airport</dt>
+                <dd>Bandaranaike International Airport (CMB), Katunayake</dd>
+              </div>
+              <div>
+                <dt>Flight Number</dt>
+                <dd><strong>{{ $transferDetail->flight_number }}</strong></dd>
+              </div>
+              <div>
+                <dt>Scheduled Departure</dt>
+                <dd>
+                  <strong>{{ $transferDetail->departure_time?->format('D, d M Y @ H:i') }}</strong>
+                  <small class="tz-badge">Sri Lanka Time (Asia/Colombo / UTC+05:30)</small>
+                </dd>
+              </div>
+              <div>
+                <dt>Pickup Origin</dt>
+                <dd>
+                  <strong>{{ $transferDetail->origin_text }}</strong>
+                  @if($transferDetail->origin_notes)
+                    <p class="landmark-note"><em>Notes: {{ $transferDetail->origin_notes }}</em></p>
+                  @endif
+                </dd>
+              </div>
+              <div>
+                <dt>Pickup Timing</dt>
+                <dd>
+                  <strong>{{ $transferDetail->chosen_pickup_time?->format('D, d M Y @ H:i') }}</strong>
+                  @if($transferDetail->is_unsafe_time)
+                    <span class="warning-tag" style="display:block; margin-top: 0.25rem;">⚠️ Later than Recommended (Client Risk Acknowledged)</span>
+                  @else
+                    <span class="safe-tag" style="display:block; margin-top: 0.25rem;">✓ Recommended Safe Pickup Time</span>
+                  @endif
+                </dd>
+              </div>
+              <div>
+                <dt>Travel Party</dt>
+                <dd>{{ $transferDetail->passenger_count }} Passengers &bull; {{ $transferDetail->luggage_count }} Checked Luggage Bags</dd>
+              </div>
+            </dl>
+          </section>
+        @else
+          <!-- Flight & Arrival Details -->
+          <section class="booking-card" aria-labelledby="flight-details-heading">
+            <h2 id="flight-details-heading" class="card-heading">Flight &amp; Arrival Details</h2>
+            <dl class="details-grid">
+              <div>
+                <dt>Airport</dt>
+                <dd>Bandaranaike International Airport (CMB), Katunayake</dd>
+              </div>
+              <div>
+                <dt>Flight Number</dt>
+                <dd><strong>{{ $detail?->flight_number }}</strong></dd>
+              </div>
+              <div>
+                <dt>Scheduled Arrival</dt>
+                <dd>
+                  <strong>{{ $detail?->arrival_time?->format('D, d M Y @ H:i') }}</strong>
+                  <small class="tz-badge">Sri Lanka Time (Asia/Colombo / UTC+05:30)</small>
+                </dd>
+              </div>
+              <div>
+                <dt>Drop-off Destination</dt>
+                <dd>
+                  <strong>{{ $detail?->destination_text }}</strong>
+                  @if($detail?->destination_notes)
+                    <p class="landmark-note"><em>Notes: {{ $detail->destination_notes }}</em></p>
+                  @endif
+                </dd>
+              </div>
+              <div>
+                <dt>Travel Party</dt>
+                <dd>{{ $detail?->passenger_count }} Passengers &bull; {{ $detail?->luggage_count }} Checked Luggage Bags</dd>
+              </div>
+              <div>
+                <dt>Meet &amp; Greet</dt>
+                <dd>
+                  {{ $detail?->meet_and_greet ? 'Included with Welcome Board' : 'Standard Pickup' }}
+                  @if($detail?->name_board_text)
+                    <span class="nameboard-tag">Name Board: &ldquo;{{ $detail->name_board_text }}&rdquo;</span>
+                  @endif
+                </dd>
+              </div>
+            </dl>
+          </section>
+        @endif
 
         <!-- Vehicle Allocation Card -->
         @if($booking->vehicle)
@@ -126,7 +174,11 @@
                 <ul class="vehicle-perks">
                   <li>Chauffeured English-speaking driver included</li>
                   <li>{{ $booking->vehicle->has_ac ? 'Air conditioned' : 'Non-AC' }}</li>
-                  <li>Complimentary 90-minute customs and baggage waiting time</li>
+                  @if($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer)
+                    <li>Katunayake Expressway tolls and airport departure drop-off fees included</li>
+                  @else
+                    <li>Complimentary 90-minute customs and baggage waiting time</li>
+                  @endif
                 </ul>
               </div>
             </div>
@@ -178,7 +230,11 @@
 
           <div class="total-row">
             <span>Total Estimated Fee:</span>
-            <strong>USD ${{ number_format(($booking->total_amount_minor_units ?? 0) / 100, 2) }}</strong>
+            @if($booking->total_amount_minor_units !== null)
+              <strong>USD ${{ number_format($booking->total_amount_minor_units / 100, 2) }}</strong>
+            @else
+              <strong>Custom Quote</strong>
+            @endif
           </div>
 
           @if($booking->approximate_lkr_amount_minor_units)

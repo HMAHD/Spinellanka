@@ -12,17 +12,19 @@ test('booking migrations can be completely rolled back and re-applied without co
     // Assert booking tables exist
     expect(Schema::hasTable('guest_access_tokens'))->toBeTrue();
     expect(Schema::hasTable('booking_policy_acceptances'))->toBeTrue();
+    expect(Schema::hasTable('airport_transfer_details'))->toBeTrue();
     expect(Schema::hasTable('airport_pickup_details'))->toBeTrue();
     expect(Schema::hasTable('booking_contacts'))->toBeTrue();
     expect(Schema::hasTable('bookings'))->toBeTrue();
 
-    // Rollback the 5 booking migration steps
-    $exitCode = Artisan::call('migrate:rollback', ['--step' => 5]);
+    // Rollback the 6 booking migration steps
+    $exitCode = Artisan::call('migrate:rollback', ['--step' => 6]);
     expect($exitCode)->toBe(0);
 
-    // Assert all 5 tables dropped cleanly
+    // Assert all 6 tables dropped cleanly
     expect(Schema::hasTable('guest_access_tokens'))->toBeFalse();
     expect(Schema::hasTable('booking_policy_acceptances'))->toBeFalse();
+    expect(Schema::hasTable('airport_transfer_details'))->toBeFalse();
     expect(Schema::hasTable('airport_pickup_details'))->toBeFalse();
     expect(Schema::hasTable('booking_contacts'))->toBeFalse();
     expect(Schema::hasTable('bookings'))->toBeFalse();
@@ -37,6 +39,7 @@ test('booking migrations can be completely rolled back and re-applied without co
 
     expect(Schema::hasTable('guest_access_tokens'))->toBeTrue();
     expect(Schema::hasTable('booking_policy_acceptances'))->toBeTrue();
+    expect(Schema::hasTable('airport_transfer_details'))->toBeTrue();
     expect(Schema::hasTable('airport_pickup_details'))->toBeTrue();
     expect(Schema::hasTable('booking_contacts'))->toBeTrue();
     expect(Schema::hasTable('bookings'))->toBeTrue();

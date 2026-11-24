@@ -128,13 +128,13 @@ Complete for each vehicle that supports chauffeured services.
 
 | Input | Status | Approved value/version |
 |---|---|---|
-| Recommended airport-arrival buffer | ☐ | May vary by airport/flight type |
-| Route contingency buffer | ☐ | |
-| Latest allowed customer-selected pickup | ☐ | |
-| Unsafe-time warning and acceptance policy | ☐ | |
-| Staff authority to require safer time | ☐ | |
-| Missed-flight liability wording | ☐ | Legal approval required |
-| Airport/toll/parking inclusion | ☐ | |
+| Recommended airport-arrival buffer | ✓ | 180 minutes (3 hours prior to international departure at CMB) (approved 2026-11-24 by Project Lead) |
+| Route contingency buffer | ✓ | 45 minutes added to estimated driving route duration (approved 2026-11-24 by Project Lead) |
+| Latest allowed customer-selected pickup | ✓ | Flight departure time minus (estimated route duration + 90 minutes) (approved 2026-11-24 by Project Lead) |
+| Unsafe-time warning and acceptance policy | ✓ | Explicit risk copy shown when chosen > recommended; mandatory acknowledgment checkbox required before submission; flags is_unsafe_time=true for staff review (approved 2026-11-24 by Project Lead) |
+| Staff authority to require safer time | ✓ | Staff authorized to review and propose safer pickup time via proposal mechanism; requires customer acceptance prior to confirmation (approved 2026-11-24 by Project Lead) |
+| Missed-flight liability wording | ✓ | Disclaimer: "Spinellanka provides chauffeured airport transfers based on estimated travel times and client-selected pickup times. Spinellanka does not guarantee airline check-in or flight departure and accepts no financial or legal liability for missed flights resulting from customer-chosen departure times, airline schedule changes, airport security/immigration queues, or unforeseen road conditions." (approved 2026-11-24 by Project Lead) |
+| Airport/toll/parking inclusion | ✓ | Katunayake Expressway tolls and airport departure drop-off charges included in base chauffeured rate (approved 2026-11-24 by Project Lead) |
 
 ## 7. Ride policy values
 

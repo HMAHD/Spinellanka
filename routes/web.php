@@ -3,6 +3,7 @@
 use App\Domain\Booking\ServiceType;
 use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Http\Controllers\AirportPickupBookingController;
+use App\Http\Controllers\AirportTransferBookingController;
 use App\Http\Controllers\BookingStatusController;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
@@ -32,12 +33,22 @@ Route::get('/services/{service}', function (string $service) {
 })->name('services.show');
 
 Route::prefix('booking')->name('booking.')->middleware('throttle:60,1')->group(function (): void {
+    // Airport Pickup
     Route::get('/airport-pickup', [AirportPickupBookingController::class, 'create'])->name('airport-pickup');
     Route::post('/airport-pickup/search', [AirportPickupBookingController::class, 'search'])->name('airport-pickup.search');
     Route::get('/airport-pickup/vehicles', [AirportPickupBookingController::class, 'vehicles'])->name('airport-pickup.vehicles');
     Route::post('/airport-pickup/hold', [AirportPickupBookingController::class, 'hold'])->name('airport-pickup.hold');
     Route::get('/airport-pickup/contact', [AirportPickupBookingController::class, 'contact'])->name('airport-pickup.contact');
     Route::post('/airport-pickup/submit', [AirportPickupBookingController::class, 'submit'])->middleware('throttle:10,1')->name('airport-pickup.submit');
+
+    // Airport Transfer
+    Route::get('/airport-transfer', [AirportTransferBookingController::class, 'create'])->name('airport-transfer');
+    Route::post('/airport-transfer/search', [AirportTransferBookingController::class, 'search'])->name('airport-transfer.search');
+    Route::get('/airport-transfer/vehicles', [AirportTransferBookingController::class, 'vehicles'])->name('airport-transfer.vehicles');
+    Route::post('/airport-transfer/hold', [AirportTransferBookingController::class, 'hold'])->name('airport-transfer.hold');
+    Route::get('/airport-transfer/contact', [AirportTransferBookingController::class, 'contact'])->name('airport-transfer.contact');
+    Route::post('/airport-transfer/submit', [AirportTransferBookingController::class, 'submit'])->middleware('throttle:10,1')->name('airport-transfer.submit');
+
     Route::get('/{reference}/{token}', [BookingStatusController::class, 'show'])->name('status');
 });
 
