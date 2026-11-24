@@ -16,8 +16,8 @@ test('catalog migrations can be completely rolled back and re-applied without co
     expect(Schema::hasTable('extra_compatibility'))->toBeTrue();
 
     // Rollback any dependent downstream migrations (booking, pricing, and availability) first if present
-    if (Schema::hasTable('bookings')) {
-        Artisan::call('migrate:rollback', ['--step' => 5]);
+    while (Schema::hasTable('bookings')) {
+        Artisan::call('migrate:rollback', ['--step' => 1]);
     }
     if (Schema::hasTable('estimates')) {
         Artisan::call('migrate:rollback', ['--step' => 5]);

@@ -15,8 +15,8 @@ test('availability migrations can be completely rolled back and re-applied witho
     expect(Schema::hasTable('vehicles'))->toBeTrue();
 
     // If downstream booking tables exist, roll them back first so availability can be tested in isolation
-    if (Schema::hasTable('bookings')) {
-        Artisan::call('migrate:rollback', ['--step' => 5]);
+    while (Schema::hasTable('bookings')) {
+        Artisan::call('migrate:rollback', ['--step' => 1]);
     }
 
     // If downstream pricing tables exist, roll them back first so availability can be tested in isolation
