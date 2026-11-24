@@ -15,6 +15,11 @@ test('catalog migrations can be completely rolled back and re-applied without co
     expect(Schema::hasTable('extras'))->toBeTrue();
     expect(Schema::hasTable('extra_compatibility'))->toBeTrue();
 
+    // If downstream pricing tables exist, roll them back first so catalog can be tested in isolation
+    if (Schema::hasTable('estimates')) {
+        Artisan::call('migrate:rollback', ['--step' => 5]);
+    }
+
     // Rollback the 6 catalog migration steps
     $exitCode = Artisan::call('migrate:rollback', ['--step' => 6]);
     expect($exitCode)->toBe(0);
