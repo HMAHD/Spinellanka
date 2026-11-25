@@ -12,6 +12,7 @@ use App\Domain\Booking\Services\BookingLifecycleService;
 use App\Domain\Booking\ServiceType;
 use App\Domain\Identity\Permission;
 use App\Filament\Resources\Operations\Bookings\Pages\ManageBookings;
+use App\Filament\Resources\Operations\MessageDeliveries\MessageDeliveryResource;
 use App\Models\Booking;
 use BackedEnum;
 use Carbon\Carbon;
@@ -422,6 +423,14 @@ class BookingResource extends Resource
                         app(BookingLifecycleService::class)->cancel($record, $data['cancellation_reason'], auth()->user());
                         Notification::make()->title("Booking {$record->reference} cancelled.")->warning()->send();
                     }),
+
+                Action::make('deliveries')
+                    ->label('Deliveries')
+                    ->icon(Heroicon::OutlinedChatBubbleLeftRight)
+                    ->color('gray')
+                    ->url(fn (Booking $record): string => MessageDeliveryResource::getUrl('index', [
+                        'tableSearch' => $record->reference,
+                    ])),
             ]);
     }
 
