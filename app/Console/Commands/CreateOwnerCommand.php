@@ -19,7 +19,7 @@ class CreateOwnerCommand extends Command
                             {--generate-password : Automatically generate a secure 24-character random password}
                             {--force : Force creation without prompt if an owner already exists}';
 
-    protected $description = 'Provision a staff owner account with Owner/Admin role and mandatory TOTP MFA';
+    protected $description = 'Provision a staff owner account with Owner/Admin role and TOTP MFA support';
 
     public function handle(AuditService $auditService): int
     {
@@ -131,7 +131,7 @@ class CreateOwnerCommand extends Command
 
         $this->line('Next steps:');
         $this->line('1. Log in at: /admin/login');
-        $this->line('2. Complete mandatory TOTP MFA enrollment on first login.');
+        $this->line('2. Configure TOTP MFA (optional locally; required outside local development).');
 
         return self::SUCCESS;
     }

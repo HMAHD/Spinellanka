@@ -32,7 +32,11 @@
     @if($errors->any())
       <div class="alert alert-error" role="alert">
         <strong>Please check the following itinerary or entry details:</strong>
-        <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+        <div class="alert-error-list" style="margin-top: 0.5rem;">
+          @foreach($errors->all() as $error)
+            <div class="alert-error-item">&bull; {{ $error }}</div>
+          @endforeach
+        </div>
         <p class="error-support-note" style="margin-top: 0.5rem; font-size: 0.875rem;">Need assistance or have a complex custom itinerary? Please <a href="{{ route('contact') }}" style="text-decoration: underline;">contact our operations desk</a>.</p>
       </div>
     @endif
@@ -83,9 +87,9 @@
             <div class="stops-builder-container" id="stops-builder-section" style="margin: 1.5rem 0; padding: 1.25rem; background: var(--color-surface-sunken, #f8fafc); border: 1px solid var(--color-border, #e2e8f0); border-radius: 8px;">
               <div class="stops-builder-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                 <div>
-                  <h3 style="font-size: 1rem; font-weight: 600; margin: 0; color: var(--color-text-primary, #0f172a);">
+                  <h2 style="font-size: 1rem; font-weight: 600; margin: 0; color: var(--color-text-primary, #0f172a);">
                     En-Route Stops (Optional, Max 10)
-                  </h3>
+                  </h2>
                   <small style="color: var(--color-text-secondary, #64748b);">Add sightseeing stops, meal breaks, or intermediate passenger pickups.</small>
                 </div>
                 <button type="submit" name="action" value="add_stop" id="add-stop-btn" class="secondary-button" style="padding: 0.4rem 0.85rem; font-size: 0.875rem;" {{ count($stopsList) >= 10 ? 'disabled' : '' }}>

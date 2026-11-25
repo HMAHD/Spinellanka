@@ -154,11 +154,11 @@
                 <strong>{{ $v->make }} {{ $v->model }} ({{ $v->year }})</strong>
                 <span class="plate-tag">{{ $v->license_plate }}</span>
               </div>
-              <ul class="unsuitable-reasons">
+              <div class="unsuitable-reasons" style="margin-top: 0.35rem; font-size: 0.85rem; color: var(--color-text-secondary, #64748b);">
                 @foreach($item->reasons as $reason)
-                  <li>{{ $reason }}</li>
+                  <div class="unsuitable-reason" style="margin-bottom: 0.15rem;">&bull; {{ $reason }}</div>
                 @endforeach
-              </ul>
+              </div>
             </div>
           @endforeach
         </div>

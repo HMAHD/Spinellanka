@@ -22,17 +22,17 @@ related_targets:
 
 ## Direction contract
 
-**THESIS:** The page behaves like a calm mobility desk: a fixed service-selection object beside a concise reading column. It refuses glossy travel imagery and equal feature-card grids.
+**THESIS:** The page is a booking-first editorial guide: one clear promise, one direct four-service comparison, one exact-vehicle principle, and one request sequence. It refuses a persistent split-screen chooser, glossy travel imagery, and equal feature-card grids.
 
-**OWN-WORLD:** Cloud canvas and Spinel Navy divide the page into clean fields; Ceylon Amber marks only the active service and primary action. Allo, square-edged paper slips, itinerary rows, generous spacing, and 10–12px functional corners carry the system without gradients, shadows, or invented pictures.
+**OWN-WORLD:** Cloud canvas carries the reading flow; Spinel Navy creates two decisive working fields; Ceylon Amber marks only primary decisions and sequence wayfinding. Allo, broad ruled service rows, generous spacing, and 10–12px functional corners carry the system without gradients, ornamental shadows, or invented pictures.
 
-**STORY:** A traveler identifies the offer, chooses one of four services, learns that exact vehicles are selected and every request awaits staff confirmation, then reads the request sequence. The selected service opens a dedicated factual page.
+**STORY:** A traveler understands the advance-booked offer and its two conditions, compares all four services directly, learns the exact-vehicle principle, reads the request sequence, and chooses the matching factual service page.
 
-**FIRST VIEWPORT:** On desktop, a navy service desk occupies the left half and stays visible while the cloud reading column scrolls. The desk holds the wordmark, four-service selector, and amber “View service” action. The right half carries the two-line title, one concrete sentence, and the approved request conditions. On mobile, navigation leads, the title appears first, then the full-width service desk. The signature interaction is the live service selector; the selected option updates the desk summary without hiding the no-script list.
+**FIRST VIEWPORT:** On desktop, the light editorial hero pairs the two-line promise and actions with exact-vehicle and staff-confirmation facts. The four-service index begins immediately after the first field. On mobile, the same content keeps DOM order, actions stack safely, facts remain visible, and the navigation opens as a contained vertical popover without clipping. No service choice depends on JavaScript.
 
-**FORM:** Split-stage mobility desk, first structural choice; `seed: none (pinned)` — “Use approved direction.”
+**FORM:** Booking-first editorial sequence with direct ruled service rows; approved by the project lead on 2026-11-25 while preserving the shipped palette and typography.
 
-**FINISH:** unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+**FINISH:** Unreviewed and undocumented is unfinished; this build ends with detector, rendered 320px/390px/768px/1440px review, keyboard/popover/reduced-motion checks, and synchronized DESIGN.md plus `.impeccable/design.json`.
 
 ## Unresolved inputs
 

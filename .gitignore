@@ -30,6 +30,7 @@ Thumbs.db
 # Frontend build
 /node_modules/
 /public/build/
+/public/storage
 npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*

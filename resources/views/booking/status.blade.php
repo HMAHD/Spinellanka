@@ -99,36 +99,40 @@
                 <dt>Travel Party</dt>
                 <dd>{{ $rideDetail->passenger_count }} Passengers &bull; {{ $rideDetail->luggage_count }} Checked Luggage Bags</dd>
               </div>
-              @if($rideDetail->stops && $rideDetail->stops->isNotEmpty())
-                <div style="grid-column: 1 / -1;">
-                  <dt>Scheduled En-Route Stops ({{ $rideDetail->stops->count() }})</dt>
-                  <dd>
-                    <ol class="ride-stops-summary-list" style="margin: 0.5rem 0 0 1.25rem; padding: 0;">
+              <div style="grid-column: 1 / -1;">
+                <dt>Scheduled En-Route Stops ({{ $rideDetail->stops ? $rideDetail->stops->count() : 0 }})</dt>
+                <dd>
+                  @if($rideDetail->stops && $rideDetail->stops->isNotEmpty())
+                    <div class="ride-stops-summary-list" style="margin: 0.5rem 0 0 0.25rem;">
                       @foreach($rideDetail->stops->sortBy('stop_order') as $st)
-                        <li style="margin-bottom: 0.35rem;">
-                          <strong>{{ $st->location_text }}</strong>
+                        <div class="stop-summary-row" style="margin-bottom: 0.35rem;">
+                          <span>{{ $loop->iteration }}. <strong>{{ $st->location_text }}</strong></span>
                           @if($st->planned_waiting_minutes > 0)
                             <span class="wait-tag" style="display: inline-block; margin-left: 0.5rem; font-size: 0.8rem; background: var(--color-surface-sunken, #f1f5f9); padding: 0.15rem 0.4rem; border-radius: 4px;">
                               ⏱ {{ $st->planned_waiting_minutes }} min planned waiting
                             </span>
                           @endif
-                        </li>
+                        </div>
                       @endforeach
-                    </ol>
-                  </dd>
-                </div>
-              @endif
-              @if($rideDetail->has_return)
-                <div style="grid-column: 1 / -1;">
-                  <dt>Return Journey Leg</dt>
-                  <dd>
+                    </div>
+                  @else
+                    <span>Direct journey selected (no intermediate stops).</span>
+                  @endif
+                </dd>
+              </div>
+              <div style="grid-column: 1 / -1;">
+                <dt>Return Journey Leg</dt>
+                <dd>
+                  @if($rideDetail->has_return)
                     <strong>Scheduled Return Pickup: {{ $rideDetail->return_pickup_time?->format('D, d M Y @ H:i') }}</strong>
                     <p style="margin: 0.25rem 0 0; font-size: 0.875rem; color: var(--color-text-secondary, #64748b);">
                       Route: {{ $rideDetail->return_origin_text ?: $rideDetail->destination_text }} &rarr; {{ $rideDetail->return_destination_text ?: $rideDetail->origin_text }} (Same exact vehicle and dedicated chauffeur).
                     </p>
-                  </dd>
-                </div>
-              @endif
+                  @else
+                    <span>One-way journey (no return leg scheduled).</span>
+                  @endif
+                </dd>
+              </div>
             </dl>
 
             <!-- Phase 12 Presentation Boundary: Route Map Container with Zero Geolocation & Accessible Text Itinerary Fallback -->
