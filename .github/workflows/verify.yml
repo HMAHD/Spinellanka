@@ -42,6 +42,17 @@ jobs:
         env:
           APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
 
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Build frontend
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+
       - name: Run tests
         run: composer test
 

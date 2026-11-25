@@ -27,6 +27,10 @@ class PonytailBaselineTest extends TestCase
 
     public function test_environment_check_script_passes_with_ponytail_verified(): void
     {
+        if (getenv('GITHUB_ACTIONS') === 'true' || getenv('CI') === 'true') {
+            $this->markTestSkipped('Environment check script is intended for local developer workstations with Claude/Graft CLI installed.');
+        }
+
         $cmd = sprintf('bash %s/scripts/check-environment 2>&1', escapeshellarg(base_path()));
         exec($cmd, $output, $exitCode);
 
