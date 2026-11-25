@@ -216,7 +216,6 @@ class ManualBookingService
                     'service_type' => $booking->service_type->value,
                     'status_url' => $statusUrl,
                     'channel' => $data['confirmation_channel']->value,
-                    'notes' => 'Staff manual entry confirmed',
                 ],
                 idempotencyKey: "evt_booking_{$booking->id}_manual_confirmed_v1"
             );
@@ -406,7 +405,6 @@ class ManualBookingService
                     'service_type' => ServiceType::AirportTransfer->value,
                     'status_url' => $statusUrl,
                     'channel' => $data['confirmation_channel']->value,
-                    'notes' => 'Staff manual entry confirmed',
                 ],
                 idempotencyKey: "evt_booking_{$booking->id}_manual_confirmed_v1"
             );
@@ -666,7 +664,6 @@ class ManualBookingService
                     'service_type' => ServiceType::Ride->value,
                     'status_url' => $statusUrl,
                     'channel' => $data['confirmation_channel']->value,
-                    'notes' => 'Staff manual entry confirmed',
                 ],
                 idempotencyKey: "evt_booking_{$booking->id}_manual_confirmed_v1"
             );
@@ -870,7 +867,6 @@ class ManualBookingService
                     'service_type' => ServiceType::Rent->value,
                     'status_url' => $statusUrl,
                     'channel' => $data['confirmation_channel']->value,
-                    'notes' => 'Staff manual entry confirmed',
                 ],
                 idempotencyKey: "evt_booking_{$booking->id}_manual_confirmed_v1"
             );
