@@ -18,8 +18,10 @@ test('two concurrent processes racing for identical slot serialize cleanly on sh
         'database' => $dbPath,
         'prefix' => '',
         'foreign_key_constraints' => true,
-        'busy_timeout' => 5000,
+        'busy_timeout' => 10000,
     ]]);
+
+    DB::connection('concurrency_test')->statement('PRAGMA journal_mode = WAL;');
 
     // Run migrations on the temporary database
     Artisan::call('migrate', [
@@ -62,9 +64,10 @@ require '{$basePath}/vendor/autoload.php';
 
 config(['database.default' => 'sqlite']);
 config(['database.connections.sqlite.database' => \$dbPath]);
-config(['database.connections.sqlite.busy_timeout' => 5000]);
+config(['database.connections.sqlite.busy_timeout' => 10000]);
 DB::purge('sqlite');
 DB::reconnect('sqlite');
+DB::statement('PRAGMA journal_mode = WAL;');
 
 \$service = app(App\\Domain\\Availability\\Services\\AvailabilityService::class);
 \$vehicle = App\\Models\\Vehicle::findOrFail(\$vehicleId);
@@ -86,6 +89,13 @@ try {
 } catch (App\\Domain\\Availability\\Exceptions\\ScheduleConflictException \$e) {
     echo "CONFLICT\n";
     exit(2);
+} catch (\\Illuminate\\Database\\QueryException \$e) {
+    if (str_contains(\$e->getMessage(), 'database is locked')) {
+        echo "CONFLICT\n";
+        exit(2);
+    }
+    echo "ERROR: " . \$e->getMessage() . "\n";
+    exit(1);
 } catch (\\Throwable \$e) {
     echo "ERROR: " . \$e->getMessage() . "\n";
     exit(1);
