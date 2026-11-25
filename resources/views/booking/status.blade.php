@@ -39,7 +39,13 @@
 
       <h1 id="status-title">
         @if($booking->status === \App\Domain\Booking\Enums\BookingStatus::Confirmed)
-          Your Airport Pickup is Confirmed
+          @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent)
+            Your Self-Drive Vehicle Hire is Confirmed
+          @elseif($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer)
+            Your Airport Transfer is Confirmed
+          @else
+            Your Airport Pickup is Confirmed
+          @endif
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Declined)
           Reservation Request Declined
         @else
@@ -49,11 +55,19 @@
 
       <p class="status-lead">
         @if($booking->status === \App\Domain\Booking\Enums\BookingStatus::Confirmed)
-          Our dispatch team has verified your flight arrival schedule and assigned your dedicated driver.
+          @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent)
+            Our dispatch desk has confirmed vehicle preparation and allocated your reserved exact vehicle for handover.
+          @else
+            Our dispatch team has verified your flight schedule and assigned your dedicated driver.
+          @endif
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Declined)
           {{ $booking->decline_reason ?? 'Unfortunately, we are unable to accommodate this schedule.' }}
         @else
-          Thank you for choosing Spinellanka. Your advance airport pickup request is currently being reviewed by our operations desk. We track flight schedule changes and driver turnaround buffers before manual confirmation. No payment has been processed.
+          @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent)
+            Thank you for choosing Spinellanka. Your advance self-drive vehicle hire request is currently being reviewed by our operations desk. We verify vehicle preparation and turnaround buffers before manual confirmation. No payment has been processed.
+          @else
+            Thank you for choosing Spinellanka. Your advance transport request is currently being reviewed by our operations desk. We track flight schedule changes and driver turnaround buffers before manual confirmation. No payment has been processed.
+          @endif
         @endif
       </p>
 
@@ -69,7 +83,73 @@
     <div class="booking-grid">
       <!-- Left Column: Flight & Vehicle Details -->
       <div class="booking-main-col">
-        @if($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer && isset($transferDetail) && $transferDetail)
+        @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent && isset($rentDetail) && $rentDetail)
+          <!-- Rent (Self-Drive) Details -->
+          <section class="booking-card" aria-labelledby="rent-details-heading">
+            <h2 id="rent-details-heading" class="card-heading">Self-Drive Rental &amp; Handover Details</h2>
+            <dl class="details-grid">
+              <div>
+                <dt>Pickup Handover Date &amp; Time</dt>
+                <dd>
+                  <strong>{{ $rentDetail->pickup_datetime?->format('D, d M Y @ H:i') }}</strong>
+                  <small class="tz-badge">Sri Lanka Time (Asia/Colombo / UTC+05:30)</small>
+                </dd>
+              </div>
+              <div>
+                <dt>Return Collection Date &amp; Time</dt>
+                <dd>
+                  <strong>{{ $rentDetail->return_datetime?->format('D, d M Y @ H:i') }}</strong>
+                  <small class="tz-badge">Sri Lanka Time (Asia/Colombo / UTC+05:30)</small>
+                </dd>
+              </div>
+              <div>
+                <dt>Handover Location (Pickup)</dt>
+                <dd>
+                  <strong>{{ $rentDetail->pickup_location_text }}</strong>
+                  <span class="safe-tag" style="display:inline-block; margin-top: 0.25rem;">{{ ucfirst($rentDetail->pickup_location_type) }} Handover</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Collection Location (Return)</dt>
+                <dd>
+                  <strong>{{ $rentDetail->return_location_text }}</strong>
+                  <span class="safe-tag" style="display:inline-block; margin-top: 0.25rem;">{{ ucfirst($rentDetail->return_location_type) }} Return</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Rental Duration</dt>
+                <dd>
+                  <strong>{{ $rentDetail->duration_days }} Days{{ $rentDetail->extra_hours > 0 ? ' + '.$rentDetail->extra_hours.' Extra Hours' : '' }}</strong>
+                </dd>
+              </div>
+              <div>
+                <dt>Mileage Allowance</dt>
+                <dd>{{ $rentDetail->included_distance_km }} km included cumulative (excess billed at return)</dd>
+              </div>
+              <div>
+                <dt>Security Deposit</dt>
+                <dd><strong>USD ${{ number_format($rentDetail->security_deposit_minor_units / 100, 2) }}</strong> (Refundable pre-auth)</dd>
+              </div>
+              <div>
+                <dt>Insurance Coverage</dt>
+                <dd>Comprehensive included (Max Excess: USD ${{ number_format($rentDetail->insurance_excess_minor_units / 100, 2) }})</dd>
+              </div>
+              <div>
+                <dt>Lead Driver Eligibility</dt>
+                <dd>Age: {{ $rentDetail->driver_age }} &bull; Licence: {{ $rentDetail->driver_licence_country }} ({{ $rentDetail->driver_licence_years }} yrs held) &bull; IDP: {{ $rentDetail->has_idp ? 'Yes' : 'No' }}</dd>
+              </div>
+              <div>
+                <dt>Additional Driver</dt>
+                <dd>{{ $rentDetail->has_additional_driver ? $rentDetail->additional_driver_name.' (Age: '.$rentDetail->additional_driver_age.')' : 'None registered' }}</dd>
+              </div>
+            </dl>
+
+            <div class="alert alert-info" style="margin-top: 1rem; border-left: 4px solid var(--color-primary, #0f172a); background: rgba(15, 23, 42, 0.04); padding: 0.75rem 1rem; border-radius: 4px;">
+              <strong>Mandatory In-Person Document Inspection at Handover:</strong>
+              <p style="margin: 0.25rem 0 0; font-size: 0.875rem;">Under Sri Lankan law and insurance requirements, the lead driver must present original physical passport with valid visa, home country national driving licence, and International Driving Permit (IDP) or AAC endorsement before the vehicle can be released. Digital copies or photographs cannot be accepted.</p>
+            </div>
+          </section>
+        @elseif($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer && isset($transferDetail) && $transferDetail)
           <!-- Flight Departure & Transfer Details -->
           <section class="booking-card" aria-labelledby="transfer-details-heading">
             <h2 id="transfer-details-heading" class="card-heading">Departure Flight &amp; Transfer Details</h2>
@@ -172,12 +252,19 @@
                   Type: {{ $booking->vehicle->vehicle_type->getLabel() }} &bull; Plate: <strong>{{ $booking->vehicle->license_plate }}</strong>
                 </p>
                 <ul class="vehicle-perks">
-                  <li>Chauffeured English-speaking driver included</li>
-                  <li>{{ $booking->vehicle->has_ac ? 'Air conditioned' : 'Non-AC' }}</li>
-                  @if($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer)
-                    <li>Katunayake Expressway tolls and airport departure drop-off fees included</li>
+                  @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent)
+                    <li>Self-drive vehicle hire (no driver assigned)</li>
+                    <li>{{ $booking->vehicle->has_ac ? 'Air conditioned' : 'Non-AC' }}</li>
+                    <li>100 km/day cumulative mileage included</li>
+                    <li>USD $500 refundable security deposit pre-authorization</li>
                   @else
-                    <li>Complimentary 90-minute customs and baggage waiting time</li>
+                    <li>Chauffeured English-speaking driver included</li>
+                    <li>{{ $booking->vehicle->has_ac ? 'Air conditioned' : 'Non-AC' }}</li>
+                    @if($booking->service_type === \App\Domain\Booking\ServiceType::AirportTransfer)
+                      <li>Katunayake Expressway tolls and airport departure drop-off fees included</li>
+                    @else
+                      <li>Complimentary 90-minute customs and baggage waiting time</li>
+                    @endif
                   @endif
                 </ul>
               </div>
@@ -254,18 +341,33 @@
         <div class="booking-card next-steps-card" aria-labelledby="dispatch-steps-heading">
           <h2 id="dispatch-steps-heading" class="card-heading">What Happens Next?</h2>
           <ol class="dispatch-steps-list">
-            <li>
-              <strong>Flight Dispatch Review:</strong>
-              <p>Our team verifies driver availability, airport gate logistics, and flight schedule.</p>
-            </li>
-            <li>
-              <strong>Direct WhatsApp Outreach:</strong>
-              <p>We message your provided international number to confirm arrival details and driver contact.</p>
-            </li>
-            <li>
-              <strong>Terminal Meet &amp; Greet:</strong>
-              <p>Your driver waits inside the arrivals hall holding your name board.</p>
-            </li>
+            @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent)
+              <li>
+                <strong>Operations Logistics Review:</strong>
+                <p>Our team verifies vehicle maintenance, cleaning, turnaround buffers, and handover readiness.</p>
+              </li>
+              <li>
+                <strong>Direct WhatsApp Coordination:</strong>
+                <p>We contact your international WhatsApp number to confirm exact handover timing and location instructions.</p>
+              </li>
+              <li>
+                <strong>Vehicle Handover &amp; Document Inspection:</strong>
+                <p>In-person verification of physical original passport, home licence, and IDP prior to vehicle release.</p>
+              </li>
+            @else
+              <li>
+                <strong>Flight Dispatch Review:</strong>
+                <p>Our team verifies driver availability, airport gate logistics, and flight schedule.</p>
+              </li>
+              <li>
+                <strong>Direct WhatsApp Outreach:</strong>
+                <p>We message your provided international number to confirm arrival details and driver contact.</p>
+              </li>
+              <li>
+                <strong>Terminal Meet &amp; Greet:</strong>
+                <p>Your driver waits inside the arrivals hall holding your name board.</p>
+              </li>
+            @endif
           </ol>
 
           <div class="support-action-box">

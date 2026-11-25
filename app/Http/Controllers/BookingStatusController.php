@@ -31,6 +31,7 @@ class BookingStatusController extends Controller
                 'estimate.items',
                 'airportPickupDetail',
                 'airportTransferDetail',
+                'rentDetail',
                 'contacts',
                 'policyAcceptances',
             ])
@@ -53,6 +54,7 @@ class BookingStatusController extends Controller
                 'booker' => $booking->booker,
                 'detail' => $booking->airportPickupDetail,
                 'transferDetail' => $booking->airportTransferDetail,
+                'rentDetail' => $booking->rentDetail,
             ])
             ->header('X-Robots-Tag', 'noindex, nofollow')
             ->header('Referrer-Policy', 'no-referrer')
