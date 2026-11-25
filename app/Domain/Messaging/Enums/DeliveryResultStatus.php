@@ -10,4 +10,3 @@ enum DeliveryResultStatus: string
     case Failed = 'failed';
     case Unknown = 'unknown';
 }
-

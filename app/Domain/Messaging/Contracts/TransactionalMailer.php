@@ -11,4 +11,3 @@ interface TransactionalMailer
 {
     public function send(EmailMessage $message): DeliveryResult;
 }
-

@@ -48,4 +48,3 @@ class OutboxService
         return $event;
     }
 }
-

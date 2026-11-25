@@ -11,4 +11,3 @@ interface WhatsAppSender
 {
     public function send(WhatsAppMessage $message): DeliveryResult;
 }
-
