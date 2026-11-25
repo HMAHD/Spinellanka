@@ -42,14 +42,10 @@ class SendMessageDeliveryJob implements ShouldQueue
 
     public function handle(WhatsAppSender $whatsAppSender, TransactionalMailer $mailer): void
     {
-        // Atomic claim under isolated micro-transaction
+        // Atomic claim under isolated micro-transaction (strictly claims Pending deliveries)
         $delivery = DB::transaction(function (): ?MessageDelivery {
             $record = MessageDelivery::where('id', $this->messageDeliveryId)
-                ->whereIn('status', [
-                    MessageDeliveryStatus::Pending,
-                    MessageDeliveryStatus::Failed,
-                    MessageDeliveryStatus::DeliveryUnknown,
-                ])
+                ->where('status', MessageDeliveryStatus::Pending)
                 ->lockForUpdate()
                 ->first();
 
@@ -91,7 +87,7 @@ class SendMessageDeliveryJob implements ShouldQueue
         } catch (Throwable $e) {
             $result = DeliveryResult::unknown(
                 errorCode: 'UNHANDLED_EXCEPTION',
-                errorMessage: mb_substr($e->getMessage(), 0, 500)
+                errorMessage: $this->sanitizeException($e->getMessage())
             );
         }
 
@@ -153,8 +149,17 @@ class SendMessageDeliveryJob implements ShouldQueue
             'status' => MessageDeliveryStatus::Failed,
             'failed_at' => now(),
             'last_error_code' => 'JOB_FAILED',
-            'last_error_message' => $exception ? mb_substr($exception->getMessage(), 0, 500) : 'Job attempts exhausted',
+            'last_error_message' => $exception ? $this->sanitizeException($exception->getMessage()) : 'Job attempts exhausted',
         ]);
+    }
+
+    private function sanitizeException(string $error): string
+    {
+        $error = (string) preg_replace('/Bearer\s+[A-Za-z0-9_\-\.]+/i', 'Bearer [REDACTED]', $error);
+        $error = (string) preg_replace('/\b\+?\d{9,15}\b/', '[REDACTED_PHONE]', $error);
+        $error = (string) preg_replace('/[a-zA-Z0-9_\.\+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-\.]+/', '[REDACTED_EMAIL]', $error);
+
+        return mb_substr($error, 0, 500);
     }
 
     private function resolveSubject(MessageDelivery $delivery): string

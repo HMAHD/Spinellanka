@@ -89,4 +89,3 @@ class MessageDeliveryFactory extends Factory
         ]);
     }
 }
-

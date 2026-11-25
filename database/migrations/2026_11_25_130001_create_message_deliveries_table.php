@@ -35,6 +35,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['status', 'attempts'], 'idx_deliveries_status_attempts');
+            $table->index(['status', 'created_at'], 'idx_deliveries_status_created');
             $table->index(['status', 'last_attempted_at'], 'idx_deliveries_status_attempted');
             $table->index(['booking_id', 'channel'], 'idx_deliveries_booking_channel');
             $table->index(['provider', 'provider_message_id'], 'idx_deliveries_provider_message');
@@ -46,4 +47,3 @@ return new class extends Migration
         Schema::dropIfExists('message_deliveries');
     }
 };
-

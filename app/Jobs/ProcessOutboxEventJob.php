@@ -15,6 +15,7 @@ use App\Models\MessageDelivery;
 use App\Models\OutboxEvent;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -27,6 +28,11 @@ class ProcessOutboxEventJob implements ShouldQueue
     public int $tries = 5;
 
     public int $timeout = 30;
+
+    /**
+     * @var list<int>
+     */
+    public array $backoff = [10, 30, 60];
 
     public function __construct(
         public int $outboxEventId,
@@ -64,13 +70,11 @@ class ProcessOutboxEventJob implements ShouldQueue
                     $booker = $booking->contacts->firstWhere('type', ContactType::Booker);
 
                     if ($booker) {
-                        // WhatsApp Delivery (only if phone provided and is_whatsapp == true)
+                        // Booker WhatsApp Delivery (only if phone provided and is_whatsapp == true)
                         if ($booker->is_whatsapp && ! empty(trim($booker->phone))) {
-                            $waDelivery = MessageDelivery::firstOrCreate(
-                                [
-                                    'idempotency_key' => "deliv_{$event->id}_whatsapp_booker",
-                                ],
-                                [
+                            $waDelivery = $this->firstOrCreateDelivery(
+                                idempotencyKey: "deliv_{$event->id}_whatsapp_booker",
+                                attributes: [
                                     'outbox_event_id' => $event->id,
                                     'booking_id' => $booking->id,
                                     'channel' => MessageChannel::WhatsApp,
@@ -87,13 +91,11 @@ class ProcessOutboxEventJob implements ShouldQueue
                             SendMessageDeliveryJob::dispatch($waDelivery->id);
                         }
 
-                        // Email Delivery (if email provided)
+                        // Booker Email Delivery (if email provided)
                         if (! empty(trim((string) $booker->email))) {
-                            $emailDelivery = MessageDelivery::firstOrCreate(
-                                [
-                                    'idempotency_key' => "deliv_{$event->id}_email_booker",
-                                ],
-                                [
+                            $emailDelivery = $this->firstOrCreateDelivery(
+                                idempotencyKey: "deliv_{$event->id}_email_booker",
+                                attributes: [
                                     'outbox_event_id' => $event->id,
                                     'booking_id' => $booking->id,
                                     'channel' => MessageChannel::Email,
@@ -111,14 +113,36 @@ class ProcessOutboxEventJob implements ShouldQueue
                         }
                     }
 
+                    // Lead Traveler WhatsApp Delivery (if different contact person)
+                    $leadTraveler = $booking->contacts->firstWhere('type', ContactType::LeadTraveler);
+                    if ($leadTraveler && $booker && ($leadTraveler->id !== $booker->id)) {
+                        if ($leadTraveler->is_whatsapp && ! empty(trim($leadTraveler->phone)) && trim($leadTraveler->phone) !== trim($booker->phone)) {
+                            $ltWaDelivery = $this->firstOrCreateDelivery(
+                                idempotencyKey: "deliv_{$event->id}_whatsapp_lead_traveler",
+                                attributes: [
+                                    'outbox_event_id' => $event->id,
+                                    'booking_id' => $booking->id,
+                                    'channel' => MessageChannel::WhatsApp,
+                                    'recipient_type' => RecipientType::LeadTraveler,
+                                    'recipient_identifier' => trim($leadTraveler->phone),
+                                    'template_name' => $templateName,
+                                    'template_version' => 'v1',
+                                    'template_params' => $templateParams,
+                                    'provider' => config('services.whatsapp.provider', 'fake'),
+                                    'status' => MessageDeliveryStatus::Pending,
+                                ]
+                            );
+
+                            SendMessageDeliveryJob::dispatch($ltWaDelivery->id);
+                        }
+                    }
+
                     // Operations Staff Alert on new booking submission
                     if ($event->event_type === 'booking.submitted') {
                         $staffEmail = config('services.messaging.staff_alert_email') ?? config('mail.operations_alert_address', 'operations@spinellanka.com');
-                        $staffDelivery = MessageDelivery::firstOrCreate(
-                            [
-                                'idempotency_key' => "deliv_{$event->id}_email_staff",
-                            ],
-                            [
+                        $staffDelivery = $this->firstOrCreateDelivery(
+                            idempotencyKey: "deliv_{$event->id}_email_staff",
+                            attributes: [
                                 'outbox_event_id' => $event->id,
                                 'booking_id' => $booking->id,
                                 'channel' => MessageChannel::Email,
@@ -142,11 +166,30 @@ class ProcessOutboxEventJob implements ShouldQueue
                 'processed_at' => now(),
             ]);
         } catch (Throwable $e) {
+            $safeError = mb_substr(preg_replace('/Bearer\s+[A-Za-z0-9_\-\.]+/i', 'Bearer [REDACTED]', $e->getMessage()) ?? $e->getMessage(), 0, 500);
             $event->update([
                 'status' => OutboxEventStatus::Failed,
-                'last_error' => mb_substr($e->getMessage(), 0, 500),
+                'last_error' => $safeError,
             ]);
+
             throw $e;
+        }
+    }
+
+    /**
+     * Idempotently create or retrieve message delivery record under concurrent execution.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function firstOrCreateDelivery(string $idempotencyKey, array $attributes): MessageDelivery
+    {
+        try {
+            return MessageDelivery::firstOrCreate(
+                ['idempotency_key' => $idempotencyKey],
+                $attributes
+            );
+        } catch (UniqueConstraintViolationException) {
+            return MessageDelivery::where('idempotency_key', $idempotencyKey)->firstOrFail();
         }
     }
 }

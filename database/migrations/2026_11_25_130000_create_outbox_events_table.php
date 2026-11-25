@@ -25,6 +25,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['status', 'created_at'], 'idx_outbox_events_status_created');
+            $table->index(['status', 'attempts', 'created_at'], 'idx_outbox_events_status_attempts_created');
             $table->index(['aggregate_type', 'aggregate_id'], 'idx_outbox_events_aggregate');
         });
     }
@@ -34,4 +35,3 @@ return new class extends Migration
         Schema::dropIfExists('outbox_events');
     }
 };
-

@@ -31,6 +31,7 @@ class OutboxEvent extends Model
         'last_error',
         'processed_at',
         'created_at',
+        'updated_at',
     ];
 
     /**

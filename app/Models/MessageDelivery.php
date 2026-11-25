@@ -7,11 +7,39 @@ namespace App\Models;
 use App\Domain\Messaging\Enums\MessageChannel;
 use App\Domain\Messaging\Enums\MessageDeliveryStatus;
 use App\Domain\Messaging\Enums\RecipientType;
+use Carbon\Carbon;
 use Database\Factories\MessageDeliveryFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $outbox_event_id
+ * @property int|null $booking_id
+ * @property MessageChannel $channel
+ * @property RecipientType $recipient_type
+ * @property string $recipient_identifier
+ * @property string $template_name
+ * @property int $template_version
+ * @property array<string, mixed> $template_params
+ * @property string $idempotency_key
+ * @property string|null $provider
+ * @property string|null $provider_message_id
+ * @property MessageDeliveryStatus $status
+ * @property int $attempts
+ * @property int $max_attempts
+ * @property Carbon|null $last_attempted_at
+ * @property Carbon|null $sent_at
+ * @property Carbon|null $delivered_at
+ * @property Carbon|null $failed_at
+ * @property string|null $last_error_code
+ * @property string|null $last_error_message
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * @property-read OutboxEvent $outboxEvent
+ * @property-read Booking|null $booking
+ */
 class MessageDelivery extends Model
 {
     /** @use HasFactory<MessageDeliveryFactory> */
