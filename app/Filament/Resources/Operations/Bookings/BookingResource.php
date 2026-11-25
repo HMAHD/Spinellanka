@@ -84,6 +84,7 @@ class BookingResource extends Resource
                     ])->columns(4),
 
                 Section::make('Flight & Route Details')
+                    ->visible(fn (?Booking $record) => $record?->service_type !== ServiceType::Rent)
                     ->schema([
                         TextInput::make('flight_number')
                             ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
@@ -134,6 +135,61 @@ class BookingResource extends Resource
                                     ? "{$record->airportTransferDetail->passenger_count} Pass / {$record->airportTransferDetail->luggage_count} Bags"
                                     : ($record?->airportPickupDetail ? "{$record->airportPickupDetail->passenger_count} Pass / {$record->airportPickupDetail->luggage_count} Bags" : 'N/A')
                             ))
+                            ->disabled(),
+                    ])->columns(2),
+
+                Section::make('Self-Drive Rental & Handover Details')
+                    ->visible(fn (?Booking $record) => $record?->service_type === ServiceType::Rent)
+                    ->schema([
+                        TextInput::make('rent_pickup')
+                            ->label('Pickup Handover (Colombo)')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail ? $record->rentDetail->pickup_datetime?->format('Y-m-d H:i').' ('.ucfirst($record->rentDetail->pickup_location_type).')' : 'N/A'
+                            ))
+                            ->disabled(),
+                        TextInput::make('rent_return')
+                            ->label('Return Collection (Colombo)')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail ? $record->rentDetail->return_datetime?->format('Y-m-d H:i').' ('.ucfirst($record->rentDetail->return_location_type).')' : 'N/A'
+                            ))
+                            ->disabled(),
+                        TextInput::make('rent_locations')
+                            ->label('Pickup & Return Places')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail ? 'Pickup: '.$record->rentDetail->pickup_location_text.' | Return: '.$record->rentDetail->return_location_text : 'N/A'
+                            ))
+                            ->columnSpanFull()
+                            ->disabled(),
+                        TextInput::make('rent_duration')
+                            ->label('Rental Duration & Allowance')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail ? "{$record->rentDetail->duration_days} Days (".($record->rentDetail->extra_hours > 0 ? "+{$record->rentDetail->extra_hours}h " : '')."{$record->rentDetail->included_distance_km} km cumulative)" : 'N/A'
+                            ))
+                            ->disabled(),
+                        TextInput::make('driver_eligibility')
+                            ->label('Lead Driver Verification')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail ? "Age {$record->rentDetail->driver_age} • {$record->rentDetail->driver_licence_country} ({$record->rentDetail->driver_licence_years} yrs held) • IDP: ".($record->rentDetail->has_idp ? 'Yes' : 'No') : 'N/A'
+                            ))
+                            ->disabled(),
+                        TextInput::make('additional_driver')
+                            ->label('Additional Driver')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail?->has_additional_driver ? "{$record->rentDetail->additional_driver_name} (Age: {$record->rentDetail->additional_driver_age})" : 'None registered'
+                            ))
+                            ->disabled(),
+                        TextInput::make('deposit_excess')
+                            ->label('Guarantees (Deposit & Excess Cap)')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail ? 'Deposit: $'.number_format($record->rentDetail->security_deposit_minor_units / 100, 2).' USD | Excess: $'.number_format($record->rentDetail->insurance_excess_minor_units / 100, 2).' USD' : 'N/A'
+                            ))
+                            ->disabled(),
+                        TextInput::make('handover_doc_status')
+                            ->label('Document Inspection Status')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                'Physical Originals Required at Handover (Passport, Home Licence, IDP). No uploads allowed.'
+                            ))
+                            ->columnSpanFull()
                             ->disabled(),
                     ])->columns(2),
 
