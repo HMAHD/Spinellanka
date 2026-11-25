@@ -5,6 +5,7 @@ use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Http\Controllers\AirportPickupBookingController;
 use App\Http\Controllers\AirportTransferBookingController;
 use App\Http\Controllers\BookingStatusController;
+use App\Http\Controllers\RideBookingController;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -48,6 +49,14 @@ Route::prefix('booking')->name('booking.')->middleware('throttle:60,1')->group(f
     Route::post('/airport-transfer/hold', [AirportTransferBookingController::class, 'hold'])->name('airport-transfer.hold');
     Route::get('/airport-transfer/contact', [AirportTransferBookingController::class, 'contact'])->name('airport-transfer.contact');
     Route::post('/airport-transfer/submit', [AirportTransferBookingController::class, 'submit'])->middleware('throttle:10,1')->name('airport-transfer.submit');
+
+    // Ride (Point-to-point / Multi-stop chauffeured journey)
+    Route::get('/ride', [RideBookingController::class, 'create'])->name('ride');
+    Route::post('/ride/search', [RideBookingController::class, 'search'])->name('ride.search');
+    Route::get('/ride/vehicles', [RideBookingController::class, 'vehicles'])->name('ride.vehicles');
+    Route::post('/ride/hold', [RideBookingController::class, 'hold'])->name('ride.hold');
+    Route::get('/ride/contact', [RideBookingController::class, 'contact'])->name('ride.contact');
+    Route::post('/ride/submit', [RideBookingController::class, 'submit'])->middleware('throttle:10,1')->name('ride.submit');
 
     Route::get('/{reference}/{token}', [BookingStatusController::class, 'show'])->name('status');
 });

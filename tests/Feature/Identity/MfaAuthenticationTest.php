@@ -3,6 +3,7 @@
 use App\Domain\Identity\Role;
 use App\Models\User;
 use Filament\Auth\Pages\Login;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -12,6 +13,21 @@ uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     $this->seed();
+});
+
+test('mfa is optional locally and required in every other environment', function (): void {
+    $originalEnvironment = app()->environment();
+    $panel = Filament::getPanel('admin');
+
+    try {
+        app()->detectEnvironment(fn (): string => 'local');
+        expect($panel->isMultiFactorAuthenticationRequired())->toBeFalse();
+
+        app()->detectEnvironment(fn (): string => 'production');
+        expect($panel->isMultiFactorAuthenticationRequired())->toBeTrue();
+    } finally {
+        app()->detectEnvironment(fn (): string => $originalEnvironment);
+    }
 });
 
 test('active staff user with valid credentials can initiate login and reach mfa challenge', function (): void {

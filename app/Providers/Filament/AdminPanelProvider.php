@@ -35,7 +35,7 @@ class AdminPanelProvider extends PanelProvider
                 AppAuthentication::make()
                     ->codeWindow(1)
                     ->recoverable(),
-            ], isRequired: true)
+            ], isRequired: fn (): bool => ! app()->environment('local'))
             ->colors([
                 'primary' => Color::Amber,
             ])

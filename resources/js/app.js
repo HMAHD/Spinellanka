@@ -7,29 +7,6 @@ const loadPopoverFallback = async () => {
   }
 };
 
-const syncServiceSummary = () => {
-  const select = document.querySelector("[data-service-select]");
-  const summary = document.querySelector("#service-summary");
-
-  if (
-    !(select instanceof HTMLSelectElement) ||
-    !(summary instanceof HTMLElement)
-  ) {
-    return;
-  }
-
-  const update = () => {
-    const option = select.selectedOptions.item(0);
-
-    if (option?.dataset.summary) {
-      summary.textContent = option.dataset.summary;
-    }
-  };
-
-  select.addEventListener("change", update);
-  update();
-};
-
 const setupResponsiveMenu = () => {
   const menu = document.querySelector("#site-menu");
   const mobile = window.matchMedia("(max-width: 51.99rem)");
@@ -121,5 +98,4 @@ loadPopoverFallback()
     setupResponsiveMenu();
     closeMenuAfterNavigation();
   });
-syncServiceSummary();
 revealSections();

@@ -190,3 +190,86 @@ test('confirming expired booking not under review throws exception', function ()
         notes: 'Trying to confirm stale booking.'
     ))->toThrow(InvalidArgumentException::class, 'has expired and was not placed under review');
 });
+
+test('confirming booking with sibling group blocks confirms all blocks in group', function (): void {
+    $vehicle = Vehicle::factory()->create(['eligible_for_ride' => true]);
+    $groupId = (string) Str::uuid();
+
+    $outboundBlock = VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'group_id' => $groupId,
+        'kind' => ScheduleBlockKind::SubmittedRequest,
+        'status' => ScheduleBlockStatus::Active,
+        'starts_at' => Carbon::now('Asia/Colombo')->addDays(2),
+        'ends_at' => Carbon::now('Asia/Colombo')->addDays(2)->addHours(3),
+        'effective_start' => Carbon::now('Asia/Colombo')->addDays(2),
+        'effective_end' => Carbon::now('Asia/Colombo')->addDays(2)->addHours(3),
+        'blocks_availability' => true,
+        'expires_at' => Carbon::now('Asia/Colombo')->addHours(24),
+    ]);
+
+    $returnBlock = VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'group_id' => $groupId,
+        'kind' => ScheduleBlockKind::SubmittedRequest,
+        'status' => ScheduleBlockStatus::Active,
+        'starts_at' => Carbon::now('Asia/Colombo')->addDays(4),
+        'ends_at' => Carbon::now('Asia/Colombo')->addDays(4)->addHours(3),
+        'effective_start' => Carbon::now('Asia/Colombo')->addDays(4),
+        'effective_end' => Carbon::now('Asia/Colombo')->addDays(4)->addHours(3),
+        'blocks_availability' => true,
+        'expires_at' => Carbon::now('Asia/Colombo')->addHours(24),
+    ]);
+
+    $booking = Booking::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'schedule_block_id' => $outboundBlock->id,
+        'status' => BookingStatus::Submitted,
+    ]);
+
+    $this->lifecycleService->confirm(
+        booking: $booking,
+        staff: $this->staff,
+        channel: ConfirmationChannel::WhatsApp,
+        notes: 'Confirmed 2-leg booking with traveler.'
+    );
+
+    expect($outboundBlock->fresh()->kind)->toBe(ScheduleBlockKind::ConfirmedBooking)
+        ->and($outboundBlock->fresh()->expires_at)->toBeNull()
+        ->and($returnBlock->fresh()->kind)->toBe(ScheduleBlockKind::ConfirmedBooking)
+        ->and($returnBlock->fresh()->expires_at)->toBeNull();
+});
+
+test('cancelling or declining booking with sibling group blocks releases all blocks in group', function (): void {
+    $vehicle = Vehicle::factory()->create(['eligible_for_ride' => true]);
+    $groupId = (string) Str::uuid();
+
+    $outboundBlock = VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'group_id' => $groupId,
+        'kind' => ScheduleBlockKind::SubmittedRequest,
+        'status' => ScheduleBlockStatus::Active,
+        'blocks_availability' => true,
+    ]);
+
+    $returnBlock = VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'group_id' => $groupId,
+        'kind' => ScheduleBlockKind::SubmittedRequest,
+        'status' => ScheduleBlockStatus::Active,
+        'blocks_availability' => true,
+    ]);
+
+    $booking = Booking::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'schedule_block_id' => $outboundBlock->id,
+        'status' => BookingStatus::Submitted,
+    ]);
+
+    $this->lifecycleService->decline($booking, $this->staff, 'No chauffeurs available for return leg.');
+
+    expect($outboundBlock->fresh()->status)->toBe(ScheduleBlockStatus::Released)
+        ->and($outboundBlock->fresh()->blocks_availability)->toBeFalse()
+        ->and($returnBlock->fresh()->status)->toBe(ScheduleBlockStatus::Released)
+        ->and($returnBlock->fresh()->blocks_availability)->toBeFalse();
+});

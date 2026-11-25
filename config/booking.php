@@ -23,6 +23,23 @@ return [
         'expressway_tolls_included' => true,
         'airport_fees_included' => true,
     ],
+    'ride' => [
+        'default_trip_duration_minutes' => 180, // Fallback duration for unestimated routes
+        'minimum_notice_hours' => 6, // Minimum hours before ride pickup to submit
+        'max_intermediate_stops' => 10, // Up to 10 intermediate stops (12 total waypoints)
+        'min_planned_waiting_minutes_per_stop' => 0,
+        'max_planned_waiting_minutes_per_stop' => 300, // 5 hours per stop
+        'max_cumulative_waiting_minutes' => 480, // 8 hours total planned waiting
+        'min_return_pickup_gap_minutes' => 60, // 60 mins after outbound arrival + cumulative waiting
+        'max_return_horizon_days' => 30, // Maximum days between outbound and return leg
+        'same_exact_vehicle_required' => true, // Multi-leg outbound & return must use same vehicle & driver
+        'driver_wait_before_no_show_minutes' => 45, // Minutes driver waits at origin before no-show
+        'expressway_tolls_included' => true, // Expressway tolls included in chauffeured rate
+        'parking_and_admissions_included' => false, // Parking and entry tickets excluded
+        'route_disclaimer' => 'Route previews and travel times are approximations based on normal driving conditions.',
+        'route_change_policy' => 'Itinerary adjustments or unplanned stops en route are subject to driver agreement and will be adjusted and settled with the operations desk.',
+        'return_disclaimer' => 'The vehicle is not held between separate legs unless paid continuous waiting is scheduled.',
+    ],
     'policies' => [
         'terms' => [
             'type' => 'terms_of_service',

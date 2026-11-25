@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Booking\Services;
 
 use App\Domain\Audit\Services\AuditService;
+use App\Domain\Availability\Enums\ScheduleBlockKind;
+use App\Domain\Availability\Enums\ScheduleBlockStatus;
 use App\Domain\Availability\Services\AvailabilityService;
 use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\Enums\ConfirmationChannel;
@@ -12,6 +14,7 @@ use App\Domain\Identity\Permission;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleScheduleBlock;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -80,7 +83,7 @@ class BookingLifecycleService
             $booking->refresh();
 
             // Unchanged guard: verify request payload hash matches
-            if ($booking->request_hash && $booking->airportPickupDetail) {
+            if ($booking->request_hash && ($booking->airportPickupDetail || $booking->airportTransferDetail || $booking->rideDetail)) {
                 $currentHash = $booking->computeRequestHash();
                 if (! hash_equals($booking->request_hash, $currentHash)) {
                     throw new InvalidArgumentException('Booking request payload has changed since submission. Re-estimate required.');
@@ -94,6 +97,16 @@ class BookingLifecycleService
                     actor: $staff,
                     overrideReason: $overrideReason,
                 );
+
+                if ($booking->scheduleBlock->group_id) {
+                    VehicleScheduleBlock::where('group_id', $booking->scheduleBlock->group_id)
+                        ->where('id', '!=', $booking->scheduleBlock->id)
+                        ->where('status', ScheduleBlockStatus::Active->value)
+                        ->update([
+                            'kind' => ScheduleBlockKind::ConfirmedBooking->value,
+                            'expires_at' => null,
+                        ]);
+                }
             }
 
             $policyVersion = (string) config('booking.policy_version', '2026.1');
@@ -143,11 +156,19 @@ class BookingLifecycleService
 
         return DB::transaction(function () use ($booking, $staff, $reason) {
             if ($booking->scheduleBlock) {
-                $this->availabilityService->releaseBlock(
-                    block: $booking->scheduleBlock,
-                    reason: "Declined: {$reason}",
-                    actor: $staff
-                );
+                if ($booking->scheduleBlock->group_id) {
+                    $this->availabilityService->releaseGroup(
+                        groupId: $booking->scheduleBlock->group_id,
+                        reason: "Declined: {$reason}",
+                        actor: $staff
+                    );
+                } else {
+                    $this->availabilityService->releaseBlock(
+                        block: $booking->scheduleBlock,
+                        reason: "Declined: {$reason}",
+                        actor: $staff
+                    );
+                }
             }
 
             $booking->update([
@@ -191,11 +212,19 @@ class BookingLifecycleService
 
         return DB::transaction(function () use ($booking, $reason, $actor) {
             if ($booking->scheduleBlock) {
-                $this->availabilityService->releaseBlock(
-                    block: $booking->scheduleBlock,
-                    reason: "Cancelled: {$reason}",
-                    actor: $actor
-                );
+                if ($booking->scheduleBlock->group_id) {
+                    $this->availabilityService->releaseGroup(
+                        groupId: $booking->scheduleBlock->group_id,
+                        reason: "Cancelled: {$reason}",
+                        actor: $actor
+                    );
+                } else {
+                    $this->availabilityService->releaseBlock(
+                        block: $booking->scheduleBlock,
+                        reason: "Cancelled: {$reason}",
+                        actor: $actor
+                    );
+                }
             }
 
             $booking->update([
@@ -239,11 +268,19 @@ class BookingLifecycleService
             }
 
             if ($booking->scheduleBlock) {
-                $this->availabilityService->releaseBlock(
-                    block: $booking->scheduleBlock,
-                    reason: 'pending_ttl_expired',
-                    actor: null
-                );
+                if ($booking->scheduleBlock->group_id) {
+                    $this->availabilityService->releaseGroup(
+                        groupId: $booking->scheduleBlock->group_id,
+                        reason: 'pending_ttl_expired',
+                        actor: null
+                    );
+                } else {
+                    $this->availabilityService->releaseBlock(
+                        block: $booking->scheduleBlock,
+                        reason: 'pending_ttl_expired',
+                        actor: null
+                    );
+                }
             }
 
             $booking->update([
