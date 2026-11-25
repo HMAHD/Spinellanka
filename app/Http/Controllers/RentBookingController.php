@@ -108,6 +108,7 @@ class RentBookingController extends Controller
         $hasIdp = $request->boolean('has_idp');
         $hasAdditional = $request->boolean('has_additional_driver');
         $additionalIdp = $request->boolean('additional_driver_has_idp');
+        $deliveryCount = ($validated['pickup_location_type'] === 'hotel' ? 1 : 0) + ($validated['return_location_type'] === 'hotel' ? 1 : 0);
 
         $criteria = new RentCriteria(
             pickupDateTime: $pickupDateTime,
@@ -129,6 +130,7 @@ class RentBookingController extends Controller
             additionalDriverLicenceYears: $hasAdditional && ! empty($validated['additional_driver_licence_years']) ? (int) $validated['additional_driver_licence_years'] : null,
             additionalDriverHasIdp: $hasAdditional && $additionalIdp,
             expectedDistanceKm: ! empty($validated['expected_distance_km']) ? (int) $validated['expected_distance_km'] : null,
+            deliveryCount: $deliveryCount,
             specialInstructions: ! empty($validated['special_instructions']) ? trim($validated['special_instructions']) : null,
         );
 
@@ -143,29 +145,7 @@ class RentBookingController extends Controller
         $criteria = $request->session()->get('rent_criteria');
 
         if (! $criteria && app()->environment('local', 'testing') && $request->has('preview')) {
-            $pickup = Carbon::now('Asia/Colombo')->addDays(2)->setTime(10, 0);
-            $return = Carbon::now('Asia/Colombo')->addDays(5)->setTime(10, 0);
-            $criteria = new RentCriteria(
-                pickupDateTime: $pickup,
-                returnDateTime: $return,
-                pickupLocationType: 'airport',
-                pickupLocationText: 'Colombo Bandaranaike International Airport (CMB)',
-                returnLocationType: 'hotel',
-                returnLocationText: 'Heritance Ahungalla, Galle Road',
-                driverAge: 28,
-                driverLicenceCountry: 'United Kingdom',
-                driverLicenceYears: 6,
-                hasIdp: true,
-                durationDays: 3,
-                extraHours: 0,
-                hasAdditionalDriver: true,
-                additionalDriverName: 'Jane Smith',
-                additionalDriverAge: 27,
-                additionalDriverLicenceCountry: 'United Kingdom',
-                additionalDriverLicenceYears: 5,
-                additionalDriverHasIdp: true,
-                expectedDistanceKm: 450,
-            );
+            $criteria = $this->createPreviewCriteria();
         }
 
         if (! $criteria) {
@@ -202,6 +182,16 @@ class RentBookingController extends Controller
 
         if (! $vehicle) {
             return redirect()->back()->with('error', 'The selected vehicle is not eligible or active for self-drive hire.');
+        }
+
+        // Release any existing hold before establishing a new one
+        $previousHold = $request->session()->get('rent_hold');
+        if ($previousHold && ! empty($previousHold['plain_token'])) {
+            try {
+                $this->availabilityService->releaseHold($previousHold['plain_token'], 'vehicle_reselected');
+            } catch (\Throwable) {
+                // Ignore failure on releasing expired or converted previous hold
+            }
         }
 
         try {
@@ -263,29 +253,7 @@ class RentBookingController extends Controller
         $estimateReference = $request->session()->get('rent_estimate_reference');
 
         if ((! $criteria || ! $holdData || ! $estimateReference) && app()->environment('local', 'testing') && $request->has('preview')) {
-            $pickup = Carbon::now('Asia/Colombo')->addDays(2)->setTime(10, 0);
-            $return = Carbon::now('Asia/Colombo')->addDays(5)->setTime(10, 0);
-            $criteria = new RentCriteria(
-                pickupDateTime: $pickup,
-                returnDateTime: $return,
-                pickupLocationType: 'airport',
-                pickupLocationText: 'Colombo Bandaranaike International Airport (CMB)',
-                returnLocationType: 'hotel',
-                returnLocationText: 'Heritance Ahungalla, Galle Road',
-                driverAge: 28,
-                driverLicenceCountry: 'United Kingdom',
-                driverLicenceYears: 6,
-                hasIdp: true,
-                durationDays: 3,
-                extraHours: 0,
-                hasAdditionalDriver: true,
-                additionalDriverName: 'Jane Smith',
-                additionalDriverAge: 27,
-                additionalDriverLicenceCountry: 'United Kingdom',
-                additionalDriverLicenceYears: 5,
-                additionalDriverHasIdp: true,
-                expectedDistanceKm: 450,
-            );
+            $criteria = $this->createPreviewCriteria();
             $firstVehicle = Vehicle::where('eligible_for_rent', true)->where('status', VehicleStatus::Active)->first();
             if ($firstVehicle) {
                 $holdData = [
@@ -396,5 +364,34 @@ class RentBookingController extends Controller
                 ->withInput()
                 ->with('error', 'An error occurred while submitting your rental request: '.$e->getMessage());
         }
+    }
+
+    protected function createPreviewCriteria(): RentCriteria
+    {
+        $pickup = Carbon::now('Asia/Colombo')->addDays(2)->setTime(10, 0);
+        $return = Carbon::now('Asia/Colombo')->addDays(5)->setTime(10, 0);
+
+        return new RentCriteria(
+            pickupDateTime: $pickup,
+            returnDateTime: $return,
+            pickupLocationType: 'airport',
+            pickupLocationText: 'Colombo Bandaranaike International Airport (CMB)',
+            returnLocationType: 'hotel',
+            returnLocationText: 'Heritance Ahungalla, Galle Road',
+            driverAge: 28,
+            driverLicenceCountry: 'United Kingdom',
+            driverLicenceYears: 6,
+            hasIdp: true,
+            durationDays: 3,
+            extraHours: 0,
+            hasAdditionalDriver: true,
+            additionalDriverName: 'Jane Smith',
+            additionalDriverAge: 27,
+            additionalDriverLicenceCountry: 'United Kingdom',
+            additionalDriverLicenceYears: 5,
+            additionalDriverHasIdp: true,
+            expectedDistanceKm: 450,
+            deliveryCount: 1,
+        );
     }
 }

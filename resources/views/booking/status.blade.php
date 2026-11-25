@@ -255,8 +255,8 @@
                   @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent)
                     <li>Self-drive vehicle hire (no driver assigned)</li>
                     <li>{{ $booking->vehicle->has_ac ? 'Air conditioned' : 'Non-AC' }}</li>
-                    <li>100 km/day cumulative mileage included</li>
-                    <li>USD $500 refundable security deposit pre-authorization</li>
+                    <li>{{ $booking->rentDetail ? ($booking->rentDetail->duration_days > 0 ? (int) round($booking->rentDetail->included_distance_km / $booking->rentDetail->duration_days) : 100) : 100 }} km/day cumulative mileage included</li>
+                    <li>USD ${{ number_format(($booking->rentDetail ? $booking->rentDetail->security_deposit_minor_units : 50000) / 100, 2) }} refundable security deposit pre-authorization</li>
                   @else
                     <li>Chauffeured English-speaking driver included</li>
                     <li>{{ $booking->vehicle->has_ac ? 'Air conditioned' : 'Non-AC' }}</li>
