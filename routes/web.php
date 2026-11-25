@@ -5,6 +5,7 @@ use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Http\Controllers\AirportPickupBookingController;
 use App\Http\Controllers\AirportTransferBookingController;
 use App\Http\Controllers\BookingStatusController;
+use App\Http\Controllers\RentBookingController;
 use App\Http\Controllers\RideBookingController;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
@@ -57,6 +58,14 @@ Route::prefix('booking')->name('booking.')->middleware('throttle:60,1')->group(f
     Route::post('/ride/hold', [RideBookingController::class, 'hold'])->name('ride.hold');
     Route::get('/ride/contact', [RideBookingController::class, 'contact'])->name('ride.contact');
     Route::post('/ride/submit', [RideBookingController::class, 'submit'])->middleware('throttle:10,1')->name('ride.submit');
+
+    // Rent (Self-Drive)
+    Route::get('/rent', [RentBookingController::class, 'create'])->name('rent');
+    Route::post('/rent/search', [RentBookingController::class, 'search'])->name('rent.search');
+    Route::get('/rent/vehicles', [RentBookingController::class, 'vehicles'])->name('rent.vehicles');
+    Route::post('/rent/hold', [RentBookingController::class, 'hold'])->name('rent.hold');
+    Route::get('/rent/contact', [RentBookingController::class, 'contact'])->name('rent.contact');
+    Route::post('/rent/submit', [RentBookingController::class, 'submit'])->middleware('throttle:10,1')->name('rent.submit');
 
     Route::get('/{reference}/{token}', [BookingStatusController::class, 'show'])->name('status');
 });

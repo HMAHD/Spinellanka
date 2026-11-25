@@ -31,6 +31,8 @@
         <a class="primary-action" href="{{ route('booking.airport-transfer') }}">Book Airport Transfer &rsaquo;</a>
       @elseif($service === \App\Domain\Booking\ServiceType::Ride)
         <a class="primary-action" href="{{ route('booking.ride') }}">Book Chauffeured Ride &rsaquo;</a>
+      @elseif($service === \App\Domain\Booking\ServiceType::Rent)
+        <a class="primary-action" href="{{ route('booking.rent') }}">Book Self-Drive Rent &rsaquo;</a>
       @else
         <a class="primary-action" href="{{ route('home') }}#service-desk">Choose another service</a>
       @endif

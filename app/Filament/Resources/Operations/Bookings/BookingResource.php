@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Operations\Bookings;
 
+use App\Domain\Audit\Services\AuditService;
 use App\Domain\Booking\Enums\BookingSource;
 use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\Enums\ConfirmationChannel;
@@ -13,11 +14,13 @@ use App\Domain\Identity\Permission;
 use App\Filament\Resources\Operations\Bookings\Pages\ManageBookings;
 use App\Models\Booking;
 use BackedEnum;
+use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -84,6 +87,7 @@ class BookingResource extends Resource
                     ])->columns(4),
 
                 Section::make('Journey & Route Details')
+                    ->visible(fn (?Booking $record) => $record?->service_type !== ServiceType::Rent)
                     ->schema([
                         TextInput::make('flight_or_ride_info')
                             ->label('Flight / Journey Identifier')
@@ -128,6 +132,63 @@ class BookingResource extends Resource
                             ->disabled(),
                     ])->columns(2),
 
+                Section::make('Self-Drive Rental & Handover Details')
+                    ->visible(fn (?Booking $record) => $record?->service_type === ServiceType::Rent)
+                    ->schema([
+                        TextInput::make('rent_pickup')
+                            ->label('Pickup Handover (Colombo)')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail ? $record->rentDetail->pickup_datetime?->format('Y-m-d H:i').' ('.ucfirst($record->rentDetail->pickup_location_type).')' : 'N/A'
+                            ))
+                            ->disabled(),
+                        TextInput::make('rent_return')
+                            ->label('Return Collection (Colombo)')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail ? $record->rentDetail->return_datetime?->format('Y-m-d H:i').' ('.ucfirst($record->rentDetail->return_location_type).')' : 'N/A'
+                            ))
+                            ->disabled(),
+                        TextInput::make('rent_locations')
+                            ->label('Pickup & Return Places')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail ? 'Pickup: '.$record->rentDetail->pickup_location_text.' | Return: '.$record->rentDetail->return_location_text : 'N/A'
+                            ))
+                            ->columnSpanFull()
+                            ->disabled(),
+                        TextInput::make('rent_duration')
+                            ->label('Rental Duration & Allowance')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail ? "{$record->rentDetail->duration_days} Days (".($record->rentDetail->extra_hours > 0 ? "+{$record->rentDetail->extra_hours}h " : '')."{$record->rentDetail->included_distance_km} km cumulative)" : 'N/A'
+                            ))
+                            ->disabled(),
+                        TextInput::make('driver_eligibility')
+                            ->label('Lead Driver Verification')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail ? "Age {$record->rentDetail->driver_age} • {$record->rentDetail->driver_licence_country} ({$record->rentDetail->driver_licence_years} yrs held) • IDP: ".($record->rentDetail->has_idp ? 'Yes' : 'No') : 'N/A'
+                            ))
+                            ->disabled(),
+                        TextInput::make('additional_driver')
+                            ->label('Additional Driver')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail?->has_additional_driver ? "{$record->rentDetail->additional_driver_name} (Age: {$record->rentDetail->additional_driver_age})" : 'None registered'
+                            ))
+                            ->disabled(),
+                        TextInput::make('deposit_excess')
+                            ->label('Guarantees (Deposit & Excess Cap)')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail ? 'Deposit: $'.number_format($record->rentDetail->security_deposit_minor_units / 100, 2).' USD | Excess: $'.number_format($record->rentDetail->insurance_excess_minor_units / 100, 2).' USD' : 'N/A'
+                            ))
+                            ->disabled(),
+                        TextInput::make('handover_doc_status')
+                            ->label('Document Inspection Status')
+                            ->afterStateHydrated(fn (TextInput $component, ?Booking $record) => $component->state(
+                                $record?->rentDetail?->original_documents_inspected
+                                    ? "✓ Verified by Staff on {$record->rentDetail->original_documents_inspected_at?->format('d M Y H:i')}".($record->rentDetail->original_documents_inspection_notes ? " — {$record->rentDetail->original_documents_inspection_notes}" : '')
+                                    : 'Pending physical in-person inspection of original passport, licence, and IDP at vehicle collection'
+                            ))
+                            ->columnSpanFull()
+                            ->disabled(),
+                    ])->columns(2),
+
                 Section::make('Vehicle Allocation & Financials')
                     ->schema([
                         TextInput::make('vehicle_info')
@@ -163,7 +224,7 @@ class BookingResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['vehicle', 'airportPickupDetail', 'airportTransferDetail', 'rideDetail', 'booker', 'leadTraveler']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['vehicle', 'airportPickupDetail', 'airportTransferDetail', 'rideDetail', 'rentDetail', 'booker', 'leadTraveler']))
             ->columns([
                 TextColumn::make('reference')
                     ->searchable()
@@ -188,31 +249,31 @@ class BookingResource extends Resource
 
                 TextColumn::make('flight')
                     ->label('Flight / Service')
-                    ->getStateUsing(fn (Booking $record): string => match (true) {
-                        $record->airportTransferDetail !== null => $record->airportTransferDetail->flight_number,
-                        $record->airportPickupDetail !== null => $record->airportPickupDetail->flight_number,
-                        $record->rideDetail !== null => 'Chauffeured Ride',
-                        default => 'N/A',
+                    ->getStateUsing(fn (Booking $record): string => match ($record->service_type) {
+                        ServiceType::AirportTransfer => $record->airportTransferDetail->flight_number ?? 'N/A',
+                        ServiceType::AirportPickup => $record->airportPickupDetail->flight_number ?? 'N/A',
+                        ServiceType::Ride => 'Chauffeured Ride',
+                        ServiceType::Rent => 'Self-Drive',
                     })
                     ->searchable(),
 
                 TextColumn::make('service_time')
                     ->label('Timing')
-                    ->getStateUsing(fn (Booking $record): string => match (true) {
-                        $record->airportTransferDetail !== null => ($record->airportTransferDetail->is_unsafe_time ? '⚠️ ' : '').$record->airportTransferDetail->chosen_pickup_time->format('d M H:i').' (Pickup)',
-                        $record->airportPickupDetail !== null && $record->airportPickupDetail->arrival_time !== null => $record->airportPickupDetail->arrival_time->format('d M H:i').' (Arrival)',
-                        $record->rideDetail !== null => $record->rideDetail->pickup_time->format('d M H:i').' (Pickup)',
-                        default => 'N/A',
+                    ->getStateUsing(fn (Booking $record): string => match ($record->service_type) {
+                        ServiceType::Rent => $record->rentDetail ? $record->rentDetail->pickup_datetime->format('d M H:i')." ({$record->rentDetail->duration_days}d)" : 'N/A',
+                        ServiceType::Ride => $record->rideDetail ? $record->rideDetail->pickup_time->format('d M H:i').' (Pickup)' : 'N/A',
+                        ServiceType::AirportTransfer => $record->airportTransferDetail ? ($record->airportTransferDetail->is_unsafe_time ? '⚠️ ' : '').$record->airportTransferDetail->chosen_pickup_time->format('d M H:i').' (Pickup)' : 'N/A',
+                        ServiceType::AirportPickup => $record->airportPickupDetail && $record->airportPickupDetail->arrival_time ? $record->airportPickupDetail->arrival_time->format('d M H:i').' (Arrival)' : 'N/A',
                     })
                     ->sortable(),
 
                 TextColumn::make('route')
                     ->label('Route / Location')
-                    ->getStateUsing(fn (Booking $record): string => match (true) {
-                        $record->airportTransferDetail !== null => 'From: '.$record->airportTransferDetail->origin_text,
-                        $record->airportPickupDetail !== null => 'To: '.$record->airportPickupDetail->destination_text,
-                        $record->rideDetail !== null => $record->rideDetail->origin_text.' → '.$record->rideDetail->destination_text,
-                        default => 'N/A',
+                    ->getStateUsing(fn (Booking $record): string => match ($record->service_type) {
+                        ServiceType::Rent => $record->rentDetail ? $record->rentDetail->pickup_location_text.' → '.$record->rentDetail->return_location_text : 'N/A',
+                        ServiceType::Ride => $record->rideDetail ? $record->rideDetail->origin_text.' → '.$record->rideDetail->destination_text : 'N/A',
+                        ServiceType::AirportTransfer => $record->airportTransferDetail ? 'From: '.$record->airportTransferDetail->origin_text : 'N/A',
+                        ServiceType::AirportPickup => $record->airportPickupDetail ? 'To: '.$record->airportPickupDetail->destination_text : 'N/A',
                     })
                     ->limit(25)
                     ->searchable(),
@@ -236,6 +297,49 @@ class BookingResource extends Resource
             ])
             ->actions([
                 ViewAction::make(),
+
+                Action::make('inspect_documents')
+                    ->label('Inspect Documents')
+                    ->icon(Heroicon::OutlinedDocumentCheck)
+                    ->color('success')
+                    ->visible(fn (Booking $record): bool => $record->service_type === ServiceType::Rent
+                        && ! ($record->rentDetail->original_documents_inspected ?? true)
+                        && (auth()->user()?->can(Permission::BookingConfirm->value) ?? false))
+                    ->modalHeading('Record Original Physical Document Inspection')
+                    ->modalDescription('Verify that the lead driver has physically presented their original passport, national driving licence, and valid IDP/permit endorsement at vehicle collection.')
+                    ->form([
+                        Toggle::make('original_documents_verified')
+                            ->label('Original physical documents inspected and verified')
+                            ->required()
+                            ->default(true),
+
+                        Textarea::make('inspection_notes')
+                            ->label('Inspection Notes / Observations')
+                            ->placeholder('e.g. Inspected UK photo driving licence expiring 2030, 1968 IDP, and British passport with 30-day tourist visa.')
+                            ->required()
+                            ->rows(3),
+                    ])
+                    ->action(function (Booking $record, array $data): void {
+                        $record->rentDetail?->update([
+                            'original_documents_inspected' => true,
+                            'original_documents_inspected_at' => Carbon::now('Asia/Colombo'),
+                            'original_documents_inspected_by' => auth()->id(),
+                            'original_documents_inspection_notes' => trim($data['inspection_notes']),
+                        ]);
+
+                        app(AuditService::class)->record(
+                            action: 'booking.rent_documents_inspected',
+                            actor: auth()->user(),
+                            summary: "Original physical documents inspected and verified for rent booking {$record->reference}",
+                            metadata: [
+                                'booking_id' => $record->id,
+                                'reference' => $record->reference,
+                                'notes' => $data['inspection_notes'],
+                            ]
+                        );
+
+                        Notification::make()->title('Original documents inspection recorded successfully.')->success()->send();
+                    }),
 
                 Action::make('review')
                     ->label('Review')

@@ -51,6 +51,7 @@ use Illuminate\Support\Str;
  * @property-read AirportPickupDetail|null $airportPickupDetail
  * @property-read AirportTransferDetail|null $airportTransferDetail
  * @property-read RideDetail|null $rideDetail
+ * @property-read RentDetail|null $rentDetail
  */
 class Booking extends Model
 {
@@ -166,6 +167,26 @@ class Booking extends Model
             return hash('sha256', serialize($payloadData));
         }
 
+        if ($this->rentDetail) {
+            $detail = $this->rentDetail;
+            $payloadData = [
+                'type' => 'rent',
+                'pickup_datetime' => $detail->pickup_datetime ? $detail->pickup_datetime->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s') : '',
+                'return_datetime' => $detail->return_datetime ? $detail->return_datetime->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s') : '',
+                'duration_days' => $detail->duration_days,
+                'extra_hours' => $detail->extra_hours,
+                'pickup_location_text' => $detail->pickup_location_text,
+                'return_location_text' => $detail->return_location_text,
+                'driver_age' => $detail->driver_age,
+                'driver_licence_country' => $detail->driver_licence_country,
+                'driver_licence_years' => $detail->driver_licence_years,
+                'vehicle_id' => $this->vehicle_id,
+                'total_amount_minor_units' => $this->total_amount_minor_units,
+            ];
+
+            return hash('sha256', serialize($payloadData));
+        }
+
         return hash('sha256', serialize(['vehicle_id' => $this->vehicle_id]));
     }
 
@@ -267,6 +288,14 @@ class Booking extends Model
     public function rideDetail(): HasOne
     {
         return $this->hasOne(RideDetail::class);
+    }
+
+    /**
+     * @return HasOne<RentDetail, $this>
+     */
+    public function rentDetail(): HasOne
+    {
+        return $this->hasOne(RentDetail::class);
     }
 
     /**

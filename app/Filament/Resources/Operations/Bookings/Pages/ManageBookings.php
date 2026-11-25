@@ -6,14 +6,17 @@ namespace App\Filament\Resources\Operations\Bookings\Pages;
 
 use App\Domain\Booking\DTOs\AirportPickupCriteria;
 use App\Domain\Booking\DTOs\AirportTransferCriteria;
+use App\Domain\Booking\DTOs\RentCriteria;
 use App\Domain\Booking\DTOs\RideCriteria;
 use App\Domain\Booking\Enums\BookingSource;
 use App\Domain\Booking\Enums\ConfirmationChannel;
 use App\Domain\Booking\Services\AirportTransferRecommendationCalculator;
 use App\Domain\Booking\Services\ManualBookingService;
+use App\Domain\Booking\Services\RentDurationCalculator;
 use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Domain\Identity\Permission;
 use App\Filament\Resources\Operations\Bookings\BookingResource;
+use App\Models\RentPolicy;
 use App\Models\Vehicle;
 use Carbon\Carbon;
 use Filament\Actions\Action;
@@ -393,6 +396,160 @@ class ManageBookings extends ManageRecords
 
                     $booking = app(ManualBookingService::class)->createManualRide($manualData, auth()->user());
                     Notification::make()->title("Manual ride booking {$booking->reference} created.")->success()->send();
+                }),
+
+            Action::make('manual_rent_booking')
+                ->label('New Manual Rent')
+                ->icon('heroicon-o-key')
+                ->color('amber')
+                ->visible(fn (): bool => auth()->user()?->can(Permission::BookingConfirm->value) ?? false)
+                ->modalHeading('Create Manual Self-Drive Rent')
+                ->modalDescription('Record a direct phone, WhatsApp, or walk-in self-drive hire reservation.')
+                ->form([
+                    Select::make('source')
+                        ->label('Intake Source')
+                        ->options([
+                            BookingSource::ManualPhone->value => BookingSource::ManualPhone->label(),
+                            BookingSource::ManualWhatsApp->value => BookingSource::ManualWhatsApp->label(),
+                            BookingSource::ManualWalkin->value => BookingSource::ManualWalkin->label(),
+                        ])
+                        ->default(BookingSource::ManualPhone->value)
+                        ->required(),
+
+                    Select::make('vehicle_id')
+                        ->label('Assigned Vehicle')
+                        ->options(fn () => Vehicle::where('status', VehicleStatus::Active)
+                            ->where('eligible_for_rent', true)
+                            ->get()
+                            ->mapWithKeys(fn (Vehicle $v) => [$v->id => "{$v->make} {$v->model} ({$v->license_plate}) - {$v->passenger_capacity} seats"]))
+                        ->required(),
+
+                    DateTimePicker::make('pickup_datetime')
+                        ->label('Pickup Date & Time (Colombo)')
+                        ->timezone('Asia/Colombo')
+                        ->default(now('Asia/Colombo')->addDay())
+                        ->required(),
+
+                    DateTimePicker::make('return_datetime')
+                        ->label('Return Date & Time (Colombo)')
+                        ->timezone('Asia/Colombo')
+                        ->default(now('Asia/Colombo')->addDays(4))
+                        ->required(),
+
+                    Select::make('pickup_location_type')
+                        ->label('Pickup Location Type')
+                        ->options([
+                            'office' => 'Colombo Head Office (Free)',
+                            'airport' => 'Airport CMB (Free)',
+                            'hotel' => 'Hotel Delivery ($20 USD)',
+                        ])
+                        ->default('office')
+                        ->required(),
+
+                    TextInput::make('pickup_location_text')
+                        ->label('Pickup Specific Location')
+                        ->default('Spinellanka Head Office, Colombo 03')
+                        ->required(),
+
+                    Select::make('return_location_type')
+                        ->label('Return Location Type')
+                        ->options([
+                            'office' => 'Colombo Head Office (Free)',
+                            'airport' => 'Airport CMB (Free)',
+                            'hotel' => 'Hotel Collection',
+                        ])
+                        ->default('office')
+                        ->required(),
+
+                    TextInput::make('return_location_text')
+                        ->label('Return Specific Location')
+                        ->default('Spinellanka Head Office, Colombo 03')
+                        ->required(),
+
+                    TextInput::make('driver_age')
+                        ->label('Lead Driver Age')
+                        ->numeric()
+                        ->default(30)
+                        ->required(),
+
+                    TextInput::make('driver_licence_country')
+                        ->label('Licence Country')
+                        ->default('United Kingdom')
+                        ->required(),
+
+                    TextInput::make('driver_licence_years')
+                        ->label('Years Licence Held')
+                        ->numeric()
+                        ->default(5)
+                        ->required(),
+
+                    TextInput::make('booker_first_name')
+                        ->label('Customer First Name')
+                        ->required(),
+
+                    TextInput::make('booker_last_name')
+                        ->label('Customer Last Name')
+                        ->required(),
+
+                    TextInput::make('booker_phone')
+                        ->label('Customer Phone / WhatsApp (with international prefix)')
+                        ->placeholder('+44 ...')
+                        ->required(),
+
+                    Select::make('confirmation_channel')
+                        ->label('Confirmation Channel')
+                        ->options(collect(ConfirmationChannel::cases())->mapWithKeys(fn (ConfirmationChannel $c) => [$c->value => $c->label()]))
+                        ->default(ConfirmationChannel::Phone->value)
+                        ->required(),
+
+                    Textarea::make('confirmation_notes')
+                        ->label('Intake & Communication Notes')
+                        ->required()
+                        ->rows(2),
+
+                    Textarea::make('override_reason')
+                        ->label('Conflict Override Reason (If schedule conflict exists)')
+                        ->visible(fn () => auth()->user()?->can(Permission::BookingOverrideConflict->value) ?? false)
+                        ->rows(2),
+                ])
+                ->action(function (array $data): void {
+                    $pickupTime = Carbon::parse($data['pickup_datetime'])->setTimezone('Asia/Colombo');
+                    $returnTime = Carbon::parse($data['return_datetime'])->setTimezone('Asia/Colombo');
+
+                    $calc = app(RentDurationCalculator::class);
+                    $policy = RentPolicy::current();
+                    $duration = $calc->calculate($pickupTime, $returnTime, $policy);
+
+                    $criteria = new RentCriteria(
+                        pickupDateTime: $pickupTime,
+                        returnDateTime: $returnTime,
+                        pickupLocationType: $data['pickup_location_type'],
+                        pickupLocationText: trim($data['pickup_location_text']),
+                        returnLocationType: $data['return_location_type'],
+                        returnLocationText: trim($data['return_location_text']),
+                        driverAge: (int) $data['driver_age'],
+                        driverLicenceCountry: trim($data['driver_licence_country']),
+                        driverLicenceYears: (int) $data['driver_licence_years'],
+                        hasIdp: true,
+                        durationDays: $duration->days,
+                        extraHours: $duration->extraHours,
+                    );
+
+                    $manualData = [
+                        'source' => BookingSource::from($data['source']),
+                        'criteria' => $criteria,
+                        'vehicle_id' => (int) $data['vehicle_id'],
+                        'estimate_reference' => null,
+                        'booker_first_name' => $data['booker_first_name'],
+                        'booker_last_name' => $data['booker_last_name'],
+                        'booker_phone' => $data['booker_phone'],
+                        'confirmation_channel' => ConfirmationChannel::from($data['confirmation_channel']),
+                        'confirmation_notes' => $data['confirmation_notes'],
+                        'override_reason' => $data['override_reason'] ?? null,
+                    ];
+
+                    $booking = app(ManualBookingService::class)->createManualRent($manualData, auth()->user());
+                    Notification::make()->title("Manual rent booking {$booking->reference} created.")->success()->send();
                 }),
         ];
     }

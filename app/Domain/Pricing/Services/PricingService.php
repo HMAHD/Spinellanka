@@ -296,9 +296,11 @@ class PricingService
             PricingUnit::PerKm => ($request->distanceKm === null || $request->distanceKm <= 0)
                 ? ['sufficient' => false, 'reason' => 'Distance in kilometers is required for distance-based pricing.']
                 : ['sufficient' => true, 'reason' => null],
-            PricingUnit::PerHour => ($request->durationHours === null || $request->durationHours <= 0)
-                ? ['sufficient' => false, 'reason' => 'Duration in hours is required for hourly-based pricing.']
-                : ['sufficient' => true, 'reason' => null],
+            PricingUnit::PerHour => ($request->serviceType === ServiceType::Rent && ($request->rentalDays ?? 0) > 0)
+                ? ['sufficient' => true, 'reason' => null]
+                : (($request->durationHours === null || $request->durationHours <= 0)
+                    ? ['sufficient' => false, 'reason' => 'Duration in hours is required for hourly-based pricing.']
+                    : ['sufficient' => true, 'reason' => null]),
             PricingUnit::PerDay => ($request->rentalDays === null || $request->rentalDays <= 0)
                 ? ['sufficient' => false, 'reason' => 'Rental duration in 24-hour days is required for daily hire pricing.']
                 : ['sufficient' => true, 'reason' => null],
@@ -318,7 +320,9 @@ class PricingService
         return match ($component->unit) {
             PricingUnit::Flat => 1.00,
             PricingUnit::PerKm => (float) ($request->distanceKm ?? 1.00),
-            PricingUnit::PerHour => (float) ($request->durationHours ?? 1.00),
+            PricingUnit::PerHour => $request->serviceType === ServiceType::Rent
+                ? (float) ($request->durationHours ?? 0.0)
+                : (float) ($request->durationHours ?? 1.00),
             PricingUnit::PerDay => (float) ($request->rentalDays ?? 1.00),
             PricingUnit::PerStop => (float) ($request->stopCount ?? 0.00),
             PricingUnit::Percentage => 1.00,

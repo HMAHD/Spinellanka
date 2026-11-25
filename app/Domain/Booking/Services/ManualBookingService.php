@@ -10,6 +10,7 @@ use App\Domain\Availability\Enums\ScheduleBlockKind;
 use App\Domain\Availability\Services\AvailabilityService;
 use App\Domain\Booking\DTOs\AirportPickupCriteria;
 use App\Domain\Booking\DTOs\AirportTransferCriteria;
+use App\Domain\Booking\DTOs\RentCriteria;
 use App\Domain\Booking\DTOs\RideCriteria;
 use App\Domain\Booking\Enums\BookingSource;
 use App\Domain\Booking\Enums\BookingStatus;
@@ -23,6 +24,8 @@ use App\Models\AirportTransferDetail;
 use App\Models\Booking;
 use App\Models\BookingContact;
 use App\Models\GuestAccessToken;
+use App\Models\RentDetail;
+use App\Models\RentPolicy;
 use App\Models\RideDetail;
 use App\Models\RideStop;
 use App\Models\User;
@@ -83,7 +86,8 @@ class ManualBookingService
                 bufferBefore: 0,
                 bufferAfter: $vehicle->turnaround_buffer_minutes,
                 options: [
-                    'service' => ServiceType::AirportPickup,
+                    'service_type' => ServiceType::AirportPickup,
+                    'is_override' => ! empty($data['override_reason']),
                     'override_reason' => $data['override_reason'] ?? null,
                     'notes' => "Manual booking created by {$staff->name}",
                 ],
@@ -249,7 +253,8 @@ class ManualBookingService
                 bufferBefore: 0,
                 bufferAfter: $vehicle->turnaround_buffer_minutes,
                 options: [
-                    'service' => ServiceType::AirportTransfer,
+                    'service_type' => ServiceType::AirportTransfer,
+                    'is_override' => ! empty($data['override_reason']),
                     'override_reason' => $data['override_reason'] ?? null,
                     'notes' => "Manual airport transfer booking created by {$staff->name}",
                 ],
@@ -602,6 +607,191 @@ class ManualBookingService
                     'channel' => $data['confirmation_channel']->value,
                     'stops_count' => count($criteria->stops),
                     'has_return' => $criteria->hasReturn,
+                ],
+                auditable: $booking,
+                actorType: 'staff'
+            );
+
+            return $booking;
+        });
+    }
+
+    /**
+     * @param  array{
+     *     source: BookingSource,
+     *     criteria: RentCriteria,
+     *     vehicle_id: int,
+     *     estimate_reference: ?string,
+     *     booker_first_name: string,
+     *     booker_last_name: string,
+     *     booker_phone: string,
+     *     booker_is_whatsapp?: bool,
+     *     booker_email?: ?string,
+     *     confirmation_channel: ConfirmationChannel,
+     *     confirmation_notes: string,
+     *     override_reason?: ?string,
+     * }  $data
+     */
+    public function createManualRent(array $data, User $staff): Booking
+    {
+        if (! $staff->can(Permission::BookingConfirm->value) && ! $staff->hasPermissionTo(Permission::BookingConfirm->value)) {
+            throw new InvalidArgumentException('Staff member does not have booking.confirm permission.');
+        }
+
+        return DB::transaction(function () use ($data, $staff) {
+            $vehicle = Vehicle::where('id', $data['vehicle_id'])->lockForUpdate()->firstOrFail();
+
+            /** @var RentCriteria $criteria */
+            $criteria = $data['criteria'];
+
+            $startsAt = (clone $criteria->pickupDateTime)->setTimezone('Asia/Colombo');
+            $endsAt = (clone $criteria->returnDateTime)->setTimezone('Asia/Colombo');
+
+            // Invariant 6: Rent creates no driver assignment.
+            $block = $this->availabilityService->createBlock(
+                vehicle: $vehicle,
+                kind: ScheduleBlockKind::ConfirmedBooking,
+                start: $startsAt,
+                end: $endsAt,
+                bufferBefore: 0,
+                bufferAfter: $vehicle->turnaround_buffer_minutes,
+                options: [
+                    'service_type' => ServiceType::Rent,
+                    'is_override' => ! empty($data['override_reason']),
+                    'override_reason' => $data['override_reason'] ?? null,
+                    'notes' => "Manual Rent booking created by {$staff->name}",
+                ],
+                actor: $staff,
+            );
+
+            $estimate = null;
+            if (! empty($data['estimate_reference'])) {
+                $estimate = $this->estimateService->findByReference($data['estimate_reference']);
+            }
+
+            $payloadData = [
+                'type' => 'rent',
+                'pickup_datetime' => $criteria->pickupDateTime->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s'),
+                'return_datetime' => $criteria->returnDateTime->setTimezone('Asia/Colombo')->format('Y-m-d H:i:s'),
+                'duration_days' => $criteria->durationDays,
+                'extra_hours' => $criteria->extraHours,
+                'pickup_location_text' => $criteria->pickupLocationText,
+                'return_location_text' => $criteria->returnLocationText,
+                'driver_age' => $criteria->driverAge,
+                'driver_licence_country' => $criteria->driverLicenceCountry,
+                'driver_licence_years' => $criteria->driverLicenceYears,
+                'vehicle_id' => $vehicle->id,
+                'total_amount_minor_units' => $estimate?->total_amount_minor_units,
+            ];
+            $requestHash = hash('sha256', serialize($payloadData));
+
+            $now = Carbon::now('Asia/Colombo');
+            $booking = Booking::create([
+                'reference' => Booking::generateReference(),
+                'service_type' => ServiceType::Rent,
+                'status' => BookingStatus::Confirmed,
+                'vehicle_id' => $vehicle->id,
+                'estimate_id' => $estimate?->id,
+                'schedule_block_id' => $block->id,
+                'source' => $data['source'],
+                'assigned_staff_id' => $staff->id,
+                'currency' => $estimate ? $estimate->currency : 'USD',
+                'total_amount_minor_units' => $estimate?->total_amount_minor_units,
+                'approximate_lkr_amount_minor_units' => $estimate?->approximate_lkr_amount_minor_units,
+                'request_hash' => $requestHash,
+                'confirmation_channel' => $data['confirmation_channel'],
+                'confirmation_notes' => trim($data['confirmation_notes']),
+                'confirmed_at' => $now,
+            ]);
+
+            $block->update([
+                'source_type' => Booking::class,
+                'source_id' => $booking->id,
+            ]);
+
+            BookingContact::create([
+                'booking_id' => $booking->id,
+                'type' => ContactType::Booker,
+                'first_name' => trim($data['booker_first_name']),
+                'last_name' => trim($data['booker_last_name']),
+                'phone' => trim($data['booker_phone']),
+                'is_whatsapp' => $data['booker_is_whatsapp'] ?? true,
+                'email' => isset($data['booker_email']) && $data['booker_email'] ? trim($data['booker_email']) : null,
+                'marketing_consent' => false,
+            ]);
+
+            BookingContact::create([
+                'booking_id' => $booking->id,
+                'type' => ContactType::LeadTraveler,
+                'first_name' => trim($data['booker_first_name']),
+                'last_name' => trim($data['booker_last_name']),
+                'phone' => trim($data['booker_phone']),
+                'is_whatsapp' => $data['booker_is_whatsapp'] ?? true,
+                'email' => isset($data['booker_email']) && $data['booker_email'] ? trim($data['booker_email']) : null,
+                'marketing_consent' => false,
+            ]);
+
+            $policy = RentPolicy::current();
+            $includedDistanceKm = $criteria->durationDays * $policy->daily_mileage_km;
+            $deliveryFee = $criteria->deliveryCount * $policy->hotel_delivery_fee_minor_units;
+
+            RentDetail::create([
+                'booking_id' => $booking->id,
+                'rent_policy_id' => $policy->id,
+                'pickup_datetime' => $criteria->pickupDateTime,
+                'return_datetime' => $criteria->returnDateTime,
+                'duration_days' => $criteria->durationDays,
+                'extra_hours' => $criteria->extraHours,
+                'pickup_location_type' => $criteria->pickupLocationType,
+                'pickup_location_text' => $criteria->pickupLocationText,
+                'pickup_place_id' => $criteria->pickupPlaceId,
+                'pickup_lat' => $criteria->pickupLat,
+                'pickup_lng' => $criteria->pickupLng,
+                'return_location_type' => $criteria->returnLocationType,
+                'return_location_text' => $criteria->returnLocationText,
+                'return_place_id' => $criteria->returnPlaceId,
+                'return_lat' => $criteria->returnLat,
+                'return_lng' => $criteria->returnLng,
+                'driver_age' => $criteria->driverAge,
+                'driver_licence_country' => $criteria->driverLicenceCountry,
+                'driver_licence_years' => $criteria->driverLicenceYears,
+                'has_idp' => $criteria->hasIdp,
+                'has_additional_driver' => $criteria->hasAdditionalDriver,
+                'additional_driver_name' => $criteria->additionalDriverName,
+                'additional_driver_age' => $criteria->additionalDriverAge,
+                'additional_driver_licence_country' => $criteria->additionalDriverLicenceCountry,
+                'additional_driver_licence_years' => $criteria->additionalDriverLicenceYears,
+                'additional_driver_has_idp' => $criteria->additionalDriverHasIdp,
+                'expected_distance_km' => $criteria->expectedDistanceKm,
+                'included_distance_km' => $includedDistanceKm,
+                'excess_mileage_rate_minor_units' => $policy->excess_mileage_rate_minor_units,
+                'fuel_policy' => 'same_to_same',
+                'delivery_fee_minor_units' => $deliveryFee,
+                'security_deposit_minor_units' => $policy->security_deposit_minor_units,
+                'insurance_excess_minor_units' => $policy->insurance_excess_minor_units,
+                'original_documents_acknowledged' => true,
+                'original_documents_inspected' => false,
+                'special_instructions' => $criteria->specialInstructions,
+            ]);
+
+            $plainToken = GuestAccessToken::generateToken();
+            GuestAccessToken::create([
+                'booking_id' => $booking->id,
+                'token_hash' => GuestAccessToken::hashToken($plainToken),
+                'expires_at' => Carbon::now('Asia/Colombo')->addDays(30),
+            ]);
+
+            $this->auditService->record(
+                action: 'booking.manual_created',
+                actor: $staff,
+                summary: "Manually booked {$booking->reference} ({$data['source']->label()}) Rent by {$staff->name}",
+                metadata: [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'service_type' => ServiceType::Rent->value,
+                    'source' => $data['source']->value,
+                    'staff_id' => $staff->id,
+                    'channel' => $data['confirmation_channel']->value,
                 ],
                 auditable: $booking,
                 actorType: 'staff'

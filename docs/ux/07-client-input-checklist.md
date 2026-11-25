@@ -153,40 +153,40 @@ Complete for each vehicle that supports chauffeured services.
 
 ## 8. Rent eligibility and terms
 
-These values require client/legal/insurer confirmation.
+Approved by Project Lead on 2026-11-25. All parameters configurable dynamically via Admin Panel (Filament) with database policy store.
 
 | Input | Status | Approved value/version |
 |---|---|---|
-| Minimum/maximum driver age | ☐ | |
-| Minimum licence-holding period | ☐ | |
-| Accepted licence countries/types | ☐ | |
-| International Driving Permit requirements | ☐ | |
-| Passport/identity originals required | ☐ | |
-| Additional-driver eligibility | ☐ | |
-| Required original-document checks | ☐ | No upload in phase one |
-| Security deposit by vehicle | ☐ | |
-| Deposit authorization/collection method | ☐ | |
-| Insurance included | ☐ | |
-| Insurance excess/liability | ☐ | |
-| Optional insurance products | ☐ | |
-| Mileage allowance by period/vehicle | ☐ | |
-| Excess-distance charge | ☐ | |
-| Fuel policy | ☐ | |
-| 24-hour calculation rule | ☐ | |
-| Extra-hour rate and next-day threshold | ☐ | |
-| Late-return process/charge | ☐ | |
-| Early-return rule | ☐ | |
-| Extension notice and approval rule | ☐ | |
-| Delivery/collection places, windows, fees | ☐ | |
-| Restricted roads/areas/use | ☐ | |
-| Cross-border/ferry rule if relevant | ☐ | |
-| Prohibited uses | ☐ | |
-| Breakdown/roadside assistance | ☐ | |
-| Accident/damage/police/insurer process | ☐ | |
-| Lost key/accessory policy | ☐ | |
-| Cleaning/smoking/pet policy | ☐ | |
-| Handover/return checklist approval | ☐ | |
-| Rental agreement/terms version | ☐ | |
+| Minimum/maximum driver age | ✓ | Age 23 minimum, 70 maximum. Configurable via Admin Panel. |
+| Minimum licence-holding period | ✓ | 2 full years minimum holding period. Configurable via Admin Panel. |
+| Accepted licence countries/types | ✓ | All recognized national driver licences with valid 1949/1968 IDP or AAC Sri Lanka endorsement. |
+| International Driving Permit requirements | ✓ | Mandatory for foreign licence holders (1949 or 1968 convention) or AAC temporary permit endorsement. |
+| Passport/identity originals required | ✓ | Mandatory physical original passport with valid tourist/business visa inspected at handover. |
+| Additional-driver eligibility | ✓ | Maximum 1 additional driver permitted; subject to identical age (23-70), 2+ years licence, and IDP criteria. |
+| Required original-document checks | ✓ | Strictly NO online uploads in phase one. Physical inspection of originals at handover recorded in-person. |
+| Security deposit by vehicle | ✓ | $500.00 USD refundable pre-authorization deposit. Configurable via Admin Panel. |
+| Deposit authorization/collection method | ✓ | Card pre-authorization or cash held at handover. Deferred to Phase 13/15. |
+| Insurance included | ✓ | Comprehensive collision damage and third-party liability insurance included in daily rental rate. |
+| Insurance excess/liability | ✓ | $500.00 USD maximum deductible/excess cap per claim/incident. Configurable via Admin Panel. |
+| Optional insurance products | ✓ | Standard comprehensive included; excess reduction products deferred. |
+| Mileage allowance by period/vehicle | ✓ | 100 km per rental day cumulative allowance. Configurable via Admin Panel. |
+| Excess-distance charge | ✓ | $0.30 USD per excess km (calculated at return). Configurable via Admin Panel. |
+| Fuel policy | ✓ | Same-to-same (vehicle handed over full, returned full; or matching level on handover sheet). |
+| 24-hour calculation rule | ✓ | Measured in strict 24-hour cycles from scheduled pickup time in Asia/Colombo. 59-minute grace period. |
+| Extra-hour rate and next-day threshold | ✓ | 1-5 extra hours billed at hourly rate; 6+ extra hours rounds up to full 24-hour day charge. Configurable via Admin Panel. |
+| Late-return process/charge | ✓ | Late returns past grace period billed at extra-hour rate up to 5 hours, then full day. Phase 15 handles field logging. |
+| Early-return rule | ✓ | Early return permitted without penalty; unused rental days subject to manual review. |
+| Extension notice and approval rule | ✓ | Minimum 24-hour advance notice required; subject to vehicle availability and staff confirmation. |
+| Delivery/collection places, windows, fees | ✓ | Spinellanka Colombo Office & BIA Airport (free); Colombo district hotel delivery/collection ($20 USD fee). |
+| Restricted roads/areas/use | ✓ | Paved public roads only; off-road driving, beaches, and unpaved jungle tracks strictly prohibited. |
+| Cross-border/ferry rule if relevant | ✓ | Island of Sri Lanka only. Ferry/overseas transport strictly prohibited. |
+| Prohibited uses | ✓ | Sub-leasing, driving under the influence, commercial passenger carriage, racing, off-road driving. |
+| Breakdown/roadside assistance | ✓ | 24/7 Spinellanka emergency assistance hotline + island-wide recovery network. |
+| Accident/damage/police/insurer process | ✓ | Immediate police report and Spinellanka notification required for any accident/damage. |
+| Lost key/accessory policy | ✓ | Actual replacement cost charged against security deposit. |
+| Cleaning/smoking/pet policy | ✓ | Non-smoking fleet. $150 USD deep cleaning penalty for smoking or excessive interior contamination. |
+| Handover/return checklist approval | ✓ | Documented in-person checklist deferred to Phase 15. |
+| Rental agreement/terms version | ✓ | Version 2026-11-25; accepted at submission, signed physically at handover. |
 
 ## 9. Pricing data
 

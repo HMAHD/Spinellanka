@@ -83,7 +83,7 @@ class BookingLifecycleService
             $booking->refresh();
 
             // Unchanged guard: verify request payload hash matches
-            if ($booking->request_hash && ($booking->airportPickupDetail || $booking->airportTransferDetail || $booking->rideDetail)) {
+            if ($booking->request_hash && ($booking->airportPickupDetail || $booking->airportTransferDetail || $booking->rideDetail || $booking->rentDetail)) {
                 $currentHash = $booking->computeRequestHash();
                 if (! hash_equals($booking->request_hash, $currentHash)) {
                     throw new InvalidArgumentException('Booking request payload has changed since submission. Re-estimate required.');
