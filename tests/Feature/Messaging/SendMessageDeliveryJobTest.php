@@ -65,6 +65,19 @@ test('ambiguous provider timeout transitions status to delivery_unknown and stri
         ->and($delivery->sent_at)->toBeNull();
 });
 
+test('SendMessageDeliveryJob refuses to claim record in delivery_unknown status', function (): void {
+    $delivery = MessageDelivery::factory()->deliveryUnknown()->create();
+
+    $job = new SendMessageDeliveryJob($delivery->id);
+    $job->handle($this->waSender, $this->mailer);
+
+    $delivery->refresh();
+    // Status must remain DeliveryUnknown; attempts must NOT increment
+    expect($delivery->status)->toBe(MessageDeliveryStatus::DeliveryUnknown)
+        ->and($delivery->attempts)->toBe(1);
+    expect($this->waSender->getSentMessages())->toBeEmpty();
+});
+
 test('permanent failure marks status failed immediately without retrying', function (): void {
     $delivery = MessageDelivery::factory()->create([
         'channel' => MessageChannel::WhatsApp,
@@ -108,18 +121,19 @@ test('email delivery uses TransactionalMailer and updates status', function (): 
         ->and($this->mailer->getSentMessages()[0]->recipientEmail)->toBe($delivery->recipient_identifier);
 });
 
-test('failed hook marks delivery failed when queue attempts are exhausted', function (): void {
+test('failed hook marks delivery failed when queue attempts are exhausted and redacts tokens', function (): void {
     $delivery = MessageDelivery::factory()->create([
         'status' => MessageDeliveryStatus::Sending,
         'attempts' => 3,
     ]);
 
     $job = new SendMessageDeliveryJob($delivery->id);
-    $job->failed(new \RuntimeException('Queue worker exhausted'));
+    $job->failed(new \RuntimeException('Connection failed with Bearer EAAB_SECRET_12345 for +94771234567'));
 
     $delivery->refresh();
     expect($delivery->status)->toBe(MessageDeliveryStatus::Failed)
         ->and($delivery->failed_at)->not->toBeNull()
         ->and($delivery->last_error_code)->toBe('JOB_FAILED')
-        ->and($delivery->last_error_message)->toContain('Queue worker exhausted');
+        ->and($delivery->last_error_message)->not->toContain('EAAB_SECRET_12345')
+        ->and($delivery->last_error_message)->toContain('[REDACTED]');
 });

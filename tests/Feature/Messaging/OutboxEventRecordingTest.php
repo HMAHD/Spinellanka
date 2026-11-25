@@ -212,7 +212,10 @@ test('lifecycle confirm, decline, and cancel record outbox events', function ():
 
     expect($confirmedEvent)->not->toBeNull()
         ->and($confirmedEvent->payload['reference'])->toBe($booking->reference)
-        ->and($confirmedEvent->payload['channel'])->toBe('whatsapp');
+        ->and($confirmedEvent->payload['channel'])->toBe('whatsapp')
+        ->and($confirmedEvent->payload['status_url'])->not->toBeEmpty()
+        ->and(array_key_exists('notes', $confirmedEvent->payload))->toBeFalse()
+        ->and(array_key_exists('override_reason', $confirmedEvent->payload))->toBeFalse();
 
     // 2. Decline on a separate submitted booking
     $declinedBooking = Booking::factory()->create([

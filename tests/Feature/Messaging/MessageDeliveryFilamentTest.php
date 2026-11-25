@@ -8,6 +8,9 @@ use App\Domain\Identity\Permission;
 use App\Domain\Identity\Role;
 use App\Domain\Messaging\Enums\MessageChannel;
 use App\Domain\Messaging\Enums\MessageDeliveryStatus;
+use App\Filament\Resources\Operations\Bookings\Pages\ViewBooking;
+use App\Filament\Resources\Operations\Bookings\RelationManagers\MessageDeliveriesRelationManager;
+use App\Filament\Resources\Operations\MessageDeliveries\MessageDeliveryResource;
 use App\Filament\Resources\Operations\MessageDeliveries\Pages\ManageMessageDeliveries;
 use App\Jobs\SendMessageDeliveryJob;
 use App\Models\AuditEvent;
@@ -87,7 +90,8 @@ test('staff can manually retry a failed or delivery_unknown message with audit l
 
     $failedDelivery->refresh();
     expect($failedDelivery->status)->toBe(MessageDeliveryStatus::Pending)
-        ->and($failedDelivery->max_attempts)->toBe(4);
+        ->and($failedDelivery->attempts)->toBe(0)
+        ->and($failedDelivery->max_attempts)->toBe(5);
 
     Queue::assertPushed(SendMessageDeliveryJob::class, function ($job) use ($failedDelivery) {
         return $job->messageDeliveryId === $failedDelivery->id;
@@ -109,4 +113,29 @@ test('retry action is hidden for sent deliveries', function (): void {
 
     Livewire::test(ManageMessageDeliveries::class)
         ->assertTableActionHidden('retry', $sentDelivery);
+});
+
+test('unauthorized user cannot view message deliveries resource', function (): void {
+    $this->actingAs($this->unauthorizedUser);
+
+    expect(MessageDeliveryResource::canViewAny())->toBeFalse();
+});
+
+test('authorized staff can view message deliveries relation manager on booking', function (): void {
+    $booking = Booking::factory()->create(['reference' => 'BKG-REL-999']);
+    $delivery = MessageDelivery::factory()->create([
+        'booking_id' => $booking->id,
+        'channel' => MessageChannel::WhatsApp,
+        'recipient_identifier' => '+94770009999',
+        'status' => MessageDeliveryStatus::Sent,
+    ]);
+
+    $this->actingAs($this->authorizedStaff);
+
+    Livewire::test(MessageDeliveriesRelationManager::class, [
+        'ownerRecord' => $booking,
+        'pageClass' => ViewBooking::class,
+    ])
+        ->assertCanSeeTableRecords([$delivery])
+        ->assertSee($delivery->maskedRecipient());
 });

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Messaging;
 
+use App\Domain\Messaging\Enums\MessageDeliveryStatus;
 use App\Domain\Messaging\Enums\OutboxEventStatus;
 use App\Jobs\ProcessOutboxEventJob;
 use App\Models\Booking;
+use App\Models\MessageDelivery;
 use App\Models\OutboxEvent;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -78,6 +80,49 @@ test('outbox:drain sweeps orphaned pending events older than 15 seconds', functi
     expect($oldEvent->attempts)->toBe(1);
 });
 
+test('outbox:drain recovers stalled processing events older than 5 minutes', function (): void {
+    Queue::fake([ProcessOutboxEventJob::class]);
+
+    $booking = Booking::factory()->create();
+
+    $stalledEvent = OutboxEvent::create([
+        'event_type' => 'booking.submitted',
+        'aggregate_type' => Booking::class,
+        'aggregate_id' => $booking->id,
+        'idempotency_key' => 'evt_test_stalled_1',
+        'payload_version' => 1,
+        'payload' => ['booking_id' => $booking->id],
+        'status' => OutboxEventStatus::Processing,
+        'attempts' => 1,
+        'created_at' => Carbon::now()->subMinutes(10),
+        'updated_at' => Carbon::now()->subMinutes(6),
+    ]);
+
+    Artisan::call('outbox:drain', ['--max-jobs' => 1, '--max-time' => 1]);
+
+    Queue::assertPushed(ProcessOutboxEventJob::class, function ($job) use ($stalledEvent) {
+        return $job->outboxEventId === $stalledEvent->id;
+    });
+
+    $stalledEvent->refresh();
+    expect($stalledEvent->attempts)->toBe(2);
+});
+
+test('outbox:drain recovers stalled sending deliveries older than 5 minutes as delivery_unknown', function (): void {
+    $delivery = MessageDelivery::factory()->create([
+        'status' => MessageDeliveryStatus::Sending,
+        'last_attempted_at' => Carbon::now()->subMinutes(7),
+        'attempts' => 1,
+    ]);
+
+    Artisan::call('outbox:drain', ['--max-jobs' => 1, '--max-time' => 1]);
+
+    $delivery->refresh();
+    expect($delivery->status)->toBe(MessageDeliveryStatus::DeliveryUnknown)
+        ->and($delivery->last_error_code)->toBe('WORKER_KILLED')
+        ->and($delivery->last_error_message)->toContain('terminated unexpectedly');
+});
+
 test('outbox:drain exits gracefully when overlapping lock is already acquired', function (): void {
     Queue::fake([ProcessOutboxEventJob::class]);
 
@@ -92,4 +137,3 @@ test('outbox:drain exits gracefully when overlapping lock is already acquired', 
 
     $lock->release();
 });
-

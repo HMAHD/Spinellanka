@@ -192,4 +192,3 @@ test('duplicate execution of ProcessOutboxEventJob is idempotent and produces ze
     $deliveryCount2 = MessageDelivery::where('outbox_event_id', $event->id)->count();
     expect($deliveryCount2)->toBe($deliveryCount1);
 });
-
