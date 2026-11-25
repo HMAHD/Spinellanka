@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property int $id
  * @property int $booking_id
+ * @property int|null $rent_policy_id
  * @property Carbon $pickup_datetime
  * @property Carbon $return_datetime
  * @property int $duration_days
@@ -39,13 +40,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $additional_driver_has_idp
  * @property int|null $expected_distance_km
  * @property int $included_distance_km
+ * @property int $excess_mileage_rate_minor_units
+ * @property string $fuel_policy
+ * @property int $delivery_fee_minor_units
  * @property int $security_deposit_minor_units
  * @property int $insurance_excess_minor_units
  * @property bool $original_documents_acknowledged
+ * @property bool $original_documents_inspected
+ * @property Carbon|null $original_documents_inspected_at
+ * @property int|null $original_documents_inspected_by
+ * @property string|null $original_documents_inspection_notes
+ * @property array<string, mixed>|null $extension_state
  * @property string|null $special_instructions
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read Booking $booking
+ * @property-read RentPolicy|null $rentPolicy
+ * @property-read User|null $inspectedBy
  */
 class RentDetail extends Model
 {
@@ -74,9 +85,14 @@ class RentDetail extends Model
             'additional_driver_has_idp' => 'boolean',
             'expected_distance_km' => 'integer',
             'included_distance_km' => 'integer',
+            'excess_mileage_rate_minor_units' => 'integer',
+            'delivery_fee_minor_units' => 'integer',
             'security_deposit_minor_units' => 'integer',
             'insurance_excess_minor_units' => 'integer',
             'original_documents_acknowledged' => 'boolean',
+            'original_documents_inspected' => 'boolean',
+            'original_documents_inspected_at' => 'datetime',
+            'extension_state' => 'array',
         ];
     }
 
@@ -86,5 +102,21 @@ class RentDetail extends Model
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class);
+    }
+
+    /**
+     * @return BelongsTo<RentPolicy, $this>
+     */
+    public function rentPolicy(): BelongsTo
+    {
+        return $this->belongsTo(RentPolicy::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function inspectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'original_documents_inspected_by');
     }
 }

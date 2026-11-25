@@ -49,9 +49,17 @@ class RentDetailFactory extends Factory
             'additional_driver_has_idp' => false,
             'expected_distance_km' => 300,
             'included_distance_km' => 300,
+            'excess_mileage_rate_minor_units' => 30,
+            'fuel_policy' => 'same_to_same',
+            'delivery_fee_minor_units' => 0,
             'security_deposit_minor_units' => 50000,
             'insurance_excess_minor_units' => 50000,
             'original_documents_acknowledged' => true,
+            'original_documents_inspected' => false,
+            'original_documents_inspected_at' => null,
+            'original_documents_inspected_by' => null,
+            'original_documents_inspection_notes' => null,
+            'extension_state' => null,
             'special_instructions' => null,
         ];
     }

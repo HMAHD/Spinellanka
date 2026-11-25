@@ -13,6 +13,7 @@ return new class extends Migration
         Schema::create('rent_details', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('booking_id')->unique()->constrained('bookings')->cascadeOnDelete();
+            $table->foreignId('rent_policy_id')->nullable()->constrained('rent_policies')->nullOnDelete();
             $table->dateTime('pickup_datetime');
             $table->dateTime('return_datetime');
             $table->unsignedSmallInteger('duration_days');
@@ -39,9 +40,17 @@ return new class extends Migration
             $table->boolean('additional_driver_has_idp')->default(false);
             $table->unsignedInteger('expected_distance_km')->nullable();
             $table->unsignedInteger('included_distance_km');
+            $table->unsignedInteger('excess_mileage_rate_minor_units')->default(30);
+            $table->string('fuel_policy', 32)->default('same_to_same');
+            $table->unsignedInteger('delivery_fee_minor_units')->default(0);
             $table->unsignedInteger('security_deposit_minor_units');
             $table->unsignedInteger('insurance_excess_minor_units');
             $table->boolean('original_documents_acknowledged')->default(true);
+            $table->boolean('original_documents_inspected')->default(false);
+            $table->dateTime('original_documents_inspected_at')->nullable();
+            $table->foreignId('original_documents_inspected_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->text('original_documents_inspection_notes')->nullable();
+            $table->json('extension_state')->nullable();
             $table->text('special_instructions')->nullable();
             $table->timestamps();
         });
