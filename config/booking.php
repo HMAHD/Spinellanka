@@ -23,6 +23,25 @@ return [
         'expressway_tolls_included' => true,
         'airport_fees_included' => true,
     ],
+    'rent' => [
+        'min_driver_age' => 23,
+        'max_driver_age' => 70,
+        'min_licence_years' => 2,
+        'idp_required' => true,
+        'max_additional_drivers' => 1,
+        'security_deposit_minor_units' => 50000, // $500.00 USD
+        'insurance_excess_minor_units' => 50000, // $500.00 USD
+        'daily_mileage_km' => 100, // 100 km/day cumulative
+        'excess_mileage_rate_minor_units' => 30, // $0.30 USD/km
+        'grace_period_minutes' => 59, // Up to 59m past 24h cycle free
+        'extra_hours_threshold' => 5, // 1-5h billed at extra hourly rate
+        'full_day_threshold_hours' => 6, // 6h+ rounds to full extra day
+        'minimum_notice_hours' => 12, // Minimum advance notice to submit
+        'default_pickup_location_type' => 'office',
+        'hotel_delivery_fee_minor_units' => 2000, // $20.00 USD
+        'prohibited_roads_text' => 'Paved public roads only; off-road driving strictly prohibited.',
+        'smoking_penalty_minor_units' => 15000, // $150.00 USD
+    ],
     'policies' => [
         'terms' => [
             'type' => 'terms_of_service',
