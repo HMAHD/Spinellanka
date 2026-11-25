@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Availability\Enums\ScheduleBlockKind;
+use App\Domain\Availability\Enums\ScheduleBlockStatus;
 use App\Domain\Availability\Services\AvailabilityService;
 use App\Domain\Booking\DTOs\RentCriteria;
 use App\Domain\Booking\DTOs\SubmitRentData;
@@ -13,13 +14,17 @@ use App\Domain\Booking\Enums\ContactType;
 use App\Domain\Booking\Services\BookingSubmissionService;
 use App\Domain\Booking\Services\ManualBookingService;
 use App\Domain\Booking\ServiceType;
+use App\Domain\Catalog\Enums\DriverStatus;
 use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Domain\Identity\Permission;
 use App\Models\Booking;
+use App\Models\Driver;
 use App\Models\Estimate;
 use App\Models\RentPolicy;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleDriverAssignment;
+use App\Models\VehicleScheduleBlock;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -246,4 +251,119 @@ test('staff creates manual rent booking atomically with Confirmed status', funct
     expect($booking->rentDetail)->not->toBeNull()
         ->and($booking->rentDetail->duration_days)->toBe(5)
         ->and($booking->rentDetail->included_distance_km)->toBe(500);
+});
+
+test('submitRent throws exception when hold vehicle does not match requested booking vehicle', function (): void {
+    $pickup = Carbon::now('Asia/Colombo')->addDays(3)->setHour(10)->setMinute(0)->setSecond(0);
+    $return = (clone $pickup)->addDays(4);
+
+    $otherVehicle = Vehicle::factory()->create([
+        'status' => VehicleStatus::Active,
+        'eligible_for_rent' => true,
+    ]);
+
+    $holdResult = $this->availabilityService->createHold(
+        vehicle: $otherVehicle,
+        start: $pickup,
+        end: $return,
+        service: ServiceType::Rent,
+    );
+
+    $estimate = Estimate::factory()->create([
+        'service_type' => ServiceType::Rent,
+        'vehicle_id' => $this->vehicle->id,
+        'total_amount_minor_units' => 90000,
+    ]);
+
+    $criteria = new RentCriteria(
+        pickupDateTime: $pickup,
+        returnDateTime: $return,
+        pickupLocationType: 'office',
+        pickupLocationText: 'Spinellanka Head Office, Colombo 03',
+        returnLocationType: 'office',
+        returnLocationText: 'Spinellanka Head Office, Colombo 03',
+        driverAge: 32,
+        driverLicenceCountry: 'United Kingdom',
+        driverLicenceYears: 8,
+        hasIdp: true,
+        durationDays: 4,
+    );
+
+    $submitData = new SubmitRentData(
+        criteria: $criteria,
+        vehicleId: $this->vehicle->id,
+        holdPlainToken: $holdResult->plainToken,
+        estimateReference: $estimate->reference,
+        bookerFirstName: 'David',
+        bookerLastName: 'Jenkins',
+        bookerPhone: '+44 7700 900077',
+        termsAccepted: true,
+        privacyAccepted: true,
+        originalDocumentsAcknowledged: true,
+    );
+
+    expect(fn () => $this->submissionService->submitRent($submitData))
+        ->toThrow(InvalidArgumentException::class, 'Schedule hold vehicle does not match the requested booking vehicle.');
+});
+
+test('manual rent booking succeeds when vehicle driver is unavailable preserving Invariant 6', function (): void {
+    $staff = User::factory()->create();
+    $staff->givePermissionTo(Permission::BookingConfirm->value);
+
+    // Assign a tied driver with an active driver unavailability block
+    $driver = Driver::factory()->create(['status' => DriverStatus::Active]);
+    VehicleDriverAssignment::create([
+        'vehicle_id' => $this->vehicle->id,
+        'driver_id' => $driver->id,
+        'is_permanent' => true,
+        'starts_at' => Carbon::now('Asia/Colombo')->subDays(10),
+    ]);
+
+    $pickup = Carbon::now('Asia/Colombo')->addDays(2)->setHour(10)->setMinute(0)->setSecond(0);
+    $return = (clone $pickup)->addDays(3);
+
+    // Block the driver
+    VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $this->vehicle->id,
+        'driver_id' => $driver->id,
+        'is_chauffeured_only' => true,
+        'kind' => ScheduleBlockKind::DriverUnavailability,
+        'status' => ScheduleBlockStatus::Active,
+        'starts_at' => (clone $pickup)->subHours(2),
+        'ends_at' => (clone $return)->addHours(2),
+        'effective_start' => (clone $pickup)->subHours(2),
+        'effective_end' => (clone $return)->addHours(2),
+        'notes' => 'Driver on sick leave',
+    ]);
+
+    $criteria = new RentCriteria(
+        pickupDateTime: $pickup,
+        returnDateTime: $return,
+        pickupLocationType: 'office',
+        pickupLocationText: 'Spinellanka Office',
+        returnLocationType: 'office',
+        returnLocationText: 'Spinellanka Office',
+        driverAge: 35,
+        driverLicenceCountry: 'United Kingdom',
+        driverLicenceYears: 10,
+        hasIdp: true,
+        durationDays: 3,
+    );
+
+    $manualData = [
+        'source' => BookingSource::ManualPhone,
+        'criteria' => $criteria,
+        'vehicle_id' => $this->vehicle->id,
+        'booker_first_name' => 'Emma',
+        'booker_last_name' => 'Watson',
+        'booker_phone' => '+44 7700 900888',
+        'confirmation_channel' => ConfirmationChannel::Phone,
+        'confirmation_notes' => 'Confirmed self-drive rental; driver unavailability correctly ignored.',
+    ];
+
+    $booking = $this->manualService->createManualRent($manualData, $staff);
+
+    expect($booking)->toBeInstanceOf(Booking::class)
+        ->and($booking->status)->toBe(BookingStatus::Confirmed)
+        ->and($booking->scheduleBlock->driver_id)->toBeNull();
 });

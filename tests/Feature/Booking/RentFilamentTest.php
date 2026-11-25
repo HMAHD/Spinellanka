@@ -166,3 +166,35 @@ test('staff with booking.confirm can create manual rent booking from manage book
         ->and($booking->scheduleBlock)->not->toBeNull()
         ->and($booking->scheduleBlock->driver_id)->toBeNull(); // Invariant 6
 });
+
+test('staff can record in-person original document inspection for rent booking', function (): void {
+    $staff = User::factory()->create();
+    $staff->givePermissionTo(Permission::BookingView->value);
+    $staff->givePermissionTo(Permission::BookingConfirm->value);
+
+    $this->actingAs($staff);
+
+    $booking = Booking::factory()->create([
+        'service_type' => ServiceType::Rent,
+        'status' => BookingStatus::Submitted,
+        'vehicle_id' => $this->vehicle->id,
+    ]);
+
+    $detail = RentDetail::factory()->create([
+        'booking_id' => $booking->id,
+        'original_documents_inspected' => false,
+    ]);
+
+    Livewire::test(ManageBookings::class)
+        ->callTableAction('inspect_documents', $booking, [
+            'original_documents_verified' => true,
+            'inspection_notes' => 'Inspected physical UK driving licence and 1968 IDP at Colombo office.',
+        ])
+        ->assertHasNoTableActionErrors();
+
+    $detail->refresh();
+    expect($detail->original_documents_inspected)->toBeTrue()
+        ->and($detail->original_documents_inspected_at)->not->toBeNull()
+        ->and($detail->original_documents_inspected_by)->toBe($staff->id)
+        ->and($detail->original_documents_inspection_notes)->toContain('Inspected physical UK driving licence');
+});

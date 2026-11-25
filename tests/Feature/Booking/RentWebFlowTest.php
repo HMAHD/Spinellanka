@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Availability\Enums\ScheduleBlockStatus;
 use App\Domain\Booking\Enums\BookingSource;
 use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\ServiceType;
@@ -13,6 +14,7 @@ use App\Models\PricingRule;
 use App\Models\PricingRuleComponent;
 use App\Models\RentPolicy;
 use App\Models\Vehicle;
+use App\Models\VehicleScheduleBlock;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -211,4 +213,74 @@ test('full multi-step web flow completes advance rental submission and redirects
         ->and($booking->rentDetail->duration_days)->toBe(3)
         ->and($booking->rentDetail->included_distance_km)->toBe(300)
         ->and($booking->rentDetail->original_documents_acknowledged)->toBeTrue();
+});
+
+test('rent hold releases previous session hold upon selecting a different vehicle', function (): void {
+    $pickup = Carbon::now('Asia/Colombo')->addDays(3)->setHour(10)->setMinute(0);
+    $return = (clone $pickup)->addDays(3);
+
+    $vehicle2 = Vehicle::factory()->create([
+        'status' => VehicleStatus::Active,
+        'eligible_for_rent' => true,
+        'turnaround_buffer_minutes' => 60,
+    ]);
+
+    $rule2 = PricingRule::factory()->create([
+        'service_type' => ServiceType::Rent,
+        'vehicle_id' => $vehicle2->id,
+        'priority' => 1,
+        'is_active' => true,
+        'effective_from' => Carbon::now('Asia/Colombo')->subDays(10),
+    ]);
+
+    PricingRuleComponent::create([
+        'pricing_rule_id' => $rule2->id,
+        'component_type' => PricingComponentType::Base,
+        'unit' => PricingUnit::PerDay,
+        'amount_minor_units' => 15000,
+    ]);
+
+    $this->post(route('booking.rent.search'), [
+        'pickup_date' => $pickup->format('Y-m-d'),
+        'pickup_time' => $pickup->format('H:i'),
+        'return_date' => $return->format('Y-m-d'),
+        'return_time' => $return->format('H:i'),
+        'pickup_location_type' => 'office',
+        'pickup_location_text' => 'Spinellanka Colombo Office',
+        'return_location_type' => 'office',
+        'return_location_text' => 'Spinellanka Colombo Office',
+        'driver_age' => 28,
+        'driver_licence_country' => 'United Kingdom',
+        'driver_licence_years' => 5,
+        'has_idp' => 1,
+    ])->assertRedirect(route('booking.rent.vehicles'));
+
+    // Select Vehicle 1
+    $this->post(route('booking.rent.hold'), [
+        'vehicle_id' => $this->vehicle->id,
+    ])->assertRedirect(route('booking.rent.contact'));
+
+    $hold1 = session('rent_hold');
+    expect($hold1)->not->toBeNull();
+
+    // Now re-select Vehicle 2
+    $this->post(route('booking.rent.hold'), [
+        'vehicle_id' => $vehicle2->id,
+    ])->assertRedirect(route('booking.rent.contact'));
+
+    $hold2 = session('rent_hold');
+    expect($hold2)->not->toBeNull()
+        ->and($hold2['vehicle_id'])->toBe($vehicle2->id)
+        ->and($hold2['plain_token'])->not->toBe($hold1['plain_token']);
+
+    // Check old hold block on Vehicle 1 is released
+    $oldBlock = VehicleScheduleBlock::where('vehicle_id', $this->vehicle->id)->latest('id')->first();
+    expect($oldBlock->status)->toBe(ScheduleBlockStatus::Released);
+});
+
+test('web form contains zero file inputs preserving strict data minimization', function (): void {
+    $this->get(route('booking.rent'))
+        ->assertOk()
+        ->assertDontSee('type="file"', false)
+        ->assertSee('Original physical documents verified in person at handover');
 });
