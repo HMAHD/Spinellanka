@@ -12,6 +12,7 @@ use App\Domain\Booking\Services\BookingLifecycleService;
 use App\Domain\Booking\ServiceType;
 use App\Domain\Identity\Permission;
 use App\Filament\Resources\Operations\Bookings\Pages\ManageBookings;
+use App\Filament\Resources\Operations\Bookings\RelationManagers\MessageDeliveriesRelationManager;
 use App\Filament\Resources\Operations\MessageDeliveries\MessageDeliveryResource;
 use App\Models\Booking;
 use BackedEnum;
@@ -432,6 +433,13 @@ class BookingResource extends Resource
                         'tableSearch' => $record->reference,
                     ])),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            MessageDeliveriesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

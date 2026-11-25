@@ -16,4 +16,3 @@ class ManageMessageDeliveries extends ManageRecords
         return [];
     }
 }
-

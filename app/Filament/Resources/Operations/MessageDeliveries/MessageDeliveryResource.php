@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Operations\MessageDeliveries;
 
-use App\Domain\Audit\Services\AuditService;
 use App\Domain\Identity\Permission;
 use App\Domain\Messaging\Enums\MessageChannel;
 use App\Domain\Messaging\Enums\MessageDeliveryStatus;
 use App\Domain\Messaging\Enums\RecipientType;
+use App\Domain\Messaging\Services\MessageDeliveryService;
 use App\Filament\Resources\Operations\MessageDeliveries\Pages\ManageMessageDeliveries;
-use App\Jobs\SendMessageDeliveryJob;
 use App\Models\MessageDelivery;
+use App\Models\User;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
@@ -33,6 +33,25 @@ class MessageDeliveryResource extends Resource
     protected static UnitEnum|string|null $navigationGroup = 'Operations';
 
     protected static ?string $navigationLabel = 'Message Deliveries';
+
+    public static function canViewAny(): bool
+    {
+        /** @var User|null $user */
+        $user = auth()->user();
+
+        if ($user === null) {
+            return false;
+        }
+
+        return $user->can(Permission::BookingView->value)
+            || $user->can(Permission::BookingReview->value)
+            || $user->can(Permission::BookingConfirm->value);
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return static::canViewAny();
+    }
 
     public static function canCreate(): bool
     {
@@ -94,7 +113,15 @@ class MessageDeliveryResource extends Resource
                 TextColumn::make('last_error_message')
                     ->label('Error')
                     ->limit(30)
-                    ->tooltip(fn (MessageDelivery $record): ?string => $record->last_error_message),
+                    ->tooltip(function (MessageDelivery $record): ?string {
+                        if (! $record->last_error_message) {
+                            return null;
+                        }
+                        $sanitized = preg_replace('/Bearer\s+[A-Za-z0-9_\-\.]+/i', 'Bearer [REDACTED]', $record->last_error_message);
+                        $sanitized = preg_replace('/\b\+?\d{9,15}\b/', '[REDACTED_PHONE]', (string) $sanitized);
+
+                        return mb_substr((string) $sanitized, 0, 200);
+                    }),
 
                 TextColumn::make('created_at')
                     ->label('Queued')
@@ -118,7 +145,12 @@ class MessageDeliveryResource extends Resource
                     ]),
             ])
             ->actions([
-                ViewAction::make(),
+                ViewAction::make()
+                    ->mutateRecordDataUsing(function (array $data, MessageDelivery $record): array {
+                        $data['recipient_identifier'] = $record->maskedRecipient();
+
+                        return $data;
+                    }),
 
                 Action::make('retry')
                     ->label('Retry')
@@ -126,32 +158,16 @@ class MessageDeliveryResource extends Resource
                     ->color('warning')
                     ->visible(fn (MessageDelivery $record): bool => in_array($record->status, [MessageDeliveryStatus::Failed, MessageDeliveryStatus::DeliveryUnknown], true)
                         && (auth()->user()?->can(Permission::BookingReview->value) || auth()->user()?->can(Permission::BookingConfirm->value)))
+                    ->authorize(fn (MessageDelivery $record): bool => in_array($record->status, [MessageDeliveryStatus::Failed, MessageDeliveryStatus::DeliveryUnknown], true)
+                        && (auth()->user()?->can(Permission::BookingReview->value) || auth()->user()?->can(Permission::BookingConfirm->value)))
                     ->requiresConfirmation()
                     ->modalHeading('Confirm Manual Message Delivery Retry')
                     ->modalDescription('Warning: If the customer already received this notification, manual re-sending may produce a duplicate message. Confirm only if delivery failure is verified.')
                     ->action(function (MessageDelivery $record): void {
-                        $record->update([
-                            'status' => MessageDeliveryStatus::Pending,
-                            'max_attempts' => $record->max_attempts + 1,
-                        ]);
+                        /** @var User $actor */
+                        $actor = auth()->user();
 
-                        SendMessageDeliveryJob::dispatch($record->id);
-
-                        $channelName = $record->channel instanceof MessageChannel ? $record->channel->value : (string) $record->channel;
-
-                        app(AuditService::class)->record(
-                            action: 'message_delivery.manually_retried',
-                            actor: auth()->user(),
-                            summary: "Manually re-queued {$channelName} delivery for booking {$record->booking?->reference} to {$record->maskedRecipient()}",
-                            metadata: [
-                                'message_delivery_id' => $record->id,
-                                'booking_id' => $record->booking_id,
-                                'channel' => $channelName,
-                                'recipient' => $record->maskedRecipient(),
-                                'template' => $record->template_name,
-                            ],
-                            auditable: $record->booking
-                        );
+                        app(MessageDeliveryService::class)->manualRetry($record, $actor);
 
                         Notification::make()
                             ->title('Message delivery queued for manual retry.')
