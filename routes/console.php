@@ -15,6 +15,11 @@ Schedule::command('booking:expire-pending')
     ->everyMinute()
     ->withoutOverlapping();
 
+Schedule::command('outbox:drain')
+    ->everyMinute()
+    ->withoutOverlapping(expiresAt: 2)
+    ->runInBackground();
+
 Schedule::command('availability:cleanup-stale')
     ->daily()
     ->withoutOverlapping();
