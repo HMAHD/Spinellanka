@@ -11,6 +11,7 @@ use App\Domain\Availability\Services\AvailabilityService;
 use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\Enums\ConfirmationChannel;
 use App\Domain\Identity\Permission;
+use App\Domain\Messaging\Services\OutboxService;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -24,6 +25,7 @@ class BookingLifecycleService
     public function __construct(
         protected AvailabilityService $availabilityService,
         protected AuditService $auditService,
+        protected OutboxService $outboxService,
     ) {}
 
     public function markUnderReview(Booking $booking, User $staff): Booking
@@ -136,6 +138,19 @@ class BookingLifecycleService
                 actorType: 'staff'
             );
 
+            $this->outboxService->record(
+                eventType: 'booking.confirmed',
+                aggregate: $booking,
+                payload: [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'channel' => $channel->value,
+                    'notes' => trim($notes),
+                    'override_reason' => $overrideReason,
+                ],
+                idempotencyKey: "evt_booking_{$booking->id}_confirmed_v1"
+            );
+
             return $booking;
         });
     }
@@ -192,6 +207,17 @@ class BookingLifecycleService
                 actorType: 'staff'
             );
 
+            $this->outboxService->record(
+                eventType: 'booking.declined',
+                aggregate: $booking,
+                payload: [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'decline_reason' => trim($reason),
+                ],
+                idempotencyKey: "evt_booking_{$booking->id}_declined_v1"
+            );
+
             return $booking;
         });
     }
@@ -244,6 +270,17 @@ class BookingLifecycleService
                 ],
                 auditable: $booking,
                 actorType: $actor ? 'staff' : 'guest'
+            );
+
+            $this->outboxService->record(
+                eventType: 'booking.cancelled',
+                aggregate: $booking,
+                payload: [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'cancellation_reason' => trim($reason),
+                ],
+                idempotencyKey: "evt_booking_{$booking->id}_cancelled_v1"
             );
 
             return $booking;
