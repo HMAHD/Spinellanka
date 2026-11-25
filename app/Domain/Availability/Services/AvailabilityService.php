@@ -211,7 +211,7 @@ class AvailabilityService
 
             // Step 4: Query overlapping blocking intervals
             /** @var ServiceType|null $serviceType */
-            $serviceType = $options['service_type'] ?? null;
+            $serviceType = $options['service_type'] ?? $options['service'] ?? null;
             /** @var int|null $replacementDriverId */
             $replacementDriverId = $options['approved_replacement_driver_id'] ?? null;
 
@@ -224,8 +224,8 @@ class AvailabilityService
                 approvedReplacementDriverId: $replacementDriverId
             );
 
-            $isOverride = (bool) ($options['is_override'] ?? false);
             $overrideReason = isset($options['override_reason']) ? trim((string) $options['override_reason']) : null;
+            $isOverride = (bool) ($options['is_override'] ?? false) || ! empty($overrideReason);
 
             // Step 5: Check conflict & authorization
             if ($conflicts->isNotEmpty()) {

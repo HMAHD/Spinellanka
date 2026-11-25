@@ -66,10 +66,9 @@ class RentDurationCalculator
         }
 
         // Over grace period: check if within extra-hour threshold (e.g. 1 to 5 extra hours)
-        $maxExtraMinutes = $extraHoursThreshold * 60;
-        if ($remainderMinutes <= $maxExtraMinutes) {
-            $extraHours = (int) ceil($remainderMinutes / 60);
+        $extraHours = (int) ceil($remainderMinutes / 60);
 
+        if ($extraHours < $policy->full_day_threshold_hours) {
             return new RentDurationResult(
                 days: $fullDays,
                 extraHours: $extraHours,
