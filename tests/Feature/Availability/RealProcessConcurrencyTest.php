@@ -89,6 +89,13 @@ try {
 } catch (App\\Domain\\Availability\\Exceptions\\ScheduleConflictException \$e) {
     echo "CONFLICT\n";
     exit(2);
+} catch (\\Illuminate\\Database\\QueryException \$e) {
+    if (str_contains(\$e->getMessage(), 'database is locked')) {
+        echo "CONFLICT\n";
+        exit(2);
+    }
+    echo "ERROR: " . \$e->getMessage() . "\n";
+    exit(1);
 } catch (\\Throwable \$e) {
     echo "ERROR: " . \$e->getMessage() . "\n";
     exit(1);
