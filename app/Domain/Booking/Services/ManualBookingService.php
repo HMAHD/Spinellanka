@@ -82,7 +82,8 @@ class ManualBookingService
                 bufferBefore: 0,
                 bufferAfter: $vehicle->turnaround_buffer_minutes,
                 options: [
-                    'service' => ServiceType::AirportPickup,
+                    'service_type' => ServiceType::AirportPickup,
+                    'is_override' => ! empty($data['override_reason']),
                     'override_reason' => $data['override_reason'] ?? null,
                     'notes' => "Manual booking created by {$staff->name}",
                 ],
@@ -248,7 +249,8 @@ class ManualBookingService
                 bufferBefore: 0,
                 bufferAfter: $vehicle->turnaround_buffer_minutes,
                 options: [
-                    'service' => ServiceType::AirportTransfer,
+                    'service_type' => ServiceType::AirportTransfer,
+                    'is_override' => ! empty($data['override_reason']),
                     'override_reason' => $data['override_reason'] ?? null,
                     'notes' => "Manual airport transfer booking created by {$staff->name}",
                 ],
@@ -409,7 +411,8 @@ class ManualBookingService
                 bufferBefore: 0,
                 bufferAfter: $vehicle->turnaround_buffer_minutes,
                 options: [
-                    'service' => ServiceType::Rent,
+                    'service_type' => ServiceType::Rent,
+                    'is_override' => ! empty($data['override_reason']),
                     'override_reason' => $data['override_reason'] ?? null,
                     'notes' => "Manual Rent booking created by {$staff->name}",
                 ],
@@ -485,9 +488,11 @@ class ManualBookingService
 
             $policy = RentPolicy::current();
             $includedDistanceKm = $criteria->durationDays * $policy->daily_mileage_km;
+            $deliveryFee = $criteria->deliveryCount * $policy->hotel_delivery_fee_minor_units;
 
             RentDetail::create([
                 'booking_id' => $booking->id,
+                'rent_policy_id' => $policy->id,
                 'pickup_datetime' => $criteria->pickupDateTime,
                 'return_datetime' => $criteria->returnDateTime,
                 'duration_days' => $criteria->durationDays,
@@ -514,9 +519,13 @@ class ManualBookingService
                 'additional_driver_has_idp' => $criteria->additionalDriverHasIdp,
                 'expected_distance_km' => $criteria->expectedDistanceKm,
                 'included_distance_km' => $includedDistanceKm,
+                'excess_mileage_rate_minor_units' => $policy->excess_mileage_rate_minor_units,
+                'fuel_policy' => 'same_to_same',
+                'delivery_fee_minor_units' => $deliveryFee,
                 'security_deposit_minor_units' => $policy->security_deposit_minor_units,
                 'insurance_excess_minor_units' => $policy->insurance_excess_minor_units,
                 'original_documents_acknowledged' => true,
+                'original_documents_inspected' => false,
                 'special_instructions' => $criteria->specialInstructions,
             ]);
 

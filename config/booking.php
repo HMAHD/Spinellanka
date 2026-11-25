@@ -53,5 +53,10 @@ return [
             'version' => '2026-11-23',
             'view' => 'legal.privacy',
         ],
+        'rent_policy' => [
+            'type' => 'rental_agreement',
+            'version' => '2026-11-25',
+            'view' => 'legal.terms',
+        ],
     ],
 ];

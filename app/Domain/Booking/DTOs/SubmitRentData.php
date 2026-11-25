@@ -25,6 +25,7 @@ final class SubmitRentData
         public readonly ?string $leadDriverEmail = null,
         public readonly bool $termsAccepted = false,
         public readonly bool $privacyAccepted = false,
+        public readonly bool $rentPolicyAccepted = true,
         public readonly bool $originalDocumentsAcknowledged = false,
         public readonly ?string $ipAddress = null,
         public readonly ?string $userAgent = null,

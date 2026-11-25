@@ -37,6 +37,7 @@ final class RentCriteria
         public readonly ?string $returnPlaceId = null,
         public readonly ?float $returnLat = null,
         public readonly ?float $returnLng = null,
+        public readonly int $deliveryCount = 0,
         public readonly ?string $specialInstructions = null,
         public readonly array $extraIds = [],
     ) {}

@@ -506,6 +506,10 @@ class BookingSubmissionService
                 actor: null
             );
 
+            if ($block->vehicle_id !== $booking->vehicle_id) {
+                throw new InvalidArgumentException('Schedule hold vehicle does not match the requested booking vehicle.');
+            }
+
             $booking->update([
                 'schedule_block_id' => $block->id,
             ]);
@@ -549,9 +553,11 @@ class BookingSubmissionService
             // 7. Create Rent Details
             $policy = RentPolicy::current();
             $includedDistanceKm = $data->criteria->durationDays * $policy->daily_mileage_km;
+            $deliveryFee = $data->criteria->deliveryCount * $policy->hotel_delivery_fee_minor_units;
 
             RentDetail::create([
                 'booking_id' => $booking->id,
+                'rent_policy_id' => $policy->id,
                 'pickup_datetime' => $data->criteria->pickupDateTime,
                 'return_datetime' => $data->criteria->returnDateTime,
                 'duration_days' => $data->criteria->durationDays,
@@ -578,9 +584,13 @@ class BookingSubmissionService
                 'additional_driver_has_idp' => $data->criteria->additionalDriverHasIdp,
                 'expected_distance_km' => $data->criteria->expectedDistanceKm,
                 'included_distance_km' => $includedDistanceKm,
+                'excess_mileage_rate_minor_units' => $policy->excess_mileage_rate_minor_units,
+                'fuel_policy' => 'same_to_same',
+                'delivery_fee_minor_units' => $deliveryFee,
                 'security_deposit_minor_units' => $policy->security_deposit_minor_units,
                 'insurance_excess_minor_units' => $policy->insurance_excess_minor_units,
                 'original_documents_acknowledged' => true,
+                'original_documents_inspected' => false,
                 'special_instructions' => $data->criteria->specialInstructions,
             ]);
 
@@ -595,6 +605,13 @@ class BookingSubmissionService
             $this->recordPolicyAcceptance(
                 booking: $booking,
                 policyConfigKey: 'privacy',
+                ipAddress: $data->ipAddress,
+                userAgent: $data->userAgent
+            );
+
+            $this->recordPolicyAcceptance(
+                booking: $booking,
+                policyConfigKey: 'rent_policy',
                 ipAddress: $data->ipAddress,
                 userAgent: $data->userAgent
             );
