@@ -18,6 +18,7 @@ use App\Domain\Booking\Enums\ConfirmationChannel;
 use App\Domain\Booking\Enums\ContactType;
 use App\Domain\Booking\ServiceType;
 use App\Domain\Identity\Permission;
+use App\Domain\Messaging\Services\OutboxService;
 use App\Domain\Pricing\Services\EstimateService;
 use App\Models\AirportPickupDetail;
 use App\Models\AirportTransferDetail;
@@ -40,6 +41,7 @@ class ManualBookingService
         protected AvailabilityService $availabilityService,
         protected EstimateService $estimateService,
         protected AuditService $auditService,
+        protected OutboxService $outboxService,
     ) {}
 
     /**
@@ -198,6 +200,24 @@ class ManualBookingService
                 ],
                 auditable: $booking,
                 actorType: 'staff'
+            );
+
+            $statusUrl = route('booking.status', [
+                'reference' => $booking->reference,
+                'token' => $plainToken,
+            ]);
+
+            $this->outboxService->record(
+                eventType: 'booking.confirmed',
+                aggregate: $booking,
+                payload: [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'service_type' => $booking->service_type->value,
+                    'status_url' => $statusUrl,
+                    'channel' => $data['confirmation_channel']->value,
+                ],
+                idempotencyKey: "evt_booking_{$booking->id}_manual_confirmed_v1"
             );
 
             return $booking;
@@ -369,6 +389,24 @@ class ManualBookingService
                 ],
                 auditable: $booking,
                 actorType: 'staff'
+            );
+
+            $statusUrl = route('booking.status', [
+                'reference' => $booking->reference,
+                'token' => $plainToken,
+            ]);
+
+            $this->outboxService->record(
+                eventType: 'booking.confirmed',
+                aggregate: $booking,
+                payload: [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'service_type' => ServiceType::AirportTransfer->value,
+                    'status_url' => $statusUrl,
+                    'channel' => $data['confirmation_channel']->value,
+                ],
+                idempotencyKey: "evt_booking_{$booking->id}_manual_confirmed_v1"
             );
 
             return $booking;
@@ -612,6 +650,24 @@ class ManualBookingService
                 actorType: 'staff'
             );
 
+            $statusUrl = route('booking.status', [
+                'reference' => $booking->reference,
+                'token' => $plainToken,
+            ]);
+
+            $this->outboxService->record(
+                eventType: 'booking.confirmed',
+                aggregate: $booking,
+                payload: [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'service_type' => ServiceType::Ride->value,
+                    'status_url' => $statusUrl,
+                    'channel' => $data['confirmation_channel']->value,
+                ],
+                idempotencyKey: "evt_booking_{$booking->id}_manual_confirmed_v1"
+            );
+
             return $booking;
         });
     }
@@ -795,6 +851,24 @@ class ManualBookingService
                 ],
                 auditable: $booking,
                 actorType: 'staff'
+            );
+
+            $statusUrl = route('booking.status', [
+                'reference' => $booking->reference,
+                'token' => $plainToken,
+            ]);
+
+            $this->outboxService->record(
+                eventType: 'booking.confirmed',
+                aggregate: $booking,
+                payload: [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'service_type' => ServiceType::Rent->value,
+                    'status_url' => $statusUrl,
+                    'channel' => $data['confirmation_channel']->value,
+                ],
+                idempotencyKey: "evt_booking_{$booking->id}_manual_confirmed_v1"
             );
 
             return $booking;

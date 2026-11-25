@@ -8,6 +8,12 @@ use App\Domain\Location\Contracts\PlaceSearchContract;
 use App\Domain\Location\Contracts\RouteEstimateContract;
 use App\Domain\Location\Services\NullPlaceSearchService;
 use App\Domain\Location\Services\NullRouteEstimateService;
+use App\Domain\Messaging\Adapters\FakeTransactionalMailer;
+use App\Domain\Messaging\Adapters\FakeWhatsAppSender;
+use App\Domain\Messaging\Adapters\MetaWhatsAppSender;
+use App\Domain\Messaging\Adapters\PostmarkTransactionalMailer;
+use App\Domain\Messaging\Contracts\TransactionalMailer;
+use App\Domain\Messaging\Contracts\WhatsAppSender;
 use App\Models\AuditEvent;
 use App\Models\Driver;
 use App\Models\User;
@@ -34,6 +40,24 @@ class AppServiceProvider extends ServiceProvider
             RouteEstimateContract::class,
             NullRouteEstimateService::class,
         );
+
+        $this->app->singleton(WhatsAppSender::class, function () {
+            $provider = config('services.whatsapp.provider', 'fake');
+            if ($provider === 'meta_whatsapp' && config('services.meta_whatsapp.phone_number_id')) {
+                return new MetaWhatsAppSender;
+            }
+
+            return new FakeWhatsAppSender;
+        });
+
+        $this->app->singleton(TransactionalMailer::class, function () {
+            $provider = config('services.transactional_mailer.provider', 'fake');
+            if ($provider === 'postmark' && config('services.postmark.server_token')) {
+                return new PostmarkTransactionalMailer;
+            }
+
+            return new FakeTransactionalMailer;
+        });
     }
 
     public function boot(): void

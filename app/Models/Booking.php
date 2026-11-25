@@ -315,6 +315,14 @@ class Booking extends Model
     }
 
     /**
+     * @return HasMany<MessageDelivery, $this>
+     */
+    public function messageDeliveries(): HasMany
+    {
+        return $this->hasMany(MessageDelivery::class);
+    }
+
+    /**
      * @param  Builder<Booking>  $query
      */
     public function scopePending(Builder $query): void

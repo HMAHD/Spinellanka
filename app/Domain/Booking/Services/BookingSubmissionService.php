@@ -18,6 +18,7 @@ use App\Domain\Booking\Enums\BookingSource;
 use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\Enums\ContactType;
 use App\Domain\Booking\ServiceType;
+use App\Domain\Messaging\Services\OutboxService;
 use App\Domain\Pricing\Services\EstimateService;
 use App\Models\AirportPickupDetail;
 use App\Models\AirportTransferDetail;
@@ -43,6 +44,7 @@ class BookingSubmissionService
         protected AvailabilityService $availabilityService,
         protected EstimateService $estimateService,
         protected AuditService $auditService,
+        protected OutboxService $outboxService,
     ) {}
 
     public function submitAirportPickup(SubmitAirportPickupData $data): BookingSubmissionResult
@@ -224,6 +226,18 @@ class BookingSubmissionService
                 'reference' => $booking->reference,
                 'token' => $plainGuestToken,
             ]);
+
+            $this->outboxService->record(
+                eventType: 'booking.submitted',
+                aggregate: $booking,
+                payload: [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'service_type' => $booking->service_type->value,
+                    'status_url' => $privateUrl,
+                ],
+                idempotencyKey: "evt_booking_{$booking->id}_submitted_v1"
+            );
 
             return new BookingSubmissionResult(
                 booking: $booking,
@@ -423,6 +437,18 @@ class BookingSubmissionService
                 'reference' => $booking->reference,
                 'token' => $plainGuestToken,
             ]);
+
+            $this->outboxService->record(
+                eventType: 'booking.submitted',
+                aggregate: $booking,
+                payload: [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'service_type' => $booking->service_type->value,
+                    'status_url' => $privateUrl,
+                ],
+                idempotencyKey: "evt_booking_{$booking->id}_submitted_v1"
+            );
 
             return new BookingSubmissionResult(
                 booking: $booking,
@@ -641,6 +667,18 @@ class BookingSubmissionService
                 'reference' => $booking->reference,
                 'token' => $plainGuestToken,
             ]);
+
+            $this->outboxService->record(
+                eventType: 'booking.submitted',
+                aggregate: $booking,
+                payload: [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'service_type' => $booking->service_type->value,
+                    'status_url' => $privateUrl,
+                ],
+                idempotencyKey: "evt_booking_{$booking->id}_submitted_v1"
+            );
 
             return new BookingSubmissionResult(
                 booking: $booking,
@@ -873,6 +911,18 @@ class BookingSubmissionService
                 'reference' => $booking->reference,
                 'token' => $plainGuestToken,
             ]);
+
+            $this->outboxService->record(
+                eventType: 'booking.submitted',
+                aggregate: $booking,
+                payload: [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->reference,
+                    'service_type' => $booking->service_type->value,
+                    'status_url' => $privateUrl,
+                ],
+                idempotencyKey: "evt_booking_{$booking->id}_submitted_v1"
+            );
 
             return new BookingSubmissionResult(
                 booking: $booking,
