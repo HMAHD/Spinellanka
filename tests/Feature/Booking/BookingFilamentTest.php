@@ -7,12 +7,14 @@ use App\Domain\Availability\Enums\ScheduleBlockStatus;
 use App\Domain\Booking\Enums\BookingSource;
 use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\Enums\ConfirmationChannel;
+use App\Domain\Booking\ServiceType;
 use App\Domain\Identity\Role;
 use App\Filament\Resources\Operations\Bookings\Pages\ManageBookings;
 use App\Models\AirportPickupDetail;
 use App\Models\Booking;
 use App\Models\BookingContact;
 use App\Models\Driver;
+use App\Models\RideDetail;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleDriverAssignment;
@@ -192,4 +194,39 @@ test('staff can create manual booking via filament header action', function (): 
         ->and($createdBooking->status)->toBe(BookingStatus::Confirmed)
         ->and($createdBooking->airportPickupDetail->flight_number)->toBe('SQ468')
         ->and($createdBooking->assigned_staff_id)->toBe($this->staff->id);
+});
+
+test('filament table renders chauffeured ride bookings with route, timing, and flight service label', function (): void {
+    $vehicle = Vehicle::factory()->create([
+        'make' => 'Toyota',
+        'license_plate' => 'WP-RIDE-9999',
+    ]);
+
+    $booking = Booking::factory()->create([
+        'reference' => 'BKG-RIDE01',
+        'service_type' => ServiceType::Ride,
+        'vehicle_id' => $vehicle->id,
+        'status' => BookingStatus::Submitted,
+    ]);
+
+    RideDetail::factory()->create([
+        'booking_id' => $booking->id,
+        'origin_text' => 'Cinnamon Grand, Colombo',
+        'destination_text' => 'Amangalla, Galle',
+        'pickup_time' => Carbon::now('Asia/Colombo')->addDays(2)->setTime(10, 0),
+    ]);
+
+    BookingContact::factory()->create([
+        'booking_id' => $booking->id,
+        'first_name' => 'Sara',
+        'last_name' => 'Connor',
+        'phone' => '+447700900222',
+    ]);
+
+    Livewire::actingAs($this->staff)
+        ->test(ManageBookings::class)
+        ->assertCanSeeTableRecords([$booking])
+        ->assertSee('BKG-RIDE01')
+        ->assertSee('Chauffeured Ride')
+        ->assertSee('Cinnamon Grand, Colombo');
 });

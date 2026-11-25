@@ -74,22 +74,23 @@ components:
     rounded: "{rounded.functional}"
     padding: "0 1rem"
     height: "2.75rem"
-  select-service:
-    backgroundColor: "{colors.spinel-navy-soft}"
-    textColor: "{colors.paper}"
-    rounded: "{rounded.functional}"
-    padding: "0 2.5rem 0 1rem"
-    height: "3.25rem"
+  field-booking:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.primary-ink}"
+    borderColor: "{colors.quiet-line}"
+    rounded: "0.5rem"
+    padding: "0 1rem"
+    height: "3rem"
   fact-tile:
     backgroundColor: "{colors.cloud-step}"
     textColor: "{colors.primary-ink}"
     rounded: "{rounded.functional}"
     padding: "1.5rem"
-  itinerary:
-    backgroundColor: "{colors.cloud-canvas}"
-    textColor: "{colors.primary-ink}"
+  process-field:
+    backgroundColor: "{colors.spinel-navy}"
+    textColor: "{colors.paper}"
     rounded: "{rounded.functional}"
-    padding: "clamp(1.5rem, 3vw, 2.5rem)"
+    padding: "clamp(2rem, 5vw, 5.5rem)"
 ---
 
 # Design System: Spinellanka Public Shell
@@ -100,7 +101,7 @@ components:
 
 Spinellanka feels prepared, trustworthy, and internationally legible. Cloud-light reading space and deep navy working surfaces divide information from action; amber appears only where a traveler must choose, focus, or move forward. The result is a measured transport service rather than a live-dispatch interface or a glossy travel campaign.
 
-The current public shell expresses this world as a split stage: a persistent service desk sits beside a concise reading column on desktop, then follows the title as a contained navy panel on mobile. The system relies on strong scale, open space, tonal fields, and plainly worded facts. It does not use decoration to stand in for unavailable evidence.
+The current public shell expresses this world as a booking-first editorial sequence. A light first field pairs the transport promise with exact-vehicle and staff-confirmation facts; broad ruled service rows expose all four choices directly; navy fields then carry the exact-vehicle principle and request sequence. The system relies on strong scale, open space, tonal fields, and plainly worded facts. It does not use decoration to stand in for unavailable evidence.
 
 **Key Characteristics:**
 - Deep navy work surfaces set against a quiet cloud canvas.
@@ -115,7 +116,7 @@ The current public shell expresses this world as a split stage: a persistent ser
 The palette separates calm reading space from dependable decision surfaces, with one warm accent reserved for consequential interaction.
 
 ### Primary
-- **Spinel Navy:** The main work-surface color for the service desk, process fields, service heroes, strong actions, and footer anchors.
+- **Spinel Navy:** The main work-surface color for vehicle-principle and process fields, service heroes, strong actions, and footer anchors.
 - **Soft Spinel Navy:** The raised navy state used inside dark controls and as the hover state for navy actions.
 
 ### Secondary
@@ -162,23 +163,21 @@ The palette separates calm reading space from dependable decision surfaces, with
 
 ## Layout
 
-The public home uses an asymmetric 47/53 split at desktop widths. The navy service desk occupies the left field, stays pinned to the viewport, and uses the outer page margin on its exposed edge; the cloud reading column scrolls independently through generous sections. The introductory reading panel and desk each fill the first viewport, while process content uses a two-column text-and-itinerary arrangement.
+The public home uses a centered editorial sequence capped at 90rem. Its first field is an asymmetric two-column grid: the title and two actions lead, while exact-vehicle and staff-confirmation facts align as ruled rows. The service decision follows immediately as four full-width ruled links rather than a select, card grid, or JavaScript-controlled chooser. A contained navy exact-vehicle statement, a navy request-process field, and one closing action complete the path.
 
-Spacing grows from an 8px rhythm with 4px adjustments. Page edges use a fluid margin, internal reading fields use a larger fluid content inset, and major sections open to 7–12rem of vertical space. Reading copy stays compact while full-width service rows and process fields are allowed to breathe.
-
-At 64rem, forms, process content, facts, and service rows begin collapsing to one column. Below 52rem, the header becomes a 4.5rem mobile bar with a popover menu; the title leads, the navy desk follows as a full-width inset panel, and the remaining story continues in document order. Below 29rem, primary actions become full width and the service fallback list becomes a two-column grid.
+Spacing grows from an 8px rhythm with 4px adjustments. Page edges use a fluid margin, headings and supporting copy retain compact measures, and major sections use generous but purposeful separation. At 64rem, editorial grids collapse to one column while service actions retain a compact second track. Below 52rem, the header becomes a 4.5rem mobile bar with a vertical popover menu; service rows, actions, facts, and process content stack in DOM order. Below 29rem, primary actions become full width.
 
 **The Reorder Without Loss Rule.** Responsive layouts may reorder and stack the shell, but the title, four-service choice, exact-vehicle fact, and pending-confirmation fact remain visible and legible.
 
 ## Elevation & Depth
 
-The shipped public shell has no box-shadow vocabulary. Depth comes from full-bleed navy fields, stepped light surfaces, alternating paper rows, sticky positioning, and controlled overlap in the mobile navigation popover.
+The shipped public shell has no box-shadow vocabulary. Depth comes from contained navy decision fields, ruled light rows, stepped tonal surfaces, and the controlled top-layer overlap of the mobile navigation popover.
 
 **The Flat Field Rule.** Separate levels with tonal fields, spacing, and position; do not add shadows merely to make a panel look more finished.
 
 ## Shapes
 
-Functional controls, compact panels, dark mobile stages, and itinerary containers share one gently controlled 0.75rem corner. Larger service rows and broad section fields remain square, which keeps them reading as paper slips and structural planes rather than a grid of floating cards. Borders are uncommon; when a control needs a boundary, it uses a clear one- or two-pixel line rather than decorative framing.
+Functional controls, compact panels, dark mobile stages, and process fields share one gently controlled 0.75rem corner. Larger service rows and broad section fields remain square, which keeps them reading as paper slips and structural planes rather than a grid of floating cards. Borders are uncommon; when a control needs a boundary, it uses a clear one- or two-pixel line rather than decorative framing.
 
 **The Functional Corner Rule.** Use the shared corner only on controls or contained working surfaces; leave broad rows and section planes square.
 
@@ -192,22 +191,23 @@ Functional controls, compact panels, dark mobile stages, and itinerary container
 - **Text actions:** Navy text with a Strong Ceylon Amber underline; hover moves the text to Muted Ink and lets the underline inherit.
 
 ### Cards / Containers
-- **Fact tiles:** Cloud Step, functional corners, 1.5rem padding, and no shadow.
-- **Service rows:** Square tonal slips with alternating Cloud Step and Paper fields, spacious padding, and a two-column title/action arrangement that stacks at narrower widths.
-- **Itinerary:** Cloud Canvas on a navy section, functional corners, numbered rows, and a navy confirmation strip at its base.
+- **Fact tiles:** Cloud Step, functional corners, 1.5rem padding, and no shadow on supporting content pages.
+- **Service rows:** Full-width Cloud Canvas links separated by Quiet Line rules; three tracks align service name, factual summary, and action on desktop, then collapse without reordering. Hover may shift the row to Paper.
+- **Vehicle principle:** A contained Spinel Navy statement plane uses one functional corner and a single amber phrase; its neighboring explanation remains on Cloud Canvas.
+- **Request process:** A contained Spinel Navy field pairs a concise heading with three numbered ruled rows and no nested cards.
 
 ### Inputs / Fields
-- **Service select:** Soft Spinel Navy fill, paper text, a 2px blue-violet boundary, functional corners, and a 3.25rem minimum height.
-- **Focus:** The global 3px amber ring sits 4px outside the control.
+- **Booking fields:** Paper fill, Quiet Line boundary, 0.5rem functional corners, inherited Allo type at 1rem minimum, and at least 48px height.
+- **Focus:** The global 3px amber ring sits 4px outside navigation and public-shell controls; booking fields retain their explicit high-contrast field focus treatment.
 - **Labels:** Persistent and positioned above the control; placeholder-only labeling is not part of the system.
 
 ### Navigation
-- The desktop header spans both color fields: a paper wordmark sits over navy while short navy links sit over cloud. The current page is underlined, and the final navigation action is a contained navy button.
-- Below 52rem the brand and Menu trigger lead on Cloud Canvas. JavaScript enhances the navigation into a bordered popover without hiding the unenhanced wrapped-link fallback; navigation or scrolling closes the popover.
+- The desktop header is one compact Cloud Canvas row: a Spinel Navy wordmark with an amber suffix, short navy links, a current-page underline, and one contained navy action.
+- Below 52rem the brand and Menu trigger lead on Cloud Canvas. JavaScript enhances the same navigation tree into a bordered vertical popover with light-dismiss and Escape behavior; every link stays inside the viewport with at least a 44px touch target.
 
-### Public Service Desk
+### Public Service Index
 
-The signature desk is a navy working surface containing the amber text wordmark fallback, a short service explanation, a persistent labeled select, an amber action, and a visible four-link fallback. It is sticky and viewport-height on desktop, then becomes a contained, non-sticky panel after the introductory title on mobile. Changing the select updates the explanation, while every service remains reachable without that enhancement.
+The signature decision component is a four-row ruled list on Cloud Canvas. Every row is one ordinary link containing the service name, approved factual summary, and a consistent “View service” action. It uses no select, cards, JavaScript state, or hidden fallback copy. Desktop aligns the three parts across a shared grid; tablet and mobile collapse the tracks while preserving DOM and keyboard order.
 
 ## Do's and Don'ts
 

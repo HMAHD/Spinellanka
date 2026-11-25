@@ -140,16 +140,16 @@ Complete for each vehicle that supports chauffeured services.
 
 | Input | Status | Approved value/version |
 |---|---|---|
-| Included number of stops, if any | ☐ | |
-| Stop/waiting pricing | ☐ | |
-| Minimum/maximum planned waiting | ☐ | |
-| Return-leg rules | ☐ | |
-| Same-vehicle expectation across separate legs | ☐ | Current UX seeks same exact vehicle availability for both |
-| Route change process and fees | ☐ | |
-| Destination map/route-preview expectations | ☐ | Provider coverage, route disclaimer, and fallback copy |
-| Current-device Ride location permission/privacy copy | ☐ | Browser-local only while page is open; no server transmission/storage; denial/failure fallback required |
-| Driver waiting/no-show behavior | ☐ | |
-| Tolls/parking/entrance fees inclusion | ☐ | |
+| Included number of stops, if any | ✓ | Up to 10 intermediate stops allowed (total 12 waypoints including origin & final destination) (approved 2026-11-24 by Project Lead) |
+| Stop/waiting pricing | ✓ | Hourly waiting rate applied when configured in pricing_rules; transparent custom quote degradation when rules absent (approved 2026-11-24 by Project Lead) |
+| Minimum/maximum planned waiting | ✓ | 0 to 300 min (5h) per stop; cumulative planned waiting capped at 480 min (8h) per booking (approved 2026-11-24 by Project Lead) |
+| Return-leg rules | ✓ | Minimum return pickup must be at least 60 min after estimated outbound arrival + cumulative waiting; vehicle not held between separate legs unless continuous waiting scheduled (approved 2026-11-24 by Project Lead) |
+| Same-vehicle expectation across separate legs | ✓ | Same exact vehicle and dedicated permanent driver strictly required for outbound and return legs; enforced atomically via Phase 05 multi-interval availability (approved 2026-11-24 by Project Lead) |
+| Route change process and fees | ✓ | Itinerary adjustments or unplanned stops en route subject to driver agreement and settled with operations desk (approved 2026-11-24 by Project Lead) |
+| Destination map/route-preview expectations | ✓ | Provider-neutral route preview map; text itinerary fallback if provider fails or JS disabled; route disclaimer displayed (approved 2026-11-24 by Project Lead) |
+| Current-device Ride location permission/privacy copy | ✓ | Zero current-device geolocation or tracking in Phase 09; presentation boundary reserved for Phase 12 active private guest surface (approved 2026-11-24 by Project Lead) |
+| Driver waiting/no-show behavior | ✓ | Driver waits up to 45 min at origin before no-show recorded (approved 2026-11-24 by Project Lead) |
+| Tolls/parking/entrance fees inclusion | ✓ | Expressway tolls included; parking, site admission tickets, and wildlife permits excluded (approved 2026-11-24 by Project Lead) |
 
 ## 8. Rent eligibility and terms
 

@@ -5,104 +5,89 @@
 
 @section('content')
 <main id="main-content">
-  <div class="home-stage">
-    <div class="reading-panel">
-      <div class="intro">
-        <section class="intro-copy" aria-labelledby="page-title">
-          <h1 id="page-title" tabindex="-1">Transport planned ahead</h1>
-          <p class="intro-lead">Advance-book one of four transport services in Sri Lanka, then select the exact vehicle that fits your request.</p>
-        </section>
-
-        <dl class="intro-facts" aria-label="Request conditions">
-          <div>
-            <dt>Vehicle</dt>
-            <dd>You choose an exact vehicle, not a vehicle class.</dd>
-          </div>
-          <div>
-            <dt>Confirmation</dt>
-            <dd>Every request remains pending until staff confirms it.</dd>
-          </div>
-        </dl>
+  <section class="home-hero" aria-labelledby="page-title">
+    <div class="home-hero-copy">
+      <h1 id="page-title" tabindex="-1">Transport planned ahead</h1>
+      <p>Advance-book one of four transport services in Sri Lanka, then select the exact vehicle that fits your request.</p>
+      <div class="home-hero-actions">
+        <a class="primary-action" href="#service-desk">Choose your service</a>
+        <a class="text-action" href="{{ route('how-it-works') }}">See how requests work</a>
       </div>
-
-      <section class="services-section" id="services" aria-labelledby="services-title">
-        <h2 id="services-title">Four ways to travel</h2>
-        <div class="service-index">
-          @foreach($services as $service)
-            <article class="service-row" data-reveal>
-              <div>
-                <h3>{{ $service->label() }}</h3>
-                <p>{{ $service->summary() }}</p>
-              </div>
-              <a href="{{ route('services.show', ['service' => $service->value]) }}" aria-label="View {{ $service->label() }} details">
-                View service
-              </a>
-            </article>
-          @endforeach
-        </div>
-      </section>
-
-      <section class="process-section" id="process" aria-labelledby="process-title">
-        <div class="process-copy" data-reveal="horizontal">
-          <h2 id="process-title">Request process</h2>
-          <p>The public shell shows the approved request sequence. Pricing, availability, and booking actions arrive only with verified fleet and provider data.</p>
-        </div>
-
-        <div class="itinerary" aria-label="Advance request sequence" data-reveal>
-          <ol>
-            <li>
-              <strong>Choose a service</strong>
-              <span>Start with the travel need that matches your plan.</span>
-            </li>
-            <li>
-              <strong>Select an exact vehicle</strong>
-              <span>Review the vehicle and estimate before submitting.</span>
-            </li>
-            <li>
-              <strong>Submit the request</strong>
-              <span>The request stays pending while staff checks it.</span>
-            </li>
-          </ol>
-          <p>Staff confirmation completes the booking.</p>
-        </div>
-      </section>
-
-      <section class="closing-section" aria-labelledby="closing-title" data-reveal="settle">
-        <h2 id="closing-title">Start with the service</h2>
-        <p>Use the desk to compare the four approved service types. No price or vehicle detail appears until verified data is available.</p>
-        <a class="text-action" href="#service-desk">Choose your service</a>
-      </section>
-
-      @include('partials.footer')
     </div>
 
-    <aside class="desk-panel" id="service-desk" aria-labelledby="desk-title">
-      <div class="desk-inner">
-        <div class="desk-wordmark" aria-hidden="true">Spinellanka</div>
-        <div class="desk-copy">
-          <h2 id="desk-title">Choose your service</h2>
-          <p id="service-summary">{{ $services[0]->summary() }}</p>
-        </div>
-
-        <form class="service-form" action="{{ route('services.choose') }}" method="get" data-service-form>
-          <label for="service-select">Service</label>
-          <select id="service-select" name="service" data-service-select>
-            @foreach($services as $service)
-              <option value="{{ $service->value }}" data-summary="{{ $service->summary() }}">
-                {{ $service->label() }}
-              </option>
-            @endforeach
-          </select>
-          <button type="submit">View service</button>
-        </form>
-
-        <ul class="desk-service-list" aria-label="All services">
-          @foreach($services as $service)
-            <li><a href="{{ route('services.show', ['service' => $service->value]) }}">{{ $service->label() }}</a></li>
-          @endforeach
-        </ul>
+    <dl class="home-assurances" aria-label="Request conditions">
+      <div>
+        <dt>Exact vehicle</dt>
+        <dd>You choose the specific vehicle, not a vehicle class.</dd>
       </div>
-    </aside>
-  </div>
+      <div>
+        <dt>Staff reviewed</dt>
+        <dd>Every request remains pending until staff confirms it.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="service-catalog" id="service-desk" aria-labelledby="services-title">
+    <header class="section-intro">
+      <h2 id="services-title">Choose your service</h2>
+      <p>Start with the travel need that matches your plans. Each service has its own request details and vehicle requirements.</p>
+    </header>
+
+    <ul class="service-choice-list" role="list">
+      @foreach($services as $service)
+        <li>
+          <a href="{{ route('services.show', ['service' => $service->value]) }}">
+            <span class="service-choice-name">{{ $service->label() }}</span>
+            <span class="service-choice-summary">{{ $service->summary() }}</span>
+            <span class="service-choice-action" aria-hidden="true">View service</span>
+          </a>
+        </li>
+      @endforeach
+    </ul>
+  </section>
+
+  <section class="vehicle-principle" aria-labelledby="vehicle-title">
+    <div class="vehicle-principle-statement" aria-hidden="true">
+      <span>One request.</span>
+      <span>One exact vehicle.</span>
+    </div>
+    <div class="vehicle-principle-copy">
+      <h2 id="vehicle-title">Know what arrives</h2>
+      <p>Browse verified fleet records and choose the exact available vehicle that suits your passengers, luggage, and service.</p>
+      <a class="text-action" href="{{ route('fleet.index') }}">Explore the fleet</a>
+    </div>
+  </section>
+
+  <section class="request-process" id="process" aria-labelledby="process-title">
+    <header class="section-intro section-intro-on-dark">
+      <h2 id="process-title">A clear request process</h2>
+      <p>Pricing, availability, and booking actions arrive only with verified fleet and provider data.</p>
+    </header>
+
+    <ol class="process-steps">
+      <li>
+        <strong>Choose a service</strong>
+        <span>Start with the travel need that matches your plan.</span>
+      </li>
+      <li>
+        <strong>Select an exact vehicle</strong>
+        <span>Review the vehicle and estimate before submitting.</span>
+      </li>
+      <li>
+        <strong>Submit for confirmation</strong>
+        <span>Your request stays pending while staff checks every detail.</span>
+      </li>
+    </ol>
+  </section>
+
+  <section class="home-closing" aria-labelledby="closing-title">
+    <div>
+      <h2 id="closing-title">Start with the journey</h2>
+      <p>No price or vehicle detail appears until verified data is available.</p>
+    </div>
+    <a class="primary-action" href="#service-desk">Choose your service</a>
+  </section>
+
+  @include('partials.footer')
 </main>
 @endsection

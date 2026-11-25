@@ -154,11 +154,11 @@
                 <strong>{{ $item->vehicle->make }} {{ $item->vehicle->model }} ({{ $item->vehicle->year }})</strong>
                 <span style="font-size: 0.8125rem; color: var(--color-text-muted, #64748b); margin-left: 0.5rem;">({{ $item->vehicle->license_plate }})</span>
               </div>
-              <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.8125rem; color: #dc2626;">
+              <div class="unsuitable-reasons" style="margin-top: 0.35rem; font-size: 0.8125rem; color: #dc2626;">
                 @foreach($item->reasons as $reason)
-                  <li>{{ $reason }}</li>
+                  <div class="unsuitable-reason" style="margin-bottom: 0.15rem;">&bull; {{ $reason }}</div>
                 @endforeach
-              </ul>
+              </div>
             </div>
           @endforeach
         </div>

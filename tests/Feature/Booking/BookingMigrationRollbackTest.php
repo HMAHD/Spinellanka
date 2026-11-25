@@ -12,6 +12,8 @@ test('booking migrations can be completely rolled back and re-applied without co
     // Assert booking tables exist
     expect(Schema::hasTable('rent_details'))->toBeTrue();
     expect(Schema::hasTable('rent_policies'))->toBeTrue();
+    expect(Schema::hasTable('ride_stops'))->toBeTrue();
+    expect(Schema::hasTable('ride_details'))->toBeTrue();
     expect(Schema::hasTable('guest_access_tokens'))->toBeTrue();
     expect(Schema::hasTable('booking_policy_acceptances'))->toBeTrue();
     expect(Schema::hasTable('airport_transfer_details'))->toBeTrue();
@@ -19,13 +21,15 @@ test('booking migrations can be completely rolled back and re-applied without co
     expect(Schema::hasTable('booking_contacts'))->toBeTrue();
     expect(Schema::hasTable('bookings'))->toBeTrue();
 
-    // Rollback the 8 booking & rent migration steps
-    $exitCode = Artisan::call('migrate:rollback', ['--step' => 8]);
+    // Rollback the 10 booking, ride & rent migration steps
+    $exitCode = Artisan::call('migrate:rollback', ['--step' => 10]);
     expect($exitCode)->toBe(0);
 
-    // Assert all 8 tables dropped cleanly
+    // Assert all 10 tables dropped cleanly
     expect(Schema::hasTable('rent_details'))->toBeFalse();
     expect(Schema::hasTable('rent_policies'))->toBeFalse();
+    expect(Schema::hasTable('ride_stops'))->toBeFalse();
+    expect(Schema::hasTable('ride_details'))->toBeFalse();
     expect(Schema::hasTable('guest_access_tokens'))->toBeFalse();
     expect(Schema::hasTable('booking_policy_acceptances'))->toBeFalse();
     expect(Schema::hasTable('airport_transfer_details'))->toBeFalse();
@@ -43,6 +47,8 @@ test('booking migrations can be completely rolled back and re-applied without co
 
     expect(Schema::hasTable('rent_details'))->toBeTrue();
     expect(Schema::hasTable('rent_policies'))->toBeTrue();
+    expect(Schema::hasTable('ride_stops'))->toBeTrue();
+    expect(Schema::hasTable('ride_details'))->toBeTrue();
     expect(Schema::hasTable('guest_access_tokens'))->toBeTrue();
     expect(Schema::hasTable('booking_policy_acceptances'))->toBeTrue();
     expect(Schema::hasTable('airport_transfer_details'))->toBeTrue();

@@ -35,7 +35,11 @@
     @if($errors->any())
       <div class="alert alert-error" role="alert">
         <strong>Please correct the following errors:</strong>
-        <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+        <div class="alert-error-list" style="margin-top: 0.5rem;">
+          @foreach($errors->all() as $error)
+            <div class="alert-error-item">&bull; {{ $error }}</div>
+          @endforeach
+        </div>
       </div>
     @endif
 
@@ -190,14 +194,14 @@
           </dl>
 
           @if($estimate && $estimate->items->isNotEmpty())
-            <ul class="breakdown-list" style="margin-top: 1rem; border-top: 1px solid var(--color-border, #e2e8f0); padding-top: 1rem;">
+            <div class="breakdown-list" style="margin-top: 1rem; border-top: 1px solid var(--color-border, #e2e8f0); padding-top: 1rem;">
               @foreach($estimate->items as $item)
-                <li>
+                <div class="sidebar-price-row" style="display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.875rem;">
                   <span>{{ $item->description }}</span>
                   <span>${{ number_format($item->total_amount_minor_units / 100, 2) }}</span>
-                </li>
+                </div>
               @endforeach
-            </ul>
+            </div>
           @endif
 
           <div class="total-row" style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--color-border, #e2e8f0);">
