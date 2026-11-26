@@ -939,7 +939,14 @@ class AvailabilityService
             ->where('expires_at', '<=', $now)
             ->get();
 
-        if ($staleHolds->isEmpty()) {
+        $staleProposalBlocks = VehicleScheduleBlock::where('vehicle_id', $vehicleId)
+            ->where('kind', ScheduleBlockKind::ProposalHold->value)
+            ->where('status', ScheduleBlockStatus::Active->value)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<=', $now)
+            ->get();
+
+        if ($staleHolds->isEmpty() && $staleProposalBlocks->isEmpty()) {
             return 0;
         }
 
@@ -947,21 +954,34 @@ class AvailabilityService
         $blockIds = $staleHolds->pluck('schedule_block_id')->all();
 
         // Consistent order: VehicleScheduleBlock FIRST, BookingHold SECOND
-        VehicleScheduleBlock::whereIn('id', $blockIds)->update([
-            'status' => ScheduleBlockStatus::Expired,
-            'blocks_availability' => false,
-        ]);
+        if (! empty($blockIds)) {
+            VehicleScheduleBlock::whereIn('id', $blockIds)->update([
+                'status' => ScheduleBlockStatus::Expired,
+                'blocks_availability' => false,
+            ]);
+        }
 
-        BookingHold::whereIn('id', $holdIds)->update([
-            'status' => HoldStatus::Expired,
-        ]);
+        if ($staleProposalBlocks->isNotEmpty()) {
+            $propBlockIds = $staleProposalBlocks->pluck('id')->all();
+            VehicleScheduleBlock::whereIn('id', $propBlockIds)->update([
+                'status' => ScheduleBlockStatus::Expired,
+                'blocks_availability' => false,
+            ]);
+            $blockIds = array_merge($blockIds, $propBlockIds);
+        }
 
-        $expiredCount = count($holdIds);
+        if (! empty($holdIds)) {
+            BookingHold::whereIn('id', $holdIds)->update([
+                'status' => HoldStatus::Expired,
+            ]);
+        }
+
+        $expiredCount = count($holdIds) + $staleProposalBlocks->count();
 
         $this->auditService->record(
             action: 'availability.hold.expired',
             actor: null,
-            summary: "Expired {$expiredCount} stale checkout hold(s) for vehicle ID {$vehicleId}",
+            summary: "Expired {$expiredCount} stale hold(s) for vehicle ID {$vehicleId}",
             metadata: [
                 'vehicle_id' => $vehicleId,
                 'expired_hold_ids' => $holdIds,
@@ -1018,6 +1038,132 @@ class AvailabilityService
 
             return VehicleScheduleBlock::whereIn('id', $staleBlockIds)->delete();
         });
+    }
+
+    /**
+     * Create a schedule block for a proposal hold.
+     */
+    public function createProposalHold(
+        Vehicle $vehicle,
+        Carbon $start,
+        Carbon $end,
+        ServiceType $service,
+        Carbon $expiresAt,
+        int $bufferBefore = 0,
+        ?int $bufferAfter = null,
+        ?int $ignoreBlockId = null,
+        ?User $actor = null,
+    ): VehicleScheduleBlock {
+        return $this->createBlock(
+            vehicle: $vehicle,
+            kind: ScheduleBlockKind::ProposalHold,
+            start: $start,
+            end: $end,
+            bufferBefore: $bufferBefore,
+            bufferAfter: $bufferAfter,
+            options: [
+                'service' => $service,
+                'expires_at' => (clone $expiresAt)->setTimezone('Asia/Colombo'),
+                'ignore_block_id' => $ignoreBlockId,
+            ],
+            actor: $actor,
+        );
+    }
+
+    /**
+     * Atomically confirm a proposal hold schedule block.
+     * Optionally releases a prior confirmed schedule block if replacing an existing schedule.
+     */
+    public function confirmProposalBlock(
+        VehicleScheduleBlock $proposalBlock,
+        ?VehicleScheduleBlock $priorConfirmedBlock = null,
+        ?User $actor = null,
+        ?string $overrideReason = null,
+    ): VehicleScheduleBlock {
+        return DB::transaction(function () use ($proposalBlock, $priorConfirmedBlock, $actor, $overrideReason) {
+            $vehicle = Vehicle::where('id', $proposalBlock->vehicle_id)->lockForUpdate()->firstOrFail();
+
+            $proposalBlock->refresh();
+
+            if ($proposalBlock->status !== ScheduleBlockStatus::Active || $proposalBlock->kind !== ScheduleBlockKind::ProposalHold) {
+                throw new InvalidArgumentException("Schedule block ID {$proposalBlock->id} cannot be confirmed from status {$proposalBlock->status->value} and kind {$proposalBlock->kind->value}.");
+            }
+
+            if ($priorConfirmedBlock && $priorConfirmedBlock->id !== $proposalBlock->id) {
+                $this->releaseBlock(
+                    block: $priorConfirmedBlock,
+                    reason: "superseded_by_proposal_block_{$proposalBlock->id}",
+                    actor: $actor
+                );
+            }
+
+            $conflicts = $this->getConflictingBlocks(
+                vehicle: $vehicle,
+                effectiveStart: $proposalBlock->effective_start,
+                effectiveEnd: $proposalBlock->effective_end,
+                service: null,
+                ignoreBlockId: $proposalBlock->id,
+            );
+
+            if ($priorConfirmedBlock) {
+                $conflicts = $conflicts->reject(fn (VehicleScheduleBlock $b) => $b->id === $priorConfirmedBlock->id);
+            }
+
+            if ($conflicts->isNotEmpty()) {
+                $this->validateOverrideAuthorization($actor, $overrideReason);
+            }
+
+            $proposalBlock->update([
+                'kind' => ScheduleBlockKind::ConfirmedBooking,
+                'status' => ScheduleBlockStatus::Active,
+                'blocks_availability' => true,
+                'expires_at' => null,
+            ]);
+
+            $this->auditService->record(
+                action: 'availability.proposal_block.confirmed',
+                actor: $actor,
+                summary: "Confirmed proposal schedule block ID {$proposalBlock->id} for vehicle ID {$proposalBlock->vehicle_id}",
+                metadata: [
+                    'block_id' => $proposalBlock->id,
+                    'vehicle_id' => $proposalBlock->vehicle_id,
+                    'has_conflicts' => $conflicts->isNotEmpty(),
+                    'override_reason' => $overrideReason,
+                ],
+                auditable: $proposalBlock,
+                actorType: $actor ? 'staff' : 'guest'
+            );
+
+            return $proposalBlock;
+        });
+    }
+
+    /**
+     * Expire stale proposal holds across all vehicles.
+     */
+    public function expireStaleProposalHolds(): int
+    {
+        $now = Carbon::now('Asia/Colombo');
+
+        $staleVehicles = VehicleScheduleBlock::where('kind', ScheduleBlockKind::ProposalHold->value)
+            ->where('status', ScheduleBlockStatus::Active->value)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<=', $now)
+            ->pluck('vehicle_id')
+            ->unique()
+            ->sort()
+            ->values();
+
+        $totalExpired = 0;
+        foreach ($staleVehicles as $vId) {
+            $totalExpired += DB::transaction(function () use ($vId) {
+                Vehicle::where('id', $vId)->lockForUpdate()->firstOrFail();
+
+                return $this->expireStaleHoldsForVehicle((int) $vId);
+            });
+        }
+
+        return $totalExpired;
     }
 
     /**

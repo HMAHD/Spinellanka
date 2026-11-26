@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0C1445">
   <meta name="robots" content="@yield('meta_robots', 'index, follow')">
+  <meta name="referrer" content="no-referrer">
   <meta name="description" content="@yield('meta_description', 'Advance-booking transport services for international travelers in Sri Lanka.')">
 
   <title>@yield('title', config('app.name'))</title>

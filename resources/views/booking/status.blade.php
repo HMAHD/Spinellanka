@@ -1,17 +1,63 @@
 @extends('layouts.app')
 
-@section('title', 'Request Under Review — '.$booking->reference.' — Spinellanka')
+@section('title', 'Booking Control & Status — '.$booking->reference.' — Spinellanka')
 @section('meta_robots', 'noindex, nofollow')
 
 @section('content')
 <main id="main-content" class="booking-status-page">
   <div class="booking-container">
+
+    <!-- Flash Announcements (polite live region for screen readers) -->
+    <div aria-live="polite" aria-atomic="true">
+      @if(session('status_success'))
+        <div class="alert alert-success" role="alert" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; border-radius: 8px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; display: flex; align-items: center; gap: 0.75rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          <div>
+            <strong>Success:</strong> {{ session('status_success') }}
+          </div>
+        </div>
+      @endif
+
+      @if(session('error') || $errors->any())
+        <div class="alert alert-danger" role="alert" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; display: flex; align-items: flex-start; gap: 0.75rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <div>
+            <strong>Attention Required:</strong>
+            @if(session('error'))
+              <p style="margin: 0.25rem 0 0;">{{ session('error') }}</p>
+            @endif
+            @if($errors->any())
+              <ul style="margin: 0.25rem 0 0; padding-left: 1.25rem;">
+                @foreach($errors->all() as $err)
+                  <li>{{ $err }}</li>
+                @endforeach
+              </ul>
+            @endif
+          </div>
+        </div>
+      @endif
+    </div>
+
     <!-- Status Header Card -->
     <header class="status-hero-card" aria-labelledby="status-title">
       <div class="status-badge-row">
         @if($booking->status === \App\Domain\Booking\Enums\BookingStatus::Confirmed)
-          <span class="status-pill status-confirmed">
-            <span class="status-dot green"></span> Confirmed by Dispatch
+          @if($booking->pending_revision)
+            <span class="status-pill status-revision" style="background: #fef3c7; color: #92400e; border: 1px solid #fcd34d;">
+              <span class="status-dot amber"></span> Confirmed &bull; Amendment Under Review
+            </span>
+          @else
+            <span class="status-pill status-confirmed">
+              <span class="status-dot green"></span> Confirmed by Dispatch
+            </span>
+          @endif
+        @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::ProposalSent)
+          <span class="status-pill status-proposal" style="background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc;">
+            <span class="status-dot blue"></span> Official Proposal Ready for Review
+          </span>
+        @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::AwaitingPayment)
+          <span class="status-pill status-awaiting-payment" style="background: #fef3c7; color: #92400e; border: 1px solid #fcd34d;">
+            <span class="status-dot amber"></span> Proposal Accepted &bull; Awaiting Payment
           </span>
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Declined)
           <span class="status-pill status-declined">
@@ -39,7 +85,9 @@
 
       <h1 id="status-title">
         @if($booking->status === \App\Domain\Booking\Enums\BookingStatus::Confirmed)
-          @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent)
+          @if($booking->pending_revision)
+            Travel Agreement Confirmed — Amendment Under Review
+          @elseif($booking->service_type === \App\Domain\Booking\ServiceType::Rent)
             Your Self-Drive Vehicle Hire is Confirmed
           @elseif($booking->service_type === \App\Domain\Booking\ServiceType::Ride)
             Your Chauffeured Ride is Confirmed
@@ -48,6 +96,10 @@
           @else
             Your Airport Pickup is Confirmed
           @endif
+        @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::ProposalSent)
+          Official Dispatch Proposal Ready
+        @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::AwaitingPayment)
+          Proposal Accepted — Awaiting Payment Settlement
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Declined)
           Reservation Request Declined
         @else
@@ -57,23 +109,23 @@
 
       <p class="status-lead">
         @if($booking->status === \App\Domain\Booking\Enums\BookingStatus::Confirmed)
-          @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent)
+          @if($booking->pending_revision)
+            Your original confirmed booking remains active and protected. Our dispatch team is reviewing your requested adjustments or has prepared a revision proposal below.
+          @elseif($booking->service_type === \App\Domain\Booking\ServiceType::Rent)
             Our dispatch desk has confirmed vehicle preparation and allocated your reserved exact vehicle for handover.
           @elseif($booking->service_type === \App\Domain\Booking\ServiceType::Ride)
             Our dispatch desk has confirmed your route feasibility and allocated your dedicated chauffeur.
           @else
             Our dispatch team has verified your flight arrival schedule and assigned your dedicated driver.
           @endif
+        @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::ProposalSent)
+          Our operations desk has verified route feasibility, turnaround buffers, and allocated fleet capacity. Please review the official proposal, options, and response terms below.
+        @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::AwaitingPayment)
+          Thank you for accepting our proposal. Your vehicle hold is secured. Please finalize your advance settlement or security deposit below to complete confirmation.
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Declined)
           {{ $booking->decline_reason ?? 'Unfortunately, we are unable to accommodate this schedule.' }}
         @else
-          @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent)
-            Thank you for choosing Spinellanka. Your advance self-drive vehicle hire request is currently being reviewed by our operations desk. We verify vehicle preparation and turnaround buffers before manual confirmation. No payment has been processed.
-          @elseif($booking->service_type === \App\Domain\Booking\ServiceType::Ride)
-            Thank you for choosing Spinellanka. Your advance point-to-point ride request is currently being reviewed by our operations desk. We track driver turnaround buffers and itinerary feasibility before manual confirmation. No payment has been processed.
-          @else
-            Thank you for choosing Spinellanka. Your advance airport pickup request is currently being reviewed by our operations desk. We track flight schedule changes and driver turnaround buffers before manual confirmation. No payment has been processed.
-          @endif
+          Thank you for choosing Spinellanka. Your advance reservation request is currently being reviewed by our operations desk. We verify vehicle preparation and turnaround buffers before manual confirmation. No payment has been processed.
         @endif
       </p>
 
@@ -82,14 +134,179 @@
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
           <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
         </svg>
-        <span>This private status page is secured with your personal access token. Bookmark this URL to check your status at any time.</span>
+        <span>This private status page is secured with your personal access token. Bookmark this URL to manage your reservation at any time.</span>
       </div>
     </header>
 
+    @if($booking->pending_revision && $booking->status === \App\Domain\Booking\Enums\BookingStatus::Confirmed)
+      <!-- Pillar B Invariant Callout -->
+      <div class="revision-guard-card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; border-radius: 8px; background: #fffbeb; border: 1px solid #fde68a; color: #78350f;">
+        <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+          <span style="font-size: 1.25rem;">🛡️</span>
+          <div>
+            <strong style="font-size: 1rem;">Confirmed Travel Agreement Protected (Pillar B Guarantee)</strong>
+            <p style="margin: 0.25rem 0 0; font-size: 0.875rem; line-height: 1.5;">
+              While schedule adjustments or quotes are being considered, your existing confirmed vehicle reservation remains <strong>100% active, guaranteed, and authoritative</strong>. An amended proposal will only take effect if you explicitly accept it. If declined or expired, your original travel agreement continues unchanged.
+            </p>
+          </div>
+        </div>
+      </div>
+    @endif
+
+    @if($proposal)
+      <!-- Official Proposal Section -->
+      <section class="booking-card proposal-card" aria-labelledby="proposal-card-heading" style="border: 2px solid var(--color-brand, #0284c7); margin-bottom: 2rem;">
+        <div class="proposal-banner-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border, #e2e8f0);">
+          <div>
+            <span class="version-tag" style="background: var(--color-brand, #0284c7); color: #ffffff; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+              Proposal v{{ $proposal->version }}
+            </span>
+            <span style="margin-left: 0.5rem; font-weight: 600; color: var(--color-text-primary, #0f172a);">{{ $proposal->reference }}</span>
+          </div>
+
+          <div class="proposal-status-info">
+            @if($proposal->status === \App\Domain\Booking\Enums\ProposalStatus::Accepted)
+              <span class="badge badge-success" style="background: #ecfdf5; color: #047857; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                ✓ Accepted on {{ $proposal->respondedAt?->format('d M Y @ H:i') }}
+              </span>
+            @elseif($proposal->status === \App\Domain\Booking\Enums\ProposalStatus::Declined)
+              <span class="badge badge-danger" style="background: #fef2f2; color: #b91c1c; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                ✕ Declined on {{ $proposal->respondedAt?->format('d M Y @ H:i') }}
+              </span>
+            @elseif($proposal->isExpired)
+              <span class="badge badge-expired" style="background: #f1f5f9; color: #475569; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                ⏰ Expired on {{ $proposal->expiresAt->format('d M Y @ H:i') }}
+              </span>
+            @else
+              <span class="badge badge-active" style="background: #eff6ff; color: #1d4ed8; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                ⏱ Response Deadline: {{ $proposal->expiresAt->format('D, d M Y @ H:i') }}
+              </span>
+            @endif
+          </div>
+        </div>
+
+        <h2 id="proposal-card-heading" class="card-heading" style="margin-top: 1rem;">Official Service &amp; Rate Proposal</h2>
+
+        @if($proposal->staffNotes)
+          <div class="staff-quote-box" style="margin: 1rem 0; padding: 1rem; background: #f8fafc; border-left: 4px solid var(--color-brand, #0284c7); border-radius: 4px;">
+            <strong style="display: block; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 0.25rem;">Note from Dispatch Specialist:</strong>
+            <p style="margin: 0; font-size: 0.95rem; color: #1e293b; font-style: italic;">&ldquo;{{ $proposal->staffNotes }}&rdquo;</p>
+          </div>
+        @endif
+
+        @if(!empty($comparison))
+          <!-- Side-by-Side Comparison -->
+          <div class="comparison-section" style="margin: 1.5rem 0;">
+            <h3 style="font-size: 0.95rem; font-weight: 600; color: #334155; margin-bottom: 0.5rem;">Comparison with Initial Request</h3>
+            <div style="overflow-x: auto;">
+              <table class="comparison-table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                  <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                    <th style="padding: 0.625rem; text-align: left; font-weight: 600; color: #475569;">Attribute</th>
+                    <th style="padding: 0.625rem; text-align: left; font-weight: 600; color: #475569;">Initial Request</th>
+                    <th style="padding: 0.625rem; text-align: left; font-weight: 600; color: #475569;">Proposed Offer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @foreach($comparison as $item)
+                    <tr style="border-bottom: 1px solid #f1f5f9; {{ $item['changed'] ? 'background: #f0fdf4;' : '' }}">
+                      <td style="padding: 0.625rem; font-weight: 500; color: #1e293b;">
+                        {{ $item['label'] }}
+                        @if($item['changed'])
+                          <span style="font-size: 0.75rem; background: #dcfce7; color: #15803d; padding: 0.1rem 0.35rem; border-radius: 4px; margin-left: 0.25rem;">Adjusted</span>
+                        @endif
+                      </td>
+                      <td style="padding: 0.625rem; color: #64748b;">{{ $item['original'] }}</td>
+                      <td style="padding: 0.625rem; font-weight: {{ $item['changed'] ? '600' : 'normal' }}; color: {{ $item['changed'] ? '#15803d' : '#1e293b' }};">
+                        {{ $item['proposed'] }}
+                      </td>
+                    </tr>
+                  @endforeach
+                </tbody>
+              </table>
+            </div>
+          </div>
+        @endif
+
+        <!-- Line Item Breakdown -->
+        @if(!empty($proposal->items))
+          <div class="proposal-items-section" style="margin: 1.5rem 0;">
+            <h3 style="font-size: 0.95rem; font-weight: 600; color: #334155; margin-bottom: 0.5rem;">Itemized Pricing Details</h3>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                  <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                    <th style="padding: 0.625rem; text-align: left; font-weight: 600; color: #475569;">Service Component</th>
+                    <th style="padding: 0.625rem; text-align: right; font-weight: 600; color: #475569;">Quantity</th>
+                    <th style="padding: 0.625rem; text-align: right; font-weight: 600; color: #475569;">Rate</th>
+                    <th style="padding: 0.625rem; text-align: right; font-weight: 600; color: #475569;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @foreach($proposal->items as $it)
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                      <td style="padding: 0.625rem; color: #1e293b;">
+                        {{ $it['description'] }}
+                        @if($it['is_deposit'])
+                          <span style="font-size: 0.75rem; background: #fef3c7; color: #92400e; padding: 0.1rem 0.35rem; border-radius: 4px; margin-left: 0.25rem;">Refundable Deposit</span>
+                        @endif
+                      </td>
+                      <td style="padding: 0.625rem; text-align: right; color: #64748b;">
+                        {{ rtrim(rtrim((string)$it['quantity'], '0'), '.') }}
+                      </td>
+                      <td style="padding: 0.625rem; text-align: right; color: #64748b;">
+                        {{ $proposal->currency }} {{ number_format($it['unit_price_minor_units'] / 100, 2) }}
+                      </td>
+                      <td style="padding: 0.625rem; text-align: right; font-weight: 600; color: #0f172a;">
+                        {{ $proposal->currency }} {{ number_format($it['total_amount_minor_units'] / 100, 2) }}
+                      </td>
+                    </tr>
+                  @endforeach
+                </tbody>
+                <tfoot>
+                  <tr style="border-top: 2px solid #cbd5e1; background: #f8fafc;">
+                    <td colspan="3" style="padding: 0.75rem; font-weight: 700; color: #0f172a; text-align: right;">Total Proposed Amount:</td>
+                    <td style="padding: 0.75rem; font-weight: 700; color: #0f172a; text-align: right; font-size: 1.05rem;">
+                      {{ $proposal->currency }} {{ number_format($proposal->totalAmountMinorUnits / 100, 2) }}
+                    </td>
+                  </tr>
+                  @if($proposal->approximateLkrAmountMinorUnits)
+                    <tr style="background: #f8fafc;">
+                      <td colspan="4" style="padding: 0.5rem 0.75rem; text-align: right; font-size: 0.8rem; color: #64748b;">
+                        Approximate Local Reference: LKR {{ number_format($proposal->approximateLkrAmountMinorUnits / 100, 0) }}
+                      </td>
+                    </tr>
+                  @endif
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        @endif
+
+        @if($proposal->isActionable)
+          <!-- Guest Action Controls -->
+          <div class="proposal-actions-container" style="margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid #e2e8f0; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <button type="button" class="btn btn-primary" onclick="openModal('accept-dialog')" style="background: #0284c7; color: #ffffff; padding: 0.75rem 1.5rem; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Accept Proposal
+            </button>
+
+            <button type="button" class="btn btn-secondary" onclick="openModal('change-dialog')" style="background: #f1f5f9; color: #334155; padding: 0.75rem 1.25rem; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer;">
+              Request Adjustments
+            </button>
+
+            <button type="button" class="btn btn-danger-ghost" onclick="openModal('decline-dialog')" style="background: transparent; color: #dc2626; padding: 0.75rem 1.25rem; border: 1px solid #fecaca; border-radius: 6px; font-weight: 600; cursor: pointer; margin-left: auto;">
+              Decline Proposal
+            </button>
+          </div>
+        @endif
+      </section>
+    @endif
+
     <div class="booking-grid">
-      <!-- Left Column: Flight & Vehicle Details -->
+      <!-- Left Column: Details -->
       <div class="booking-main-col">
-                @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent && isset($rentDetail) && $rentDetail)
+        @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent && isset($rentDetail) && $rentDetail)
           <!-- Rent (Self-Drive) Details -->
           <section class="booking-card" aria-labelledby="rent-details-heading">
             <h2 id="rent-details-heading" class="card-heading">Self-Drive Rental &amp; Handover Details</h2>
@@ -306,11 +523,6 @@
                 <dt>Pickup Timing</dt>
                 <dd>
                   <strong>{{ $transferDetail->chosen_pickup_time?->format('D, d M Y @ H:i') }}</strong>
-                  @if($transferDetail->is_unsafe_time)
-                    <span class="warning-tag" style="display:block; margin-top: 0.25rem;">⚠️ Later than Recommended (Client Risk Acknowledged)</span>
-                  @else
-                    <span class="safe-tag" style="display:block; margin-top: 0.25rem;">✓ Recommended Safe Pickup Time</span>
-                  @endif
                 </dd>
               </div>
               <div>
@@ -425,8 +637,34 @@
         </section>
       </div>
 
-      <!-- Right Column: Estimate Snapshot & Dispatch Process -->
+      <!-- Right Column: Estimate Snapshot, Guest Controls & Dispatch Process -->
       <aside class="booking-side-col">
+
+        <!-- Guest Control Actions Card -->
+        @if(!$booking->status->isTerminal())
+          <div class="booking-card guest-actions-card" style="border: 1px solid var(--color-border, #e2e8f0); background: #ffffff; padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem;">
+            <h2 class="card-heading" style="font-size: 1rem; margin-bottom: 0.75rem;">Manage Your Reservation</h2>
+            <div style="display: flex; flex-direction: column; gap: 0.625rem;">
+              <button type="button" class="btn btn-outline" onclick="openModal('change-dialog')" style="width: 100%; padding: 0.625rem 1rem; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #1e293b; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+                <span>Request Itinerary Changes</span>
+                <span>&rarr;</span>
+              </button>
+
+              @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent && $booking->status === \App\Domain\Booking\Enums\BookingStatus::Confirmed)
+                <button type="button" class="btn btn-outline" onclick="openModal('extension-dialog')" style="width: 100%; padding: 0.625rem 1rem; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #1e293b; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+                  <span>Request Hire Extension</span>
+                  <span>+ Days</span>
+                </button>
+              @endif
+
+              <button type="button" class="btn btn-outline-danger" onclick="openModal('cancel-dialog')" style="width: 100%; padding: 0.625rem 1rem; border: 1px solid #fecaca; border-radius: 6px; background: #ffffff; color: #dc2626; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+                <span>Cancel Reservation</span>
+                <span>✕</span>
+              </button>
+            </div>
+          </div>
+        @endif
+
         <!-- Pricing Estimate Card -->
         <div class="booking-card pricing-card" aria-labelledby="estimate-heading">
           <h2 id="estimate-heading" class="card-heading">Estimate Breakdown</h2>
@@ -482,10 +720,6 @@
                 <p>In-person verification of physical original passport, home licence, and IDP prior to vehicle release.</p>
               </li>
             </ol>
-            <div class="support-action-box">
-              <p>Need to adjust your handover time or delivery location?</p>
-              <a href="{{ route('contact') }}" class="support-btn">Contact Operations Desk</a>
-            </div>
           @elseif($booking->service_type === \App\Domain\Booking\ServiceType::Ride)
             <ol class="dispatch-steps-list">
               <li>
@@ -501,10 +735,6 @@
                 <p>Your dedicated chauffeur arrives at the pickup address with a 45-minute courtesy waiting window.</p>
               </li>
             </ol>
-            <div class="support-action-box">
-              <p>Need to adjust your itinerary or timing?</p>
-              <a href="{{ route('contact') }}" class="support-btn">Contact Operations Desk</a>
-            </div>
           @else
             <ol class="dispatch-steps-list">
               <li>
@@ -520,15 +750,256 @@
                 <p>Your driver waits inside the arrivals hall holding your name board.</p>
               </li>
             </ol>
-
-            <div class="support-action-box">
-              <p>Need to update your flight or arrival time?</p>
-              <a href="{{ route('contact') }}" class="support-btn">Contact Dispatch Support</a>
-            </div>
           @endif
+
+          <div class="support-action-box" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
+            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.5rem;">Need immediate assistance from dispatch?</p>
+            <a href="{{ route('contact') }}" class="support-btn" style="display: inline-block; width: 100%; text-align: center; padding: 0.5rem; background: #f1f5f9; color: #1e293b; border-radius: 6px; font-weight: 600; text-decoration: none; border: 1px solid #cbd5e1;">Contact Operations Desk</a>
+          </div>
         </div>
       </aside>
     </div>
   </div>
+
+  <!-- Accessible Native Dialog Modals -->
+  @if($proposal && $proposal->isActionable)
+    <!-- Accept Proposal Modal -->
+    <dialog id="accept-dialog" class="accessible-dialog" aria-labelledby="accept-dialog-heading">
+      <div style="margin-bottom: 1.25rem;">
+        <h2 id="accept-dialog-heading" style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 0.25rem;">Accept Official Proposal</h2>
+        <p style="font-size: 0.875rem; color: #64748b; margin: 0;">Proposal Reference: <strong>{{ $proposal->reference }}</strong></p>
+      </div>
+
+      <form method="POST" action="{{ route('booking.status.accept', ['reference' => $booking->reference, 'token' => $token]) }}">
+        @csrf
+
+        <fieldset style="border: none; padding: 0; margin: 0 0 1.25rem 0;">
+          <legend style="font-size: 0.95rem; font-weight: 600; color: #1e293b; margin-bottom: 0.5rem;">Select Payment Option:</legend>
+
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            @foreach($proposal->allowedPaymentOptions as $opt)
+              <label style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; background: #f8fafc;">
+                <input type="radio" name="payment_option" value="{{ $opt->value }}" {{ $loop->first ? 'checked' : '' }} style="margin-top: 0.2rem;">
+                <div>
+                  <strong style="color: #0f172a; display: block; font-size: 0.9rem;">
+                    @if($opt === \App\Domain\Booking\Enums\PaymentOption::Full)
+                      Pay in Full ({{ $proposal->currency }} {{ number_format($proposal->totalAmountMinorUnits / 100, 2) }})
+                    @elseif($opt === \App\Domain\Booking\Enums\PaymentOption::Deposit)
+                      Pay Security Deposit Now ({{ $proposal->currency }} {{ number_format($proposal->depositAmountMinorUnits / 100, 2) }})
+                    @else
+                      Pay on Arrival (Cash to Driver / Local Handover)
+                    @endif
+                  </strong>
+                  <span style="font-size: 0.8rem; color: #64748b;">
+                    @if($opt === \App\Domain\Booking\Enums\PaymentOption::Full)
+                      Settle entire fee online now. No remaining balance upon arrival.
+                    @elseif($opt === \App\Domain\Booking\Enums\PaymentOption::Deposit)
+                      Refundable authorization to lock vehicle. Balance settled upon arrival.
+                    @else
+                      No online charge today. Settle with chauffeur at destination.
+                    @endif
+                  </span>
+                </div>
+              </label>
+            @endforeach
+          </div>
+        </fieldset>
+
+        <div style="margin-bottom: 1.25rem;">
+          <label for="accept-notes" style="display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Additional Notes (Optional):</label>
+          <textarea id="accept-notes" name="notes" rows="2" placeholder="Any special requests or arrival instructions..." style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.875rem;"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" onclick="closeModal('accept-dialog')" style="padding: 0.5rem 1rem; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; border-radius: 6px; font-weight: 600; cursor: pointer;">Dismiss</button>
+          <button type="submit" style="padding: 0.5rem 1.25rem; border: none; background: #0284c7; color: #ffffff; border-radius: 6px; font-weight: 600; cursor: pointer;">Confirm Acceptance</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Decline Proposal Modal -->
+    <dialog id="decline-dialog" class="accessible-dialog" aria-labelledby="decline-dialog-heading">
+      <div style="margin-bottom: 1.25rem;">
+        <h2 id="decline-dialog-heading" style="font-size: 1.25rem; font-weight: 700; color: #b91c1c; margin-bottom: 0.25rem;">Decline Official Proposal</h2>
+        <p style="font-size: 0.875rem; color: #64748b; margin: 0;">Proposal Reference: <strong>{{ $proposal->reference }}</strong></p>
+      </div>
+
+      <form method="POST" action="{{ route('booking.status.decline', ['reference' => $booking->reference, 'token' => $token]) }}">
+        @csrf
+
+        @if($booking->status === \App\Domain\Booking\Enums\BookingStatus::Confirmed)
+          <div style="margin-bottom: 1rem; padding: 0.75rem; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; color: #065f46; font-size: 0.85rem;">
+            <strong>Pillar B Protection:</strong> Declining this revision proposal will <em>not</em> cancel your confirmed booking. Your existing confirmed travel agreement remains active.
+          </div>
+        @else
+          <div style="margin-bottom: 1rem; padding: 0.75rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; color: #991b1b; font-size: 0.85rem;">
+            <strong>Note:</strong> Declining this proposal will close your reservation request.
+          </div>
+        @endif
+
+        <div style="margin-bottom: 1.25rem;">
+          <label for="decline-reason" style="display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Reason for Declining (Optional):</label>
+          <textarea id="decline-reason" name="reason" rows="3" placeholder="Tell us why this quote or vehicle does not suit your needs..." style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.875rem;"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" onclick="closeModal('decline-dialog')" style="padding: 0.5rem 1rem; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; border-radius: 6px; font-weight: 600; cursor: pointer;">Keep Proposal</button>
+          <button type="submit" style="padding: 0.5rem 1.25rem; border: none; background: #dc2626; color: #ffffff; border-radius: 6px; font-weight: 600; cursor: pointer;">Decline Proposal</button>
+        </div>
+      </form>
+    </dialog>
+  @endif
+
+  <!-- Change Request Modal -->
+  <dialog id="change-dialog" class="accessible-dialog" aria-labelledby="change-dialog-heading">
+    <div style="margin-bottom: 1.25rem;">
+      <h2 id="change-dialog-heading" style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 0.25rem;">Request Itinerary or Service Adjustments</h2>
+      <p style="font-size: 0.875rem; color: #64748b; margin: 0;">Our dispatch desk will review and dispatch an updated quote/proposal.</p>
+    </div>
+
+    <form method="POST" action="{{ route('booking.status.change', ['reference' => $booking->reference, 'token' => $token]) }}">
+      @csrf
+
+      <div style="margin-bottom: 1.25rem;">
+        <label for="change-notes" style="display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Requested Adjustments:</label>
+        <textarea id="change-notes" name="notes" rows="4" required minlength="5" placeholder="Specify your requested changes (e.g., flight delay, new pickup time, additional passenger, changed dropoff location, etc.)..." style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.875rem;"></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button type="button" onclick="closeModal('change-dialog')" style="padding: 0.5rem 1rem; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; border-radius: 6px; font-weight: 600; cursor: pointer;">Cancel</button>
+        <button type="submit" style="padding: 0.5rem 1.25rem; border: none; background: #0284c7; color: #ffffff; border-radius: 6px; font-weight: 600; cursor: pointer;">Submit Request</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Cancel Reservation Modal -->
+  <dialog id="cancel-dialog" class="accessible-dialog" aria-labelledby="cancel-dialog-heading">
+    <div style="margin-bottom: 1.25rem;">
+      <h2 id="cancel-dialog-heading" style="font-size: 1.25rem; font-weight: 700; color: #dc2626; margin-bottom: 0.25rem;">Cancel Booking Reservation</h2>
+      <p style="font-size: 0.875rem; color: #64748b; margin: 0;">Reference: <strong>{{ $booking->reference }}</strong></p>
+    </div>
+
+    <form method="POST" action="{{ route('booking.status.cancel', ['reference' => $booking->reference, 'token' => $token]) }}">
+      @csrf
+
+      <div style="margin-bottom: 1rem; padding: 0.75rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; color: #991b1b; font-size: 0.85rem;">
+        <strong>Warning:</strong> Cancelling releases your reserved vehicle and driver allocation immediately.
+      </div>
+
+      <div style="margin-bottom: 1.25rem;">
+        <label for="cancel-reason" style="display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Reason for Cancellation:</label>
+        <textarea id="cancel-reason" name="reason" rows="3" required minlength="5" placeholder="Please let us know why you need to cancel this reservation..." style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.875rem;"></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button type="button" onclick="closeModal('cancel-dialog')" style="padding: 0.5rem 1rem; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; border-radius: 6px; font-weight: 600; cursor: pointer;">Keep Reservation</button>
+        <button type="submit" style="padding: 0.5rem 1.25rem; border: none; background: #dc2626; color: #ffffff; border-radius: 6px; font-weight: 600; cursor: pointer;">Confirm Cancellation</button>
+      </div>
+    </form>
+  </dialog>
+
+  @if($booking->service_type === \App\Domain\Booking\ServiceType::Rent)
+    <!-- Rent Extension Modal -->
+    <dialog id="extension-dialog" class="accessible-dialog" aria-labelledby="extension-dialog-heading">
+      <div style="margin-bottom: 1.25rem;">
+        <h2 id="extension-dialog-heading" style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 0.25rem;">Request Rental Hire Extension</h2>
+        <p style="font-size: 0.875rem; color: #64748b; margin: 0;">Extend your self-drive vehicle hire duration.</p>
+      </div>
+
+      <form method="POST" action="{{ route('booking.status.extension', ['reference' => $booking->reference, 'token' => $token]) }}">
+        @csrf
+
+        <div style="margin-bottom: 1.25rem;">
+          <label for="extra-days" style="display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Number of Extra Days:</label>
+          <input type="number" id="extra-days" name="extra_days" min="1" max="30" value="1" required style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem;">
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+          <label for="extension-notes" style="display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Return Location or Timing Notes (Optional):</label>
+          <textarea id="extension-notes" name="notes" rows="2" placeholder="e.g. Will return at Colombo airport instead of hotel..." style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.875rem;"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" onclick="closeModal('extension-dialog')" style="padding: 0.5rem 1rem; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; border-radius: 6px; font-weight: 600; cursor: pointer;">Cancel</button>
+          <button type="submit" style="padding: 0.5rem 1.25rem; border: none; background: #0284c7; color: #ffffff; border-radius: 6px; font-weight: 600; cursor: pointer;">Request Extension</button>
+        </div>
+      </form>
+    </dialog>
+  @endif
 </main>
+
+<style>
+.accessible-dialog {
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 32rem;
+  width: 90vw;
+  background: #ffffff;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overscroll-behavior: contain;
+}
+
+.accessible-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+.accessible-dialog[open] {
+  animation: dialog-appear 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dialog-appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+</style>
+
+<script>
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el && typeof el.showModal === 'function') {
+    el.showModal();
+  }
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el && typeof el.close === 'function') {
+    el.close();
+  }
+}
+
+// Close dialog when clicking directly on backdrop & prevent double submission
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('dialog.accessible-dialog').forEach(function (dialog) {
+    dialog.addEventListener('click', function (e) {
+      if (e.target === dialog) {
+        dialog.close();
+      }
+    });
+  });
+
+  document.querySelectorAll('dialog.accessible-dialog form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        if (submitBtn.getAttribute('aria-disabled') === 'true') {
+          e.preventDefault();
+          return;
+        }
+        submitBtn.setAttribute('aria-disabled', 'true');
+        submitBtn.style.opacity = '0.7';
+        submitBtn.style.pointerEvents = 'none';
+      }
+    });
+  });
+});
+</script>
 @endsection

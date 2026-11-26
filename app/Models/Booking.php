@@ -13,6 +13,7 @@ use App\Domain\Pricing\ValueObjects\Money;
 use Carbon\Carbon;
 use Database\Factories\BookingFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,6 +27,8 @@ use Illuminate\Support\Str;
  * @property ServiceType $service_type
  * @property BookingStatus $status
  * @property int $vehicle_id
+ * @property int|null $current_proposal_id
+ * @property bool $pending_revision
  * @property int|null $estimate_id
  * @property int|null $schedule_block_id
  * @property BookingSource $source
@@ -47,6 +50,8 @@ use Illuminate\Support\Str;
  * @property-read Vehicle $vehicle
  * @property-read Estimate|null $estimate
  * @property-read VehicleScheduleBlock|null $scheduleBlock
+ * @property-read Proposal|null $currentProposal
+ * @property-read Collection<int, Proposal> $proposals
  * @property-read User|null $assignedStaff
  * @property-read AirportPickupDetail|null $airportPickupDetail
  * @property-read AirportTransferDetail|null $airportTransferDetail
@@ -66,6 +71,8 @@ class Booking extends Model
             'service_type' => ServiceType::class,
             'status' => BookingStatus::class,
             'source' => BookingSource::class,
+            'current_proposal_id' => 'integer',
+            'pending_revision' => 'boolean',
             'confirmation_channel' => ConfirmationChannel::class,
             'total_amount_minor_units' => 'integer',
             'approximate_lkr_amount_minor_units' => 'integer',
@@ -197,7 +204,25 @@ class Booking extends Model
 
     public function canBeConfirmed(): bool
     {
-        return $this->status->canBeConfirmed();
+        return $this->status->canBeConfirmed() || ($this->status === BookingStatus::Confirmed && $this->pending_revision);
+    }
+
+    public function getServiceStartTime(): ?Carbon
+    {
+        if ($this->airportPickupDetail !== null) {
+            return $this->airportPickupDetail->arrival_time;
+        }
+        if ($this->airportTransferDetail !== null) {
+            return $this->airportTransferDetail->chosen_pickup_time;
+        }
+        if ($this->rideDetail !== null) {
+            return $this->rideDetail->pickup_time;
+        }
+        if ($this->rentDetail !== null) {
+            return $this->rentDetail->pickup_datetime;
+        }
+
+        return null;
     }
 
     public function canBeDeclined(): bool
@@ -224,6 +249,22 @@ class Booking extends Model
     public function estimate(): BelongsTo
     {
         return $this->belongsTo(Estimate::class);
+    }
+
+    /**
+     * @return BelongsTo<Proposal, $this>
+     */
+    public function currentProposal(): BelongsTo
+    {
+        return $this->belongsTo(Proposal::class, 'current_proposal_id');
+    }
+
+    /**
+     * @return HasMany<Proposal, $this>
+     */
+    public function proposals(): HasMany
+    {
+        return $this->hasMany(Proposal::class)->orderBy('version');
     }
 
     /**
@@ -327,7 +368,11 @@ class Booking extends Model
      */
     public function scopePending(Builder $query): void
     {
-        $query->whereIn('status', [BookingStatus::Submitted->value, BookingStatus::UnderReview->value]);
+        $query->whereIn('status', [
+            BookingStatus::Submitted->value,
+            BookingStatus::UnderReview->value,
+            BookingStatus::ProposalSent->value,
+        ]);
     }
 
     /**
