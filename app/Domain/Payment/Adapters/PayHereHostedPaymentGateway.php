@@ -63,7 +63,7 @@ class PayHereHostedPaymentGateway implements HostedPaymentGatewayInterface
             'last_name' => $lastName,
             'email' => $email,
             'phone' => $phone,
-            'address' => 'Colombo, Sri Lanka',
+            'address' => '',
             'city' => 'Colombo',
             'country' => 'Sri Lanka',
             'hash' => $hash,

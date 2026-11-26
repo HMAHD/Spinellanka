@@ -88,7 +88,10 @@ class FinancialDocumentController extends Controller
             'Content-Type' => 'text/html; charset=UTF-8',
             'X-Robots-Tag' => 'noindex, nofollow',
             'Referrer-Policy' => 'no-referrer',
-            'Cache-Control' => 'private, no-store',
+            'Cache-Control' => 'private, no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 }

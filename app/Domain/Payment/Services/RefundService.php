@@ -19,6 +19,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use InvalidArgumentException;
 
 class RefundService
@@ -40,13 +41,21 @@ class RefundService
             throw new AuthorizationException('Actor does not have payment.refund permission.');
         }
 
+        if ($data->staffPasswordConfirmation !== null && ! Hash::check($data->staffPasswordConfirmation, $staff->password)) {
+            throw new AuthorizationException('Staff password re-authentication failed.');
+        }
+
         if ($data->amountMinorUnits <= 0) {
             throw new InvalidArgumentException('Refund amount must be greater than zero.');
         }
 
         $transaction = $target instanceof PaymentTransaction
             ? $target
-            : $target->paymentTransactions()->where('status', PaymentStatus::Completed)->where('amount_minor_units', '>', 0)->latest('id')->firstOrFail();
+            : $target->paymentTransactions()
+                ->whereIn('status', [PaymentStatus::Completed->value, PaymentStatus::PartiallyRefunded->value])
+                ->where('amount_minor_units', '>', 0)
+                ->latest('id')
+                ->firstOrFail();
 
         return DB::transaction(function () use ($transaction, $staff, $data) {
             /** @var PaymentTransaction $lockedTxn */

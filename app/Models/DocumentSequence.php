@@ -24,23 +24,19 @@ class DocumentSequence extends Model
     public static function nextNumber(FinancialDocumentType $type, int $year): string
     {
         return DB::transaction(function () use ($type, $year) {
+            self::firstOrCreate(
+                ['document_type' => $type->value, 'year' => $year],
+                ['last_number' => 0]
+            );
+
             /** @var DocumentSequence $sequence */
             $sequence = self::where('document_type', $type->value)
                 ->where('year', $year)
                 ->lockForUpdate()
-                ->first();
+                ->firstOrFail();
 
-            if (! $sequence) {
-                $sequence = self::create([
-                    'document_type' => $type->value,
-                    'year' => $year,
-                    'last_number' => 1,
-                ]);
-                $next = 1;
-            } else {
-                $next = $sequence->last_number + 1;
-                $sequence->update(['last_number' => $next]);
-            }
+            $next = $sequence->last_number + 1;
+            $sequence->update(['last_number' => $next]);
 
             return sprintf('%s-%d-%05d', $type->prefix(), $year, $next);
         });

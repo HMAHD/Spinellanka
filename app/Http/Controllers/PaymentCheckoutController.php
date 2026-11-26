@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\Enums\PaymentOption;
 use App\Domain\Payment\Enums\PaymentStatus;
+use App\Domain\Payment\Enums\PaymentType;
 use App\Domain\Payment\Services\PaymentService;
 use App\Models\Booking;
 use App\Models\GuestAccessToken;
@@ -75,11 +77,20 @@ class PaymentCheckoutController extends Controller
         $booking = $this->resolveAuthorizedBooking($reference, $token);
 
         // Inspect latest transaction status recorded by webhook
-        $latestTransaction = $booking->paymentTransactions()->latest('id')->first();
+        $latestTransaction = $booking->paymentTransactions()
+            ->where('amount_minor_units', '>', 0)
+            ->where('payment_type', '!=', PaymentType::Refund->value)
+            ->latest('id')
+            ->first();
 
         if ($latestTransaction && $latestTransaction->status === PaymentStatus::Completed) {
+            if ($booking->status === BookingStatus::Confirmed) {
+                return redirect()->route('booking.status', ['reference' => $reference, 'token' => $token])
+                    ->with('status_success', 'Your online payment was successfully completed and your booking reservation is confirmed. Official receipt issued.');
+            }
+
             return redirect()->route('booking.status', ['reference' => $reference, 'token' => $token])
-                ->with('status_success', 'Your online payment was successfully completed and your booking reservation is confirmed. Official receipt issued.');
+                ->with('status_warning', 'Payment captured, but proposal hold had expired prior to settlement. A staff operator will verify and assign vehicle schedule.');
         }
 
         if ($latestTransaction && $latestTransaction->status === PaymentStatus::Failed) {

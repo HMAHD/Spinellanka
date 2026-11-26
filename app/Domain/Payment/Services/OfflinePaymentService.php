@@ -15,6 +15,7 @@ use App\Domain\Payment\Enums\PaymentStatus;
 use App\Models\Booking;
 use App\Models\PaymentTransaction;
 use App\Models\User;
+use App\Models\Vehicle;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -49,12 +50,17 @@ class OfflinePaymentService
             throw new InvalidArgumentException('Offline payment amount must be greater than zero.');
         }
 
-        return DB::transaction(function () use ($booking, $staff, $data) {
+        $proposal = $data->proposal ?? $booking->currentProposal;
+        $vehicleId = $proposal ? $proposal->vehicle_id : $booking->vehicle_id;
+
+        return DB::transaction(function () use ($booking, $staff, $data, $proposal, $vehicleId) {
+            // Strict canonical lock sequence: Vehicle -> Booking -> Proposal -> PaymentTransaction
+            if ($vehicleId) {
+                Vehicle::where('id', $vehicleId)->lockForUpdate()->first();
+            }
             $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
             $reference = PaymentTransaction::generateReference($lockedBooking);
             $now = Carbon::now('Asia/Colombo');
-
-            $proposal = $data->proposal ?? $lockedBooking->currentProposal;
 
             /** @var PaymentTransaction $transaction */
             $transaction = PaymentTransaction::create([

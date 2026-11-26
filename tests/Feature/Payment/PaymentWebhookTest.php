@@ -346,3 +346,81 @@ test('expired proposal webhook settlement completes transaction but does not con
         'action' => 'payment.settled_on_expired_proposal',
     ]);
 });
+
+test('payhere webhook verifier fails closed when merchant credentials are not configured', function (): void {
+    config()->set('services.payhere.merchant_id', '');
+    config()->set('services.payhere.merchant_secret', '');
+
+    $payload = [
+        'merchant_id' => 'random_id',
+        'order_id' => 'tx-123',
+        'payment_id' => 'pay_123',
+        'payhere_amount' => '50.00',
+        'payhere_currency' => 'USD',
+        'status_code' => '2',
+        'md5sig' => md5('random'),
+    ];
+
+    $response = $this->postJson(route('webhooks.payment', ['provider' => 'payhere']), $payload);
+    $response->assertStatus(400);
+});
+
+test('payment webhook controller rejects payloads exceeding 64kb', function (): void {
+    $hugeString = str_repeat('A', 70000);
+
+    $response = $this->call(
+        'POST',
+        route('webhooks.payment', ['provider' => 'payhere']),
+        [],
+        [],
+        [],
+        ['CONTENT_TYPE' => 'application/json'],
+        $hugeString
+    );
+
+    $response->assertStatus(413);
+});
+
+test('payment amount mismatch marks transaction failed and records audit event without rollback', function (): void {
+    config()->set('services.payhere.merchant_id', '1211144');
+    config()->set('services.payhere.merchant_secret', 'secretpass123');
+
+    $booking = Booking::factory()->create(['status' => BookingStatus::AwaitingPayment]);
+    $idempotencyKey = 'idemp-mismatch-tx';
+    $transaction = PaymentTransaction::create([
+        'booking_id' => $booking->id,
+        'payment_method' => PaymentMethod::OnlineCard,
+        'payment_type' => PaymentType::Full,
+        'amount_minor_units' => 10000, // expected 100.00 USD
+        'currency' => 'USD',
+        'status' => PaymentStatus::Pending,
+        'idempotency_key' => $idempotencyKey,
+    ]);
+
+    // Gateway reports 50.00 USD instead
+    $md5Sig = strtoupper(md5('1211144'.$idempotencyKey.'50.00'.'USD'.'2'.strtoupper(md5('secretpass123'))));
+
+    $payload = [
+        'merchant_id' => '1211144',
+        'order_id' => $idempotencyKey,
+        'payment_id' => 'mismatch_pay_123',
+        'payhere_amount' => '50.00',
+        'payhere_currency' => 'USD',
+        'status_code' => '2',
+        'md5sig' => $md5Sig,
+    ];
+
+    $response = $this->postJson(route('webhooks.payment', ['provider' => 'payhere']), $payload);
+    $response->assertOk();
+    $response->assertJson(['status' => 'failed']);
+
+    $transaction->refresh();
+    expect($transaction->status)->toBe(PaymentStatus::Failed)
+        ->and($transaction->notes)->toContain('Amount mismatch');
+
+    $this->assertDatabaseHas('payment_events', [
+        'payment_transaction_id' => $transaction->id,
+        'event_type' => 'webhook.amount_mismatch',
+        'status' => 'failed',
+    ]);
+});

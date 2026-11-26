@@ -397,6 +397,7 @@ class Booking extends Model
             ->whereIn('status', [
                 PaymentStatus::Completed->value,
                 PaymentStatus::PartiallyRefunded->value,
+                PaymentStatus::Refunded->value,
             ])
             ->sum('amount_minor_units');
     }

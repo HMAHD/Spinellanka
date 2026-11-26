@@ -21,6 +21,10 @@ class PaymentWebhookController extends Controller
      */
     public function handle(Request $request, string $provider): JsonResponse
     {
+        if (strlen((string) $request->getContent()) > 65536) {
+            return response()->json(['error' => 'Payload too large'], 413);
+        }
+
         try {
             $result = $this->webhookService->handleWebhook(
                 provider: $provider,

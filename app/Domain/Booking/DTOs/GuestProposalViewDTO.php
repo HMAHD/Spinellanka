@@ -10,6 +10,7 @@ use App\Domain\Booking\Enums\ProposalStatus;
 use App\Domain\Booking\ServiceType;
 use App\Models\Proposal;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 final readonly class GuestProposalViewDTO
 {
@@ -54,6 +55,16 @@ final readonly class GuestProposalViewDTO
         public array $items,
         public array $snapshotData,
     ) {}
+
+    public function __get(string $name): mixed
+    {
+        $camel = Str::camel($name);
+        if (property_exists($this, $camel)) {
+            return $this->{$camel};
+        }
+
+        return null;
+    }
 
     public static function fromProposal(Proposal $proposal): self
     {

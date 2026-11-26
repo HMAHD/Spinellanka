@@ -34,7 +34,7 @@ class PaymentReconciliationCommand extends Command
 
         $count = $reconciliationService->sweepStalePendingTransactions($timeoutHours);
 
-        $this->info("Reconciliation sweep complete. {$count} stale transactions updated to failed.");
+        $this->info("Reconciliation sweep complete. {$count} stale transactions processed.");
 
         return Command::SUCCESS;
     }

@@ -16,7 +16,9 @@ use App\Domain\Payment\Services\RefundService;
 use App\Models\Booking;
 use App\Models\PaymentTransaction;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
 
@@ -105,4 +107,74 @@ test('refund exceeding settled amount is rejected with exception', function (): 
 
     expect(fn () => $this->refundService->issueRefund($booking, $staff, $refundData))
         ->toThrow(RefundExceedsSettledAmountException::class);
+});
+
+test('full 100 percent refund zeroes booking totalSettledAmount and does not result in negative balance', function (): void {
+    $staff = User::factory()->create();
+    $staff->givePermissionTo(Permission::PaymentRefund->value);
+
+    $booking = Booking::factory()->create([
+        'status' => BookingStatus::Confirmed,
+        'currency' => 'USD',
+    ]);
+
+    // Initial settlement of 100.00 USD
+    $transaction = PaymentTransaction::create([
+        'booking_id' => $booking->id,
+        'payment_method' => PaymentMethod::OnlineCard,
+        'payment_type' => PaymentType::Full,
+        'amount_minor_units' => 10000,
+        'currency' => 'USD',
+        'status' => PaymentStatus::Completed,
+        'idempotency_key' => 'tx-full-01',
+        'gateway_provider' => 'fake',
+        'gateway_transaction_id' => 'GW-FULL-01',
+    ]);
+
+    expect($booking->totalSettledAmount())->toBe(10000);
+
+    // Issue 100% full refund of 100.00 USD
+    $refundData = new RefundData(
+        amountMinorUnits: 10000,
+        reason: 'Full trip cancellation before cutoff'
+    );
+
+    $refund = $this->refundService->issueRefund($booking, $staff, $refundData);
+
+    expect($refund->status)->toBe(RefundStatus::Completed)
+        ->and($refund->amount_minor_units)->toBe(10000);
+
+    // Original transaction should be marked Refunded
+    $transaction->refresh();
+    expect($transaction->status)->toBe(PaymentStatus::Refunded);
+
+    // Invariant: total settled amount MUST be exactly 0, NOT negative (-10000)
+    expect($booking->totalSettledAmount())->toBe(0);
+});
+
+test('refund with invalid staff password confirmation throws authorization exception', function (): void {
+    $staff = User::factory()->create([
+        'password' => Hash::make('correct_password'),
+    ]);
+    $staff->givePermissionTo(Permission::PaymentRefund->value);
+
+    $booking = Booking::factory()->create(['status' => BookingStatus::Confirmed]);
+    PaymentTransaction::create([
+        'booking_id' => $booking->id,
+        'payment_method' => PaymentMethod::OnlineCard,
+        'payment_type' => PaymentType::Full,
+        'amount_minor_units' => 5000,
+        'currency' => 'USD',
+        'status' => PaymentStatus::Completed,
+        'idempotency_key' => 'tx-pw-check-01',
+    ]);
+
+    $refundData = new RefundData(
+        amountMinorUnits: 2000,
+        reason: 'Cancellation',
+        staffPasswordConfirmation: 'wrong_password'
+    );
+
+    expect(fn () => $this->refundService->issueRefund($booking, $staff, $refundData))
+        ->toThrow(AuthorizationException::class, 'Staff password re-authentication failed.');
 });

@@ -193,10 +193,18 @@
   <div class="document-card">
     <div class="header-row">
       <div class="company-info">
-        <h1>SPINELLANKA</h1>
+        <h1>{{ config('app.name', 'Spinellanka') }}</h1>
         <p>Premium Island Mobility &amp; Chauffeured Tours</p>
-        <p>Negombo Road, Katunayake / Colombo, Sri Lanka</p>
-        <p>Support WhatsApp: +94 77 123 4567 &bull; billing@spinellanka.com</p>
+        @if(config('services.company.address'))
+          <p>{{ config('services.company.address') }}</p>
+        @endif
+        @if(config('services.company.support_phone') || config('services.company.support_email'))
+          <p>
+            @if(config('services.company.support_phone')) Support: {{ config('services.company.support_phone') }} @endif
+            @if(config('services.company.support_phone') && config('services.company.support_email')) &bull; @endif
+            @if(config('services.company.support_email')) {{ config('services.company.support_email') }} @endif
+          </p>
+        @endif
       </div>
       <div class="doc-meta">
         <h2>{{ isset($isInvoice) && $isInvoice ? 'Official Invoice' : 'Payment Receipt' }}</h2>

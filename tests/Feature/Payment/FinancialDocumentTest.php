@@ -12,6 +12,7 @@ use App\Domain\Payment\Enums\PaymentStatus;
 use App\Domain\Payment\Enums\PaymentType;
 use App\Domain\Payment\Services\FinancialDocumentService;
 use App\Models\Booking;
+use App\Models\DocumentSequence;
 use App\Models\FinancialDocument;
 use App\Models\GuestAccessToken;
 use App\Models\PaymentTransaction;
@@ -92,7 +93,17 @@ test('guest can download official receipt via private token with security header
     $response->assertHeader('X-Robots-Tag', 'noindex, nofollow');
     $response->assertHeader('Referrer-Policy', 'no-referrer');
     expect($response->headers->get('Cache-Control'))->toContain('no-store');
+    expect($response->headers->get('Cache-Control'))->toContain('no-cache');
+    $response->assertHeader('X-Content-Type-Options', 'nosniff');
     $response->assertSee('Receipt RCP-TEST-001');
+});
+
+test('document sequence allocates next number atomically starting from 1', function (): void {
+    $num1 = DocumentSequence::nextNumber(FinancialDocumentType::Receipt, 2026);
+    $num2 = DocumentSequence::nextNumber(FinancialDocumentType::Receipt, 2026);
+
+    expect($num1)->toBe('REC-2026-00001')
+        ->and($num2)->toBe('REC-2026-00002');
 });
 
 test('staff with permission can view document in admin view route', function (): void {

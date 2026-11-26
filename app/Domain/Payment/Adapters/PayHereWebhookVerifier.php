@@ -39,8 +39,24 @@ class PayHereWebhookVerifier implements PaymentWebhookVerifierInterface
             );
         }
 
-        // 2. Merchant ID verification check (prevents cross-account injection)
-        if ($configuredMerchantId !== '' && ! hash_equals($configuredMerchantId, $merchantId)) {
+        // 2. Fail closed if gateway credentials are not configured on the server
+        if (empty($configuredMerchantId) || empty($merchantSecret)) {
+            return new PaymentVerificationResult(
+                isValid: false,
+                provider: 'payhere',
+                providerEventId: $paymentId ?: null,
+                providerTransactionId: $paymentId ?: null,
+                orderReference: $orderId ?: null,
+                amountMinorUnits: 0,
+                currency: $payhereCurrency ?: 'USD',
+                statusCode: $statusCode,
+                rawPayload: $request->all(),
+                errorMessage: 'PayHere gateway credentials are not configured on this server.'
+            );
+        }
+
+        // Merchant ID verification check (prevents cross-account injection)
+        if (! hash_equals($configuredMerchantId, $merchantId)) {
             return new PaymentVerificationResult(
                 isValid: false,
                 provider: 'payhere',

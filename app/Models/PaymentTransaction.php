@@ -65,7 +65,7 @@ class PaymentTransaction extends Model
                 $transaction->reference = sprintf('TXN-%s-%s', $ref, strtoupper(bin2hex(random_bytes(4))));
             }
             if (empty($transaction->gateway_provider)) {
-                $transaction->gateway_provider = 'payhere';
+                $transaction->gateway_provider = (string) config('services.payment.gateway', 'fake');
             }
         });
     }

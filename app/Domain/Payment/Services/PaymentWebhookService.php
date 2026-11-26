@@ -14,8 +14,6 @@ use App\Domain\Payment\Contracts\PaymentWebhookVerifierInterface;
 use App\Domain\Payment\DTOs\PaymentWebhookResult;
 use App\Domain\Payment\Enums\PaymentStatus;
 use App\Domain\Payment\Exceptions\InvalidWebhookSignatureException;
-use App\Domain\Payment\Exceptions\PaymentAmountMismatchException;
-use App\Domain\Payment\Exceptions\PaymentCurrencyMismatchException;
 use App\Models\Booking;
 use App\Models\PaymentEvent;
 use App\Models\PaymentTransaction;
@@ -44,7 +42,9 @@ class PaymentWebhookService
     {
         $verifier = match ($provider) {
             'payhere' => app(PayHereWebhookVerifier::class),
-            'fake' => app(FakePaymentWebhookVerifier::class),
+            'fake' => app()->environment(['local', 'testing'])
+                ? app(FakePaymentWebhookVerifier::class)
+                : throw new InvalidWebhookSignatureException('Fake payment provider is disabled in production.'),
             default => $this->verifier,
         };
 
@@ -141,6 +141,7 @@ class PaymentWebhookService
 
             /** @var PaymentTransaction $transaction */
             $transaction = PaymentTransaction::where('id', $unlockedTxn->id)->lockForUpdate()->firstOrFail();
+            $now = Carbon::now('Asia/Colombo');
 
             // Idempotency: If transaction is already completed, exit safely
             if ($transaction->status === PaymentStatus::Completed) {
@@ -185,17 +186,71 @@ class PaymentWebhookService
 
             // 6. Strict amount and currency parity checks
             if ($verificationResult->amountMinorUnits !== $transaction->amount_minor_units) {
-                $transaction->update(['status' => PaymentStatus::Failed]);
-                throw new PaymentAmountMismatchException(
-                    "Settlement amount ({$verificationResult->amountMinorUnits}) does not match expected ({$transaction->amount_minor_units})."
+                $transaction->update([
+                    'status' => PaymentStatus::Failed,
+                    'notes' => "Amount mismatch: received {$verificationResult->amountMinorUnits}, expected {$transaction->amount_minor_units}",
+                ]);
+
+                $this->auditService->record(
+                    action: 'payment.mismatch',
+                    actor: null,
+                    summary: "Payment amount mismatch via {$provider} for booking {$booking->reference}",
+                    metadata: [
+                        'transaction_id' => $transaction->id,
+                        'booking_id' => $booking->id,
+                        'received_amount' => $verificationResult->amountMinorUnits,
+                        'expected_amount' => $transaction->amount_minor_units,
+                    ],
+                    auditable: $transaction,
+                    actorType: 'system'
                 );
+
+                PaymentEvent::create([
+                    'payment_transaction_id' => $transaction->id,
+                    'provider' => $provider,
+                    'provider_event_id' => $verificationResult->providerEventId ?: ('mismatch_'.uniqid()),
+                    'event_type' => 'webhook.amount_mismatch',
+                    'payload' => $verificationResult->rawPayload,
+                    'status' => 'failed',
+                    'received_at' => $now,
+                    'processed_at' => $now,
+                ]);
+
+                return PaymentWebhookResult::failed("Amount mismatch: received {$verificationResult->amountMinorUnits}, expected {$transaction->amount_minor_units}");
             }
 
             if ($verificationResult->currency !== $transaction->currency) {
-                $transaction->update(['status' => PaymentStatus::Failed]);
-                throw new PaymentCurrencyMismatchException(
-                    "Settlement currency ({$verificationResult->currency}) does not match expected ({$transaction->currency})."
+                $transaction->update([
+                    'status' => PaymentStatus::Failed,
+                    'notes' => "Currency mismatch: received {$verificationResult->currency}, expected {$transaction->currency}",
+                ]);
+
+                $this->auditService->record(
+                    action: 'payment.mismatch',
+                    actor: null,
+                    summary: "Payment currency mismatch via {$provider} for booking {$booking->reference}",
+                    metadata: [
+                        'transaction_id' => $transaction->id,
+                        'booking_id' => $booking->id,
+                        'received_currency' => $verificationResult->currency,
+                        'expected_currency' => $transaction->currency,
+                    ],
+                    auditable: $transaction,
+                    actorType: 'system'
                 );
+
+                PaymentEvent::create([
+                    'payment_transaction_id' => $transaction->id,
+                    'provider' => $provider,
+                    'provider_event_id' => $verificationResult->providerEventId ?: ('curr_mismatch_'.uniqid()),
+                    'event_type' => 'webhook.currency_mismatch',
+                    'payload' => $verificationResult->rawPayload,
+                    'status' => 'failed',
+                    'received_at' => $now,
+                    'processed_at' => $now,
+                ]);
+
+                return PaymentWebhookResult::failed("Currency mismatch: received {$verificationResult->currency}, expected {$transaction->currency}");
             }
 
             // 7. Overpayment / Discrepancy protection: check total settled vs proposal total
