@@ -976,12 +976,27 @@ function closeModal(id) {
   }
 }
 
-// Close dialog when clicking directly on backdrop
+// Close dialog when clicking directly on backdrop & prevent double submission
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('dialog.accessible-dialog').forEach(function (dialog) {
     dialog.addEventListener('click', function (e) {
       if (e.target === dialog) {
         dialog.close();
+      }
+    });
+  });
+
+  document.querySelectorAll('dialog.accessible-dialog form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        if (submitBtn.getAttribute('aria-disabled') === 'true') {
+          e.preventDefault();
+          return;
+        }
+        submitBtn.setAttribute('aria-disabled', 'true');
+        submitBtn.style.opacity = '0.7';
+        submitBtn.style.pointerEvents = 'none';
       }
     });
   });
