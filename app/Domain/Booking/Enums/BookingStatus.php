@@ -14,6 +14,7 @@ enum BookingStatus: string
     case Declined = 'declined';
     case Cancelled = 'cancelled';
     case Expired = 'expired';
+    case Completed = 'completed';
 
     public function label(): string
     {
@@ -26,6 +27,7 @@ enum BookingStatus: string
             self::Declined => 'Declined',
             self::Cancelled => 'Cancelled',
             self::Expired => 'Expired',
+            self::Completed => 'Completed',
         };
     }
 
@@ -51,6 +53,6 @@ enum BookingStatus: string
 
     public function isTerminal(): bool
     {
-        return in_array($this, [self::Declined, self::Cancelled, self::Expired], true);
+        return in_array($this, [self::Declined, self::Cancelled, self::Expired, self::Completed], true);
     }
 }

@@ -53,6 +53,8 @@ class BookingStatusController extends Controller
                 'policyAcceptances',
                 'paymentTransactions',
                 'financialDocuments',
+                'assignedDriver',
+                'currentDriverAssignment',
             ])
             ->first();
 
@@ -85,6 +87,8 @@ class BookingStatusController extends Controller
                 'transferDetail' => $booking->airportTransferDetail,
                 'rideDetail' => $booking->rideDetail,
                 'rentDetail' => $booking->rentDetail,
+                'assignedDriver' => $booking->assignedDriver,
+                'currentDriverAssignment' => $booking->currentDriverAssignment,
             ])
             ->header('X-Robots-Tag', 'noindex, nofollow')
             ->header('Referrer-Policy', 'no-referrer')

@@ -28,6 +28,8 @@ use Illuminate\Support\Str;
  * @property ServiceType $service_type
  * @property BookingStatus $status
  * @property int $vehicle_id
+ * @property int|null $assigned_driver_id
+ * @property int|null $current_driver_assignment_id
  * @property int|null $current_proposal_id
  * @property bool $pending_revision
  * @property int|null $estimate_id
@@ -45,10 +47,15 @@ use Illuminate\Support\Str;
  * @property Carbon|null $confirmed_at
  * @property Carbon|null $cancelled_at
  * @property Carbon|null $declined_at
+ * @property Carbon|null $completed_at
  * @property Carbon|null $expires_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read Vehicle $vehicle
+ * @property-read Driver|null $assignedDriver
+ * @property-read DriverAssignment|null $currentDriverAssignment
+ * @property-read Collection<int, DriverAssignment> $driverAssignments
+ * @property-read Collection<int, DriverAccessToken> $driverAccessTokens
  * @property-read Estimate|null $estimate
  * @property-read VehicleScheduleBlock|null $scheduleBlock
  * @property-read Proposal|null $currentProposal
@@ -80,6 +87,7 @@ class Booking extends Model
             'confirmed_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'declined_at' => 'datetime',
+            'completed_at' => 'datetime',
             'expires_at' => 'datetime',
         ];
     }
@@ -242,6 +250,38 @@ class Booking extends Model
     public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
+    }
+
+    /**
+     * @return BelongsTo<Driver, $this>
+     */
+    public function assignedDriver(): BelongsTo
+    {
+        return $this->belongsTo(Driver::class, 'assigned_driver_id');
+    }
+
+    /**
+     * @return BelongsTo<DriverAssignment, $this>
+     */
+    public function currentDriverAssignment(): BelongsTo
+    {
+        return $this->belongsTo(DriverAssignment::class, 'current_driver_assignment_id');
+    }
+
+    /**
+     * @return HasMany<DriverAssignment, $this>
+     */
+    public function driverAssignments(): HasMany
+    {
+        return $this->hasMany(DriverAssignment::class);
+    }
+
+    /**
+     * @return HasMany<DriverAccessToken, $this>
+     */
+    public function driverAccessTokens(): HasMany
+    {
+        return $this->hasMany(DriverAccessToken::class);
     }
 
     /**

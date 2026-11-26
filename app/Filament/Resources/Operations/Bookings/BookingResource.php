@@ -14,8 +14,10 @@ use App\Domain\Booking\Services\BookingLifecycleService;
 use App\Domain\Booking\Services\ProposalService;
 use App\Domain\Booking\Services\TokenRotationService;
 use App\Domain\Booking\ServiceType;
+use App\Domain\Catalog\Enums\DriverStatus;
 use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Domain\Identity\Permission;
+use App\Domain\Operations\Services\DriverAssignmentService;
 use App\Domain\Payment\DTOs\OfflinePaymentData;
 use App\Domain\Payment\DTOs\RefundData;
 use App\Domain\Payment\Enums\PaymentMethod;
@@ -34,6 +36,7 @@ use App\Filament\Resources\Operations\Bookings\RelationManagers\PaymentTransacti
 use App\Filament\Resources\Operations\Bookings\RelationManagers\ProposalsRelationManager;
 use App\Filament\Resources\Operations\MessageDeliveries\MessageDeliveryResource;
 use App\Models\Booking;
+use App\Models\Driver;
 use App\Models\Vehicle;
 use BackedEnum;
 use Carbon\Carbon;
@@ -46,6 +49,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -265,7 +269,7 @@ class BookingResource extends Resource
                         BookingStatus::UnderReview => 'info',
                         BookingStatus::ProposalSent => 'primary',
                         BookingStatus::AwaitingPayment => 'warning',
-                        BookingStatus::Confirmed => 'success',
+                        BookingStatus::Confirmed, BookingStatus::Completed => 'success',
                         BookingStatus::Declined => 'danger',
                         BookingStatus::Cancelled, BookingStatus::Expired => 'gray',
                     })
@@ -305,6 +309,19 @@ class BookingResource extends Resource
                 TextColumn::make('vehicle.license_plate')
                     ->label('Vehicle')
                     ->formatStateUsing(fn ($state, Booking $record) => "{$record->vehicle?->make} ({$state})"),
+
+                TextColumn::make('assignedDriver.public_name')
+                    ->label('Chauffeur')
+                    ->formatStateUsing(function ($state, Booking $record) {
+                        if (! $state) {
+                            return $record->service_type === ServiceType::Rent ? 'Self-Drive' : 'Unassigned';
+                        }
+                        $status = $record->currentDriverAssignment?->status?->label() ?? 'Assigned';
+
+                        return "{$state} ({$status})";
+                    })
+                    ->badge()
+                    ->color(fn ($state, Booking $record) => $state ? 'info' : ($record->service_type === ServiceType::Rent ? 'gray' : 'danger')),
 
                 TextColumn::make('leadTraveler.phone')
                     ->label('Contact')
@@ -868,6 +885,127 @@ class BookingResource extends Resource
                     ->url(fn (Booking $record): string => MessageDeliveryResource::getUrl('index', [
                         'tableSearch' => $record->reference,
                     ])),
+
+                Action::make('assign_driver')
+                    ->label('Assign Driver')
+                    ->icon(Heroicon::OutlinedUserPlus)
+                    ->color('info')
+                    ->visible(fn (Booking $record): bool => in_array($record->service_type, [ServiceType::AirportPickup, ServiceType::AirportTransfer, ServiceType::Ride], true)
+                        && $record->status === BookingStatus::Confirmed
+                        && (auth()->user()?->can(Permission::BookingConfirm->value) ?? false))
+                    ->modalHeading('Assign Dedicated Fleet Driver')
+                    ->modalDescription(function (Booking $record): string {
+                        $serviceStart = $record->getServiceStartTime() ?? Carbon::now('Asia/Colombo');
+                        $tiedDriver = app(DriverAssignmentService::class)->resolveTiedDriver($record->vehicle, $serviceStart);
+                        $tiedText = $tiedDriver ? "Permanent tied driver: {$tiedDriver->public_name}." : 'No permanent tied driver for this vehicle.';
+
+                        return "Allocate an active verified chauffeur for booking {$record->reference}. {$tiedText}";
+                    })
+                    ->form(function (Booking $record): array {
+                        $serviceStart = $record->getServiceStartTime() ?? Carbon::now('Asia/Colombo');
+                        $tiedDriver = app(DriverAssignmentService::class)->resolveTiedDriver($record->vehicle, $serviceStart);
+                        $drivers = Driver::where('status', DriverStatus::Active->value)->orderBy('public_name')->get();
+
+                        return [
+                            Select::make('driver_id')
+                                ->label('Select Fleet Driver')
+                                ->options($drivers->pluck('public_name', 'id'))
+                                ->default($tiedDriver?->id)
+                                ->required()
+                                ->live()
+                                ->helperText($tiedDriver ? "Recommended tied driver: {$tiedDriver->public_name}" : 'Select an active verified driver'),
+
+                            Textarea::make('replacement_reason')
+                                ->label('Reason for Chauffeur Replacement (Required Governance)')
+                                ->placeholder('e.g. Tied driver on approved annual leave, or language preference requested by guest.')
+                                ->visible(fn (Get $get) => $tiedDriver && ((int) $get('driver_id')) !== $tiedDriver->id)
+                                ->required(fn (Get $get) => $tiedDriver && ((int) $get('driver_id')) !== $tiedDriver->id)
+                                ->rows(2),
+                        ];
+                    })
+                    ->action(function (Booking $record, array $data): void {
+                        $driver = Driver::findOrFail((int) $data['driver_id']);
+                        $serviceStart = $record->getServiceStartTime() ?? Carbon::now('Asia/Colombo');
+                        $tiedDriver = app(DriverAssignmentService::class)->resolveTiedDriver($record->vehicle, $serviceStart);
+                        $isReplacement = $tiedDriver && $driver->id !== $tiedDriver->id;
+
+                        try {
+                            $result = app(DriverAssignmentService::class)->assignDriver(
+                                booking: $record,
+                                driver: $driver,
+                                staff: auth()->user(),
+                                isReplacement: $isReplacement,
+                                replacementReason: $isReplacement ? ($data['replacement_reason'] ?? null) : null,
+                            );
+
+                            $tripUrl = route('driver.trip.show', ['token' => $result['plainToken']]);
+
+                            Notification::make()
+                                ->title("Driver {$driver->public_name} assigned to {$record->reference}")
+                                ->body("Secure Trip Link generated: {$tripUrl}")
+                                ->success()
+                                ->persistent()
+                                ->send();
+                        } catch (\InvalidArgumentException $e) {
+                            Notification::make()
+                                ->title('Assignment Failed')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
+                Action::make('rotate_driver_link')
+                    ->label('Rotate Trip Link')
+                    ->icon(Heroicon::OutlinedArrowPath)
+                    ->color('warning')
+                    ->visible(fn (Booking $record): bool => $record->assigned_driver_id !== null
+                        && $record->status === BookingStatus::Confirmed
+                        && (auth()->user()?->can(Permission::BookingConfirm->value) ?? false))
+                    ->modalHeading('Rotate Driver Trip Link')
+                    ->modalDescription('Revokes the active driver trip link and issues a fresh secure link. The previous link will immediately stop functioning.')
+                    ->form([
+                        TextInput::make('reason')
+                            ->label('Reason for Link Rotation')
+                            ->required()
+                            ->placeholder('e.g. Chauffeur replaced smartphone or requested fresh link'),
+                    ])
+                    ->action(function (Booking $record, array $data): void {
+                        $newPlainToken = app(DriverAssignmentService::class)->rotateTripToken($record, auth()->user(), $data['reason']);
+                        $newUrl = route('driver.trip.show', ['token' => $newPlainToken]);
+
+                        Notification::make()
+                            ->title('Driver Trip Link Rotated')
+                            ->body("New Secure Trip Link: {$newUrl}")
+                            ->success()
+                            ->persistent()
+                            ->send();
+                    }),
+
+                Action::make('revoke_driver_access')
+                    ->label('Revoke Driver Access')
+                    ->icon(Heroicon::OutlinedXMark)
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->visible(fn (Booking $record): bool => $record->assigned_driver_id !== null
+                        && (auth()->user()?->can(Permission::BookingConfirm->value) ?? false))
+                    ->modalHeading('Revoke Driver Trip Access')
+                    ->modalDescription('Immediately revokes all active trip tokens and removes the assigned chauffeur from this booking.')
+                    ->form([
+                        TextInput::make('reason')
+                            ->label('Reason for Revocation')
+                            ->required()
+                            ->placeholder('e.g. Driver emergency or scheduling reallocation'),
+                    ])
+                    ->action(function (Booking $record, array $data): void {
+                        app(DriverAssignmentService::class)->revokeDriverAccess($record, auth()->user(), $data['reason']);
+
+                        Notification::make()
+                            ->title('Driver Access Revoked')
+                            ->body("Driver removed from booking {$record->reference}.")
+                            ->warning()
+                            ->send();
+                    }),
             ]);
     }
 

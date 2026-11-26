@@ -31,8 +31,8 @@ use Illuminate\Support\Facades\Storage;
  * @property Carbon $updated_at
  * @property-read Collection<int, VehicleDriverAssignment> $assignments
  * @property-read Collection<int, VehicleScheduleBlock> $scheduleBlocks
- * @property-read Collection<int, VehicleDriverAssignment> $assignments
- * @property-read Collection<int, VehicleScheduleBlock> $scheduleBlocks
+ * @property-read Collection<int, DriverAssignment> $driverAssignments
+ * @property-read Collection<int, DriverAccessToken> $driverAccessTokens
  */
 class Driver extends Model
 {
@@ -92,5 +92,21 @@ class Driver extends Model
     public function scheduleBlocks(): HasMany
     {
         return $this->hasMany(VehicleScheduleBlock::class);
+    }
+
+    /**
+     * @return HasMany<DriverAssignment, $this>
+     */
+    public function driverAssignments(): HasMany
+    {
+        return $this->hasMany(DriverAssignment::class);
+    }
+
+    /**
+     * @return HasMany<DriverAccessToken, $this>
+     */
+    public function driverAccessTokens(): HasMany
+    {
+        return $this->hasMany(DriverAccessToken::class);
     }
 }
