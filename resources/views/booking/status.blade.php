@@ -18,6 +18,15 @@
         </div>
       @endif
 
+      @if(session('payment_pending'))
+        <div class="alert alert-info" role="status" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; border-radius: 8px; background: #e0f2fe; border: 1px solid #7dd3fc; color: #0369a1; display: flex; align-items: center; gap: 0.75rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+          <div>
+            <strong>Payment Confirmation In Progress:</strong> {{ session('payment_pending') }}
+          </div>
+        </div>
+      @endif
+
       @if(session('error') || $errors->any())
         <div class="alert alert-danger" role="alert" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; display: flex; align-items: flex-start; gap: 0.75rem;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
@@ -298,6 +307,37 @@
             <button type="button" class="btn btn-danger-ghost" onclick="openModal('decline-dialog')" style="background: transparent; color: #dc2626; padding: 0.75rem 1.25rem; border: 1px solid #fecaca; border-radius: 6px; font-weight: 600; cursor: pointer; margin-left: auto;">
               Decline Proposal
             </button>
+          </div>
+        @endif
+
+        @if($booking->status === \App\Domain\Booking\Enums\BookingStatus::AwaitingPayment)
+          <div class="awaiting-payment-cta-box" style="margin-top: 1.5rem; padding: 1.25rem 1.5rem; background: #fffbeb; border: 2px solid #f59e0b; border-radius: 8px;">
+            <div style="display: flex; align-items: flex-start; gap: 0.75rem; flex-wrap: wrap; justify-content: space-between;">
+              <div>
+                <h3 style="margin: 0 0 0.25rem; font-size: 1.1rem; color: #92400e;">Complete Online Settlement</h3>
+                <p style="margin: 0; font-size: 0.9rem; color: #78350f;">
+                  Your proposal acceptance has reserved your vehicle hold. Settle the requested advance online to finalize your reservation confirmation.
+                </p>
+              </div>
+              <div style="text-align: right;">
+                <span style="font-size: 0.8rem; color: #78350f; display: block;">Amount Due:</span>
+                <strong style="font-size: 1.25rem; color: #0f172a;">
+                  {{ $proposal->currency }} {{ number_format(($proposal->depositRequired ? $proposal->depositAmountMinorUnits : $proposal->totalAmountMinorUnits) / 100, 2) }}
+                </strong>
+              </div>
+            </div>
+            <div style="margin-top: 1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+              <form method="POST" action="{{ route('booking.payment.checkout', ['reference' => $booking->reference, 'token' => $token]) }}">
+                @csrf
+                <button type="submit" class="btn btn-primary" style="background: #16a34a; color: #ffffff; padding: 0.75rem 1.5rem; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                  Pay Online (Card / Visa / Mastercard)
+                </button>
+              </form>
+              <span style="font-size: 0.8rem; color: #64748b;">
+                Instant dispatch confirmation &bull; 256-bit TLS encryption
+              </span>
+            </div>
           </div>
         @endif
       </section>
@@ -662,6 +702,54 @@
                 <span>✕</span>
               </button>
             </div>
+          </div>
+        @endif
+
+        <!-- Payments & Documents Card -->
+        @if(($booking->paymentTransactions && $booking->paymentTransactions->isNotEmpty()) || ($booking->financialDocuments && $booking->financialDocuments->isNotEmpty()))
+          <div class="booking-card payments-ledger-card" aria-labelledby="payments-ledger-heading">
+            <h2 id="payments-ledger-heading" class="card-heading">Payments &amp; Official Documents</h2>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 0.75rem;">
+              <span style="font-size: 0.875rem; color: #64748b;">Total Settled:</span>
+              <strong style="font-size: 1.05rem; color: #16a34a;">
+                {{ $booking->currency ?: 'USD' }} {{ number_format($booking->totalSettledAmount() / 100, 2) }}
+              </strong>
+            </div>
+
+            @if($booking->paymentTransactions && $booking->paymentTransactions->isNotEmpty())
+              <h3 style="font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; margin: 0 0 0.5rem;">Transaction History</h3>
+              <ul style="list-style: none; padding: 0; margin: 0 0 1rem;">
+                @foreach($booking->paymentTransactions as $tx)
+                  <li style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; font-size: 0.875rem; border-bottom: 1px dashed #f1f5f9;">
+                    <div>
+                      <span style="font-weight: 600;">{{ $tx->payment_method->label() }}</span>
+                      <small style="color: #64748b; display: block;">{{ $tx->created_at->format('d M H:i') }} &bull; {{ $tx->status->label() }}</small>
+                    </div>
+                    <span style="font-weight: 600; {{ $tx->amount_minor_units < 0 ? 'color: #dc2626;' : 'color: #0f172a;' }}">
+                      {{ $tx->currency }} {{ number_format($tx->amount_minor_units / 100, 2) }}
+                    </span>
+                  </li>
+                @endforeach
+              </ul>
+            @endif
+
+            @if($booking->financialDocuments && $booking->financialDocuments->isNotEmpty())
+              <h3 style="font-size: 0.8rem; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; margin: 0 0 0.5rem;">Official Issued Documents</h3>
+              <ul style="list-style: none; padding: 0; margin: 0;">
+                @foreach($booking->financialDocuments as $doc)
+                  <li style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; font-size: 0.875rem;">
+                    <div>
+                      <span style="font-weight: 600;">{{ $doc->document_type->label() }}</span>
+                      <small style="color: #64748b; display: block;">{{ $doc->document_number }}</small>
+                    </div>
+                    <a href="{{ route('booking.documents.download', ['reference' => $booking->reference, 'token' => $token, 'documentNumber' => $doc->document_number]) }}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; font-weight: 600; text-decoration: underline; font-size: 0.85rem;">
+                      View / Print
+                    </a>
+                  </li>
+                @endforeach
+              </ul>
+            @endif
           </div>
         @endif
 

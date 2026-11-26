@@ -16,13 +16,21 @@ use App\Domain\Booking\Services\TokenRotationService;
 use App\Domain\Booking\ServiceType;
 use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Domain\Identity\Permission;
+use App\Domain\Payment\DTOs\OfflinePaymentData;
+use App\Domain\Payment\DTOs\RefundData;
+use App\Domain\Payment\Enums\PaymentMethod;
+use App\Domain\Payment\Enums\PaymentType;
+use App\Domain\Payment\Services\OfflinePaymentService;
+use App\Domain\Payment\Services\RefundService;
 use App\Domain\Pricing\DTOs\EstimateItemData;
 use App\Domain\Pricing\Enums\PricingComponentType;
 use App\Domain\Pricing\Enums\PricingUnit;
 use App\Domain\Pricing\Services\ExchangeRateService;
 use App\Domain\Pricing\ValueObjects\Money;
 use App\Filament\Resources\Operations\Bookings\Pages\ManageBookings;
+use App\Filament\Resources\Operations\Bookings\RelationManagers\FinancialDocumentsRelationManager;
 use App\Filament\Resources\Operations\Bookings\RelationManagers\MessageDeliveriesRelationManager;
+use App\Filament\Resources\Operations\Bookings\RelationManagers\PaymentTransactionsRelationManager;
 use App\Filament\Resources\Operations\Bookings\RelationManagers\ProposalsRelationManager;
 use App\Filament\Resources\Operations\MessageDeliveries\MessageDeliveryResource;
 use App\Models\Booking;
@@ -745,6 +753,114 @@ class BookingResource extends Resource
                             ->send();
                     }),
 
+                Action::make('record_offline_payment')
+                    ->label('Record Payment')
+                    ->icon(Heroicon::OutlinedBanknotes)
+                    ->color('success')
+                    ->visible(fn (Booking $record): bool => (auth()->user()?->can(Permission::PaymentRecordOffline->value) ?? false)
+                        && in_array($record->status, [BookingStatus::AwaitingPayment, BookingStatus::ProposalSent, BookingStatus::Confirmed], true))
+                    ->modalHeading('Record Offline Payment')
+                    ->modalDescription('Record cash, wire transfer, or card payment received offline. This confirms awaiting payment bookings and issues an official receipt.')
+                    ->form([
+                        TextInput::make('amount')
+                            ->label('Amount Received')
+                            ->numeric()
+                            ->required()
+                            ->minValue(0.01)
+                            ->prefix(fn (Booking $record): string => $record->currency ?: 'USD'),
+                        Select::make('payment_method')
+                            ->label('Payment Method')
+                            ->options([
+                                PaymentMethod::Cash->value => PaymentMethod::Cash->label(),
+                                PaymentMethod::BankTransfer->value => PaymentMethod::BankTransfer->label(),
+                            ])
+                            ->required()
+                            ->default(PaymentMethod::Cash->value),
+                        TextInput::make('reference_note')
+                            ->label('Reference / Slip Note')
+                            ->maxLength(255)
+                            ->placeholder('e.g. Bank slip number, cash receipt reference'),
+                        Textarea::make('notes')
+                            ->label('Internal Notes')
+                            ->maxLength(1000),
+                    ])
+                    ->action(function (Booking $record, array $data): void {
+                        $amountMinor = (int) round(((float) $data['amount']) * 100);
+                        $offlineData = new OfflinePaymentData(
+                            amountMinorUnits: $amountMinor,
+                            currency: $record->currency ?: 'USD',
+                            paymentMethod: PaymentMethod::from($data['payment_method']),
+                            paymentType: PaymentType::Full,
+                            notes: $data['notes'] ?? '',
+                            externalReference: $data['reference_note'] ?? null,
+                        );
+
+                        try {
+                            $transaction = app(OfflinePaymentService::class)->recordOfflinePayment($record, auth()->user(), $offlineData);
+                            Notification::make()
+                                ->title('Offline payment recorded successfully.')
+                                ->body("Recorded {$transaction->currency} ".number_format($transaction->amount_minor_units / 100, 2)." via {$transaction->payment_method->label()}.")
+                                ->success()
+                                ->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()
+                                ->title('Failed to record offline payment')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
+                Action::make('issue_refund')
+                    ->label('Authorize Refund')
+                    ->icon(Heroicon::OutlinedArrowUturnLeft)
+                    ->color('danger')
+                    ->visible(fn (Booking $record): bool => (auth()->user()?->can(Permission::PaymentRefund->value) ?? false)
+                        && $record->totalSettledAmount() > 0)
+                    ->modalHeading('Authorize Compensating Refund')
+                    ->modalDescription(fn (Booking $record): string => "Currently settled balance: {$record->currency} ".number_format($record->totalSettledAmount() / 100, 2).'. Authorizing a refund creates an immutable compensating ledger entry. Password re-authentication is mandatory.')
+                    ->form([
+                        TextInput::make('amount')
+                            ->label('Refund Amount')
+                            ->numeric()
+                            ->required()
+                            ->minValue(0.01)
+                            ->prefix(fn (Booking $record): string => $record->currency ?: 'USD'),
+                        Textarea::make('reason')
+                            ->label('Reason for Refund')
+                            ->required()
+                            ->minLength(5)
+                            ->maxLength(1000),
+                        TextInput::make('reauth_password')
+                            ->label('Re-enter Staff Password')
+                            ->password()
+                            ->required()
+                            ->rule('current_password:web')
+                            ->helperText('Financial governance mandates password re-authentication before authorizing refunds.'),
+                    ])
+                    ->action(function (Booking $record, array $data): void {
+                        $amountMinor = (int) round(((float) $data['amount']) * 100);
+                        $refundData = new RefundData(
+                            amountMinorUnits: $amountMinor,
+                            reason: $data['reason']
+                        );
+
+                        try {
+                            $refund = app(RefundService::class)->issueRefund($record, auth()->user(), $refundData);
+                            Notification::make()
+                                ->title('Compensating refund authorized.')
+                                ->body("Refunded {$refund->currency} ".number_format($refund->amount_minor_units / 100, 2).' and updated ledger.')
+                                ->success()
+                                ->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()
+                                ->title('Failed to authorize refund')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
                 Action::make('deliveries')
                     ->label('Deliveries')
                     ->icon(Heroicon::OutlinedChatBubbleLeftRight)
@@ -759,6 +875,8 @@ class BookingResource extends Resource
     {
         return [
             ProposalsRelationManager::class,
+            PaymentTransactionsRelationManager::class,
+            FinancialDocumentsRelationManager::class,
             MessageDeliveriesRelationManager::class,
         ];
     }

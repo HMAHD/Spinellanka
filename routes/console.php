@@ -27,3 +27,7 @@ Schedule::command('outbox:drain')
 Schedule::command('availability:cleanup-stale')
     ->daily()
     ->withoutOverlapping();
+
+Schedule::command('payments:reconcile')
+    ->hourly()
+    ->withoutOverlapping();

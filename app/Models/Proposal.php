@@ -180,4 +180,12 @@ class Proposal extends Model
     {
         return $this->hasMany(ProposalItem::class)->orderBy('sort_order');
     }
+
+    /**
+     * @return HasMany<PaymentTransaction, $this>
+     */
+    public function paymentTransactions(): HasMany
+    {
+        return $this->hasMany(PaymentTransaction::class);
+    }
 }

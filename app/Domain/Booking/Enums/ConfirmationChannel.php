@@ -10,6 +10,7 @@ enum ConfirmationChannel: string
     case Phone = 'phone';
     case Email = 'email';
     case GuestPrivateLink = 'guest_private_link';
+    case OnlinePayment = 'online_payment';
 
     public function label(): string
     {
@@ -18,6 +19,7 @@ enum ConfirmationChannel: string
             self::Phone => 'Phone Call',
             self::Email => 'Email',
             self::GuestPrivateLink => 'Guest Private Link',
+            self::OnlinePayment => 'Online Payment Gateway',
         };
     }
 }

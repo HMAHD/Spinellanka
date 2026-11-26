@@ -210,7 +210,7 @@ class BookingLifecycleService
             throw new InvalidArgumentException("Booking {$booking->reference} has expired and was not placed under review. Re-estimate required.");
         }
 
-        if ($channel !== ConfirmationChannel::GuestPrivateLink) {
+        if (! in_array($channel, [ConfirmationChannel::GuestPrivateLink, ConfirmationChannel::OnlinePayment], true)) {
             if (! $staff || (! $staff->can(Permission::BookingConfirm->value) && ! $staff->hasPermissionTo(Permission::BookingConfirm->value))) {
                 throw new InvalidArgumentException('Actor does not have booking.confirm permission.');
             }
@@ -291,7 +291,7 @@ class BookingLifecycleService
                     'proposal_id' => $proposal?->id,
                 ],
                 auditable: $booking,
-                actorType: $staff ? 'staff' : 'guest'
+                actorType: $staff ? 'staff' : ($channel === ConfirmationChannel::OnlinePayment ? 'system' : 'guest')
             );
 
             $plainGuestToken = bin2hex(random_bytes(32));
