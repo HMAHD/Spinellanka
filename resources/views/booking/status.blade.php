@@ -72,6 +72,10 @@
           <span class="status-pill status-declined">
             <span class="status-dot red"></span> Request Declined
           </span>
+        @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Completed)
+          <span class="status-pill status-completed" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;">
+            <span class="status-dot green"></span> Service Completed
+          </span>
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Cancelled)
           <span class="status-pill status-cancelled">
             <span class="status-dot gray"></span> Cancelled
@@ -109,6 +113,8 @@
           Official Dispatch Proposal Ready
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::AwaitingPayment)
           Proposal Accepted — Awaiting Payment Settlement
+        @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Completed)
+          Service Successfully Completed — Thank You
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Declined)
           Reservation Request Declined
         @else
@@ -131,6 +137,8 @@
           Our operations desk has verified route feasibility, turnaround buffers, and allocated fleet capacity. Please review the official proposal, options, and response terms below.
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::AwaitingPayment)
           Thank you for accepting our proposal. Your vehicle hold is secured. Please finalize your advance settlement or security deposit below to complete confirmation.
+        @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Completed)
+          Your journey with Spinellanka has been successfully concluded. We hope you had a pleasant and comfortable journey.
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Declined)
           {{ $booking->decline_reason ?? 'Unfortunately, we are unable to accommodate this schedule.' }}
         @else
@@ -646,6 +654,60 @@
                     @endif
                   @endif
                 </ul>
+              </div>
+            </div>
+          </section>
+        @endif
+
+        @if(($booking->status === \App\Domain\Booking\Enums\BookingStatus::Confirmed || $booking->status === \App\Domain\Booking\Enums\BookingStatus::Completed) && isset($assignedDriver) && $assignedDriver)
+          <!-- Dedicated Chauffeur Allocation Card (Pillar C Transparency) -->
+          <section class="booking-card" aria-labelledby="driver-details-heading" style="border: 2px solid #0C1445; background: #ffffff;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+              <h2 id="driver-details-heading" class="card-heading" style="margin: 0; color: #0C1445;">
+                Dedicated Professional Chauffeur
+              </h2>
+              @if(isset($currentDriverAssignment) && $currentDriverAssignment)
+                <span class="badge" style="background: #0C1445; color: #ffffff; padding: 0.35rem 0.75rem; border-radius: 9999px; font-size: 0.8125rem; font-weight: 700;">
+                  Live Status: {{ $currentDriverAssignment->status->label() }}
+                </span>
+              @endif
+            </div>
+
+            <div style="display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;">
+              <div style="width: 72px; height: 72px; border-radius: 9999px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 800; color: #0C1445; border: 2px solid #C5A880; overflow: hidden; flex-shrink: 0;">
+                @if($assignedDriver->portrait_path)
+                  <img src="{{ Storage::url($assignedDriver->portrait_path) }}" alt="{{ $assignedDriver->public_name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                @else
+                  <span>{{ substr($assignedDriver->public_name, 0, 1) }}</span>
+                @endif
+              </div>
+
+              <div style="flex: 1; min-width: 200px;">
+                <h3 style="margin: 0 0 0.25rem 0; font-size: 1.15rem; color: #0f172a; font-weight: 700;">
+                  {{ $assignedDriver->public_name }}
+                </h3>
+                <p style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: #64748b;">
+                  Verified Sri Lanka Tourist Board Registered Chauffeur Guide
+                </p>
+
+                @if(!empty($assignedDriver->public_trust_facts))
+                  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                    @foreach($assignedDriver->public_trust_facts as $fact)
+                      <span style="font-size: 0.75rem; background: #f8fafc; border: 1px solid #e2e8f0; color: #334155; padding: 0.15rem 0.5rem; border-radius: 4px;">
+                        ✓ {{ $fact }}
+                      </span>
+                    @endforeach
+                  </div>
+                @endif
+
+                @if($assignedDriver->whatsapp && $booking->status === \App\Domain\Booking\Enums\BookingStatus::Confirmed)
+                  <div style="margin-top: 0.75rem;">
+                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $assignedDriver->whatsapp) }}" target="_blank" rel="noreferrer noopener" class="btn btn-sm" style="display: inline-flex; align-items: center; gap: 0.375rem; background: #25D366; color: #ffffff; text-decoration: none; padding: 0.4rem 0.875rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">
+                      <span>Direct WhatsApp with Chauffeur</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </a>
+                  </div>
+                @endif
               </div>
             </div>
           </section>

@@ -15,7 +15,9 @@ use App\Domain\Booking\Enums\ProposalStatus;
 use App\Domain\Booking\ServiceType;
 use App\Domain\Identity\Permission;
 use App\Domain\Messaging\Services\OutboxService;
+use App\Domain\Operations\Enums\DriverTripStatus;
 use App\Models\Booking;
+use App\Models\DriverAccessToken;
 use App\Models\GuestAccessToken;
 use App\Models\Proposal;
 use App\Models\User;
@@ -411,6 +413,13 @@ class BookingLifecycleService
             throw new InvalidArgumentException('Cancellation reason cannot be empty.');
         }
 
+        if ($booking->currentDriverAssignment) {
+            $activeStatus = $booking->currentDriverAssignment->status;
+            if (in_array($activeStatus, [DriverTripStatus::EnRoute, DriverTripStatus::Arrived, DriverTripStatus::Started], true) && $actor === null) {
+                throw new InvalidArgumentException("Cannot cancel booking {$booking->reference}: trip is already in progress ({$activeStatus->label()}). Staff assistance required.");
+            }
+        }
+
         return DB::transaction(function () use ($booking, $reason, $actor) {
             if ($booking->scheduleBlock) {
                 if ($booking->scheduleBlock->group_id) {
@@ -460,6 +469,19 @@ class BookingLifecycleService
                     'status' => ProposalStatus::Superseded,
                 ]);
             }
+
+            if ($booking->currentDriverAssignment && ! $booking->currentDriverAssignment->status->isTerminal()) {
+                $booking->currentDriverAssignment->update([
+                    'status' => DriverTripStatus::Cancelled,
+                ]);
+            }
+
+            DriverAccessToken::where('booking_id', $booking->id)
+                ->whereNull('revoked_at')
+                ->update([
+                    'revoked_at' => Carbon::now('Asia/Colombo'),
+                    'revocation_reason' => 'booking_cancelled',
+                ]);
 
             $this->auditService->record(
                 action: 'booking.cancelled',
@@ -542,6 +564,53 @@ class BookingLifecycleService
             );
 
             return $booking;
+        });
+    }
+
+    public function complete(Booking $booking, ?User $actor = null): Booking
+    {
+        if ($booking->status !== BookingStatus::Confirmed) {
+            throw new InvalidArgumentException("Booking {$booking->reference} cannot be completed from status {$booking->status->value}.");
+        }
+
+        return DB::transaction(function () use ($booking, $actor) {
+            /** @var Booking $lockedBooking */
+            $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
+
+            if ($lockedBooking->status !== BookingStatus::Confirmed) {
+                throw new InvalidArgumentException("Booking {$lockedBooking->reference} cannot be completed from status {$lockedBooking->status->value}.");
+            }
+
+            $now = Carbon::now('Asia/Colombo');
+            $lockedBooking->update([
+                'status' => BookingStatus::Completed,
+                'completed_at' => $now,
+            ]);
+
+            $this->auditService->record(
+                action: 'booking.completed',
+                actor: $actor,
+                summary: "Booking {$lockedBooking->reference} marked as completed",
+                metadata: [
+                    'booking_id' => $lockedBooking->id,
+                    'reference' => $lockedBooking->reference,
+                ],
+                auditable: $lockedBooking,
+                actorType: $actor ? 'staff' : 'driver'
+            );
+
+            $this->outboxService->record(
+                eventType: 'booking.completed',
+                aggregate: $lockedBooking,
+                payload: [
+                    'booking_id' => $lockedBooking->id,
+                    'reference' => $lockedBooking->reference,
+                    'completed_at' => $now->toIso8601String(),
+                ],
+                idempotencyKey: "evt_booking_{$lockedBooking->id}_completed_v1"
+            );
+
+            return $lockedBooking;
         });
     }
 }

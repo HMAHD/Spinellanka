@@ -5,6 +5,7 @@ use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Http\Controllers\AirportPickupBookingController;
 use App\Http\Controllers\AirportTransferBookingController;
 use App\Http\Controllers\BookingStatusController;
+use App\Http\Controllers\DriverTripController;
 use App\Http\Controllers\FinancialDocumentController;
 use App\Http\Controllers\PaymentCheckoutController;
 use App\Http\Controllers\PaymentWebhookController;
@@ -95,6 +96,13 @@ Route::post('/webhooks/payment/{provider}', [PaymentWebhookController::class, 'h
 Route::get('/staff/bookings/{booking}/documents/{documentNumber}', [FinancialDocumentController::class, 'staffView'])
     ->middleware(['auth'])
     ->name('staff.documents.view');
+
+// Driver Mobile Trip Routes (Stateless, token-authorized)
+Route::prefix('/driver/trip/{token}')->name('driver.trip.')->group(function (): void {
+    Route::get('/', [DriverTripController::class, 'show'])->name('show');
+    Route::post('/status', [DriverTripController::class, 'updateStatus'])->middleware('throttle:30,1')->name('status');
+    Route::post('/issue', [DriverTripController::class, 'reportIssue'])->middleware('throttle:15,1')->name('issue');
+});
 
 Route::get('/fleet', function () {
     $vehicles = Vehicle::query()
