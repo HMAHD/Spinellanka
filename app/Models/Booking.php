@@ -88,6 +88,7 @@ class Booking extends Model
             'cancelled_at' => 'datetime',
             'declined_at' => 'datetime',
             'completed_at' => 'datetime',
+            'anonymized_at' => 'datetime',
             'expires_at' => 'datetime',
         ];
     }
@@ -426,6 +427,30 @@ class Booking extends Model
     public function financialDocuments(): HasMany
     {
         return $this->hasMany(FinancialDocument::class);
+    }
+
+    /**
+     * @return HasMany<Handover, $this>
+     */
+    public function handovers(): HasMany
+    {
+        return $this->hasMany(Handover::class);
+    }
+
+    /**
+     * @return HasMany<Incident, $this>
+     */
+    public function incidents(): HasMany
+    {
+        return $this->hasMany(Incident::class);
+    }
+
+    /**
+     * @return HasMany<LegalHold, $this>
+     */
+    public function legalHolds(): HasMany
+    {
+        return $this->hasMany(LegalHold::class);
     }
 
     /**

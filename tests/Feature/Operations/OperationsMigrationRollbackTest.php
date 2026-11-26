@@ -16,8 +16,8 @@ test('driver operations migrations can be rolled back and re-applied cleanly wit
     expect(Schema::hasColumn('bookings', 'assigned_driver_id'))->toBeTrue();
     expect(Schema::hasColumn('bookings', 'current_driver_assignment_id'))->toBeTrue();
 
-    // Rollback the 2 operations migration steps
-    $exitCode = Artisan::call('migrate:rollback', ['--step' => 2]);
+    // Rollback the 5 operations, handover, incident & privacy migration steps (3 from Phase 15 + 2 from Phase 14)
+    $exitCode = Artisan::call('migrate:rollback', ['--step' => 5]);
     expect($exitCode)->toBe(0);
 
     // Assert Phase 14 tables and columns are dropped cleanly

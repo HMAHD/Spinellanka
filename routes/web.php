@@ -5,10 +5,12 @@ use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Http\Controllers\AirportPickupBookingController;
 use App\Http\Controllers\AirportTransferBookingController;
 use App\Http\Controllers\BookingStatusController;
+use App\Http\Controllers\DataExportDownloadController;
 use App\Http\Controllers\DriverTripController;
 use App\Http\Controllers\FinancialDocumentController;
 use App\Http\Controllers\PaymentCheckoutController;
 use App\Http\Controllers\PaymentWebhookController;
+use App\Http\Controllers\PrivateMediaDownloadController;
 use App\Http\Controllers\RentBookingController;
 use App\Http\Controllers\RideBookingController;
 use App\Models\Vehicle;
@@ -96,6 +98,12 @@ Route::post('/webhooks/payment/{provider}', [PaymentWebhookController::class, 'h
 Route::get('/staff/bookings/{booking}/documents/{documentNumber}', [FinancialDocumentController::class, 'staffView'])
     ->middleware(['auth'])
     ->name('staff.documents.view');
+
+// Operations private attachments & data export downloads
+Route::middleware(['auth'])->prefix('/operations')->name('operations.')->group(function (): void {
+    Route::get('/attachments/{uuid}', [PrivateMediaDownloadController::class, 'download'])->name('attachments.download');
+    Route::get('/exports/{uuid}', [DataExportDownloadController::class, 'download'])->name('exports.download');
+});
 
 // Driver Mobile Trip Routes (Stateless, token-authorized)
 Route::prefix('/driver/trip/{token}')->name('driver.trip.')->group(function (): void {

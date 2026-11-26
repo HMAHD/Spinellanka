@@ -25,8 +25,8 @@ test('booking migrations can be completely rolled back and re-applied without co
     expect(Schema::hasTable('booking_contacts'))->toBeTrue();
     expect(Schema::hasTable('bookings'))->toBeTrue();
 
-    // Rollback the 17 booking, proposal, ride, rent, outbox, payment & driver operations migration steps
-    $exitCode = Artisan::call('migrate:rollback', ['--step' => 17]);
+    // Rollback the 20 booking, proposal, ride, rent, outbox, payment, driver operations, handover, incident & privacy migration steps
+    $exitCode = Artisan::call('migrate:rollback', ['--step' => 20]);
     expect($exitCode)->toBe(0);
 
     // Assert all 14 tables dropped cleanly

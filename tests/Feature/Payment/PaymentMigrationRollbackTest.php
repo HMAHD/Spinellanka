@@ -18,8 +18,8 @@ test('payment and document tables migration rolls back cleanly without foreign k
         ->and(Schema::hasTable('financial_documents'))->toBeTrue()
         ->and(Schema::hasTable('document_sequences'))->toBeTrue();
 
-    // Rollback through the payment migration step (3 steps back from Phase 14)
-    $this->artisan('migrate:rollback --step=3')->assertSuccessful();
+    // Rollback through the payment migration step (6 steps back: 3 from Phase 15 + 2 from Phase 14 + 1 payment)
+    $this->artisan('migrate:rollback --step=6')->assertSuccessful();
 
     // Assert all tables dropped in reverse dependency order
     expect(Schema::hasTable('document_sequences'))->toBeFalse()

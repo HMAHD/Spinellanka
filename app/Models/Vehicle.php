@@ -95,6 +95,7 @@ class Vehicle extends Model
             'eligible_for_ride' => 'boolean',
             'eligible_for_rent' => 'boolean',
             'turnaround_buffer_minutes' => 'integer',
+            'fuel_tank_capacity_litres' => 'integer',
             'registration_expiry' => 'date',
             'insurance_expiry' => 'date',
             'accessibility_features' => 'array',
@@ -111,6 +112,22 @@ class Vehicle extends Model
     public function media(): HasMany
     {
         return $this->hasMany(VehicleMedia::class)->orderBy('sort_order');
+    }
+
+    /**
+     * @return HasMany<Handover, $this>
+     */
+    public function handovers(): HasMany
+    {
+        return $this->hasMany(Handover::class);
+    }
+
+    /**
+     * @return HasMany<Incident, $this>
+     */
+    public function incidents(): HasMany
+    {
+        return $this->hasMany(Incident::class);
     }
 
     /**

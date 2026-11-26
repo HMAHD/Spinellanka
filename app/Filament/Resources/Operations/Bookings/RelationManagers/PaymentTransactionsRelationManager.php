@@ -33,6 +33,7 @@ class PaymentTransactionsRelationManager extends RelationManager
                         PaymentType::Deposit, PaymentType::RentExtension => 'primary',
                         PaymentType::SecurityDeposit => 'info',
                         PaymentType::Refund => 'danger',
+                        PaymentType::IncidentCharge, PaymentType::ConditionSettlement, PaymentType::CleaningPenalty => 'warning',
                     }),
 
                 TextColumn::make('payment_method')
