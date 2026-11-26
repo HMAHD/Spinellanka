@@ -5,6 +5,9 @@ use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Http\Controllers\AirportPickupBookingController;
 use App\Http\Controllers\AirportTransferBookingController;
 use App\Http\Controllers\BookingStatusController;
+use App\Http\Controllers\FinancialDocumentController;
+use App\Http\Controllers\PaymentCheckoutController;
+use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\RentBookingController;
 use App\Http\Controllers\RideBookingController;
 use App\Models\Vehicle;
@@ -73,7 +76,25 @@ Route::prefix('booking')->name('booking.')->middleware('throttle:60,1')->group(f
     Route::post('/{reference}/{token}/change', [BookingStatusController::class, 'change'])->middleware('throttle:15,1')->name('status.change');
     Route::post('/{reference}/{token}/cancel', [BookingStatusController::class, 'cancel'])->middleware('throttle:15,1')->name('status.cancel');
     Route::post('/{reference}/{token}/extension', [BookingStatusController::class, 'extension'])->middleware('throttle:15,1')->name('status.extension');
+
+    // Payment checkout & return
+    Route::post('/{reference}/{token}/payment/checkout', [PaymentCheckoutController::class, 'checkout'])->middleware('throttle:15,1')->name('payment.checkout');
+    Route::get('/{reference}/{token}/payment/return', [PaymentCheckoutController::class, 'return'])->name('payment.return');
+    Route::get('/{reference}/{token}/payment/cancel', [PaymentCheckoutController::class, 'cancel'])->name('payment.cancel');
+
+    // Financial document download
+    Route::get('/{reference}/{token}/documents/{documentNumber}', [FinancialDocumentController::class, 'download'])->name('documents.download');
 });
+
+// Asynchronous payment gateway webhook
+Route::post('/webhooks/payment/{provider}', [PaymentWebhookController::class, 'handle'])
+    ->middleware('throttle:120,1')
+    ->name('webhooks.payment');
+
+// Staff financial document view route
+Route::get('/staff/bookings/{booking}/documents/{documentNumber}', [FinancialDocumentController::class, 'staffView'])
+    ->middleware(['auth'])
+    ->name('staff.documents.view');
 
 Route::get('/fleet', function () {
     $vehicles = Vehicle::query()

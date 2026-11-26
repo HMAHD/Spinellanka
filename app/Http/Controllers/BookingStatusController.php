@@ -51,6 +51,8 @@ class BookingStatusController extends Controller
                 'rentDetail',
                 'contacts',
                 'policyAcceptances',
+                'paymentTransactions',
+                'financialDocuments',
             ])
             ->first();
 

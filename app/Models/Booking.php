@@ -9,6 +9,7 @@ use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\Enums\ConfirmationChannel;
 use App\Domain\Booking\Enums\ContactType;
 use App\Domain\Booking\ServiceType;
+use App\Domain\Payment\Enums\PaymentStatus;
 use App\Domain\Pricing\ValueObjects\Money;
 use Carbon\Carbon;
 use Database\Factories\BookingFactory;
@@ -361,6 +362,43 @@ class Booking extends Model
     public function messageDeliveries(): HasMany
     {
         return $this->hasMany(MessageDelivery::class);
+    }
+
+    /**
+     * @return HasMany<PaymentTransaction, $this>
+     */
+    public function paymentTransactions(): HasMany
+    {
+        return $this->hasMany(PaymentTransaction::class);
+    }
+
+    /**
+     * @return HasMany<Refund, $this>
+     */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    /**
+     * @return HasMany<FinancialDocument, $this>
+     */
+    public function financialDocuments(): HasMany
+    {
+        return $this->hasMany(FinancialDocument::class);
+    }
+
+    /**
+     * Calculate total settled amount in minor units.
+     */
+    public function totalSettledAmount(): int
+    {
+        return (int) $this->paymentTransactions()
+            ->whereIn('status', [
+                PaymentStatus::Completed->value,
+                PaymentStatus::PartiallyRefunded->value,
+            ])
+            ->sum('amount_minor_units');
     }
 
     /**

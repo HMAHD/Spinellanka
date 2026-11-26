@@ -21,9 +21,12 @@ return [
     'transactional_mailer' => [
         'provider' => env('TRANSACTIONAL_MAILER_PROVIDER', 'fake'),
     ],
-    'payments' => [
-        'provider' => env('PAYMENT_PROVIDER'),
-        'key' => env('PAYMENT_API_KEY'),
-        'webhook_secret' => env('PAYMENT_WEBHOOK_SECRET'),
+    'payment' => [
+        'gateway' => env('PAYMENT_GATEWAY', 'fake'),
+    ],
+    'payhere' => [
+        'merchant_id' => env('PAYHERE_MERCHANT_ID'),
+        'merchant_secret' => env('PAYHERE_MERCHANT_SECRET'),
+        'sandbox' => env('PAYHERE_SANDBOX', true),
     ],
 ];
