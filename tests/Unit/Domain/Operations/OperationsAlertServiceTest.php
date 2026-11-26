@@ -63,6 +63,42 @@ test('alert service detects overlapping schedule conflicts on vehicle', function
     expect($conflicts[0]->title)->toContain('Schedule Conflict');
 });
 
+test('alert service detects conflict between grouped booking block and ungrouped maintenance block', function (): void {
+    $vehicle = Vehicle::factory()->create(['public_name' => 'KDH Super GL']);
+
+    $now = Carbon::now('Asia/Colombo')->addHours(2);
+
+    // Grouped block (e.g. Return Ride Leg 1)
+    VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'kind' => ScheduleBlockKind::ConfirmedBooking,
+        'status' => ScheduleBlockStatus::Active,
+        'starts_at' => $now,
+        'ends_at' => $now->copy()->addHours(3),
+        'effective_start' => $now,
+        'effective_end' => $now->copy()->addHours(3),
+        'group_id' => 'grp-return-101',
+        'blocks_availability' => true,
+    ]);
+
+    // Ungrouped maintenance block (group_id = null) overlapping
+    VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'kind' => ScheduleBlockKind::Maintenance,
+        'status' => ScheduleBlockStatus::Active,
+        'starts_at' => $now->copy()->addHour(),
+        'ends_at' => $now->copy()->addHours(4),
+        'effective_start' => $now->copy()->addHour(),
+        'effective_end' => $now->copy()->addHours(4),
+        'group_id' => null,
+        'blocks_availability' => true,
+    ]);
+
+    $conflicts = $this->alertService->getConflictAlerts();
+    expect($conflicts)->toHaveCount(1)
+        ->and($conflicts[0]->severity)->toBe(OperationalAlertSeverity::Critical);
+});
+
 test('alert service detects imminent checkout and proposal deadlines', function (): void {
     // 1. Imminent checkout hold block expiring in 3 minutes
     $vehicle = Vehicle::factory()->create();

@@ -126,6 +126,12 @@
         </div>
       @endif
 
+      @if ($errors->any())
+        <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; color: #991b1b; padding: 0.875rem 1rem; border-radius: 0.375rem; margin-bottom: 1.25rem; font-size: 0.9375rem;" role="alert">
+          {{ $errors->first() }}
+        </div>
+      @endif
+
       @yield('content')
     </main>
 

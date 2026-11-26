@@ -293,3 +293,64 @@ test('revokeDriverAccess invalidates tokens and marks assignment cancelled', fun
     expect($tokenRecord->revoked_at)->not->toBeNull()
         ->and($tokenRecord->isValid())->toBeFalse();
 });
+
+test('multi-leg grouped bookings calculate driver token expiry against final leg and check conflicts across all legs', function (): void {
+    $v1 = Vehicle::factory()->create();
+    $v2 = Vehicle::factory()->create();
+    $driver = Driver::factory()->create(['status' => DriverStatus::Active]);
+
+    $now = Carbon::now('Asia/Colombo');
+    $leg1Start = $now->copy()->addDay()->setHour(9);
+    $leg1End = $now->copy()->addDay()->setHour(12);
+
+    $leg2Start = $now->copy()->addDays(3)->setHour(14);
+    $leg2End = $now->copy()->addDays(3)->setHour(18);
+
+    // Grouped blocks for Return Ride
+    $block1 = VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $v1->id,
+        'kind' => ScheduleBlockKind::ConfirmedBooking,
+        'status' => ScheduleBlockStatus::Active,
+        'starts_at' => $leg1Start,
+        'ends_at' => $leg1End,
+        'effective_start' => $leg1Start,
+        'effective_end' => $leg1End,
+        'group_id' => 'grp-return-test',
+        'blocks_availability' => true,
+    ]);
+
+    $block2 = VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $v1->id,
+        'kind' => ScheduleBlockKind::ConfirmedBooking,
+        'status' => ScheduleBlockStatus::Active,
+        'starts_at' => $leg2Start,
+        'ends_at' => $leg2End,
+        'effective_start' => $leg2Start,
+        'effective_end' => $leg2End,
+        'group_id' => 'grp-return-test',
+        'blocks_availability' => true,
+    ]);
+
+    $booking = Booking::factory()->create([
+        'vehicle_id' => $v1->id,
+        'schedule_block_id' => $block1->id,
+        'status' => BookingStatus::Confirmed,
+    ]);
+
+    $result = $this->assignmentService->assignDriver(
+        booking: $booking,
+        driver: $driver,
+        staff: $this->staff
+    );
+
+    $token = DriverAccessToken::where('driver_assignment_id', $result['assignment']->id)->first();
+    expect($token)->not->toBeNull();
+
+    // Expiry must be 48 hours after Leg 2 end (not Leg 1)
+    $expectedExpiry = $leg2End->copy()->addHours(48);
+    expect($token->expires_at->format('Y-m-d H:i'))->toBe($expectedExpiry->format('Y-m-d H:i'));
+
+    // Both blocks in the group must have driver_id assigned
+    expect($block1->fresh()->driver_id)->toBe($driver->id)
+        ->and($block2->fresh()->driver_id)->toBe($driver->id);
+});

@@ -72,3 +72,21 @@ test('complete throws DomainException if booking is not confirmed', function ():
     expect(fn () => $this->lifecycleService->complete($cancelledBooking))
         ->toThrow(InvalidArgumentException::class, 'cannot be completed from status cancelled');
 });
+
+test('complete rejects concurrently cancelled booking under row lock', function (): void {
+    $vehicle = Vehicle::factory()->create();
+
+    $booking = Booking::factory()->create([
+        'reference' => 'BK-CONCUR-01',
+        'vehicle_id' => $vehicle->id,
+        'status' => BookingStatus::Confirmed,
+    ]);
+
+    // Simulate in-memory copy looks confirmed, but database was updated to cancelled
+    Booking::where('id', $booking->id)->update(['status' => BookingStatus::Cancelled]);
+
+    expect(fn () => $this->lifecycleService->complete($booking))
+        ->toThrow(InvalidArgumentException::class, 'cannot be completed from status cancelled');
+
+    expect($booking->fresh()->status)->toBe(BookingStatus::Cancelled);
+});

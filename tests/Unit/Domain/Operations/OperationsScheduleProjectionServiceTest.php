@@ -157,3 +157,82 @@ test('operations schedule projection projects day and agenda views', function ()
         ->and($agenda[$dateKey][0]->booking_reference)->toBe('BK-DAY-001')
         ->and($agenda[$dateKey][0]->vehicle_name)->toContain('Toyota');
 });
+
+test('multi-day schedule blocks appear on all calendar dates they cover', function (): void {
+    $vehicle = Vehicle::factory()->create(['public_name' => 'Self-Drive WagonR']);
+
+    // Block spanning 3 days: Dec 21 10:00 to Dec 23 18:00 (Asia/Colombo)
+    $start = Carbon::parse('2026-12-21 10:00:00', 'Asia/Colombo');
+    $end = Carbon::parse('2026-12-23 18:00:00', 'Asia/Colombo');
+
+    VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'kind' => ScheduleBlockKind::ConfirmedBooking,
+        'status' => ScheduleBlockStatus::Active,
+        'starts_at' => $start,
+        'ends_at' => $end,
+        'effective_start' => $start,
+        'effective_end' => $end,
+        'blocks_availability' => true,
+    ]);
+
+    // Check month grid
+    $grid = $this->projectionService->projectMonth($start);
+    expect($grid)->toHaveKey('2026-12-21')
+        ->and($grid)->toHaveKey('2026-12-22')
+        ->and($grid)->toHaveKey('2026-12-23');
+
+    expect($grid['2026-12-21'])->toHaveCount(1);
+    expect($grid['2026-12-22'])->toHaveCount(1);
+    expect($grid['2026-12-23'])->toHaveCount(1);
+
+    // Day 2 projectDay must also find the block
+    $day2 = Carbon::parse('2026-12-22 12:00:00', 'Asia/Colombo');
+    $day2Items = $this->projectionService->projectDay($day2);
+    expect($day2Items)->toHaveCount(1);
+});
+
+test('conflict detection handles multi-vehicle non-contiguous collection indices cleanly', function (): void {
+    $v1 = Vehicle::factory()->create();
+    $v2 = Vehicle::factory()->create();
+
+    $base = Carbon::parse('2026-12-25 10:00:00', 'Asia/Colombo');
+
+    // Create interleaved blocks for v1 and v2 so collection indices are non-contiguous
+    VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $v1->id,
+        'kind' => ScheduleBlockKind::ConfirmedBooking,
+        'status' => ScheduleBlockStatus::Active,
+        'starts_at' => $base,
+        'ends_at' => $base->copy()->addHours(3),
+        'effective_start' => $base,
+        'effective_end' => $base->copy()->addHours(3),
+        'blocks_availability' => true,
+    ]);
+
+    VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $v2->id,
+        'kind' => ScheduleBlockKind::ConfirmedBooking,
+        'status' => ScheduleBlockStatus::Active,
+        'starts_at' => $base,
+        'ends_at' => $base->copy()->addHours(3),
+        'effective_start' => $base,
+        'effective_end' => $base->copy()->addHours(3),
+        'blocks_availability' => true,
+    ]);
+
+    // Overlapping block on v1
+    VehicleScheduleBlock::factory()->create([
+        'vehicle_id' => $v1->id,
+        'kind' => ScheduleBlockKind::Maintenance,
+        'status' => ScheduleBlockStatus::Active,
+        'starts_at' => $base->copy()->addHour(),
+        'ends_at' => $base->copy()->addHours(4),
+        'effective_start' => $base->copy()->addHour(),
+        'effective_end' => $base->copy()->addHours(4),
+        'blocks_availability' => true,
+    ]);
+
+    $grid = $this->projectionService->projectMonth($base);
+    expect($grid['2026-12-25'])->toHaveCount(3);
+});

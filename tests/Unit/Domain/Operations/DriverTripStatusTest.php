@@ -65,4 +65,3 @@ test('driver trip status provides human readable labels and icons', function ():
         expect($case->icon())->toBeString()->toStartWith('heroicon-o-');
     }
 });
-

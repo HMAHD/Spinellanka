@@ -66,7 +66,7 @@ class OperationsAlertService
                     ->whereColumn('b1.id', '<', 'b2.id')
                     ->whereRaw('b1.effective_start < b2.effective_end')
                     ->whereRaw('b1.effective_end > b2.effective_start')
-                    ->whereRaw('(b1.group_id IS NULL OR b1.group_id != b2.group_id)');
+                    ->whereRaw('(b1.group_id IS NULL OR b2.group_id IS NULL OR b1.group_id != b2.group_id)');
             })
             ->join('vehicles', 'b1.vehicle_id', '=', 'vehicles.id')
             ->where('b1.status', ScheduleBlockStatus::Active->value)
@@ -143,7 +143,13 @@ class OperationsAlertService
         $horizon = $now->copy()->addHours(48);
 
         $unassignedBookings = Booking::query()
-            ->with(['vehicle'])
+            ->with([
+                'vehicle',
+                'airportPickupDetail',
+                'airportTransferDetail',
+                'rideDetail',
+                'rentDetail',
+            ])
             ->where('status', BookingStatus::Confirmed)
             ->whereIn('service_type', [
                 ServiceType::AirportPickup,
@@ -161,7 +167,7 @@ class OperationsAlertService
                     id: "unassigned_{$booking->id}",
                     severity: OperationalAlertSeverity::Critical,
                     title: "Unassigned Chauffeured Trip: {$booking->reference}",
-                    description: "Confirmed {$booking->service_type->label()} starts in ~{$hoursUntil}h ({$startTime->format('d M h:i A')}) with no driver assigned.",
+                    description: "Confirmed {$booking->service_type->label()} starts in ~{$hoursUntil}h ({$startTime->copy()->setTimezone('Asia/Colombo')->format('d M h:i A')}) with no driver assigned.",
                     category: 'unassigned_trip',
                     booking_id: $booking->id,
                     booking_reference: $booking->reference,

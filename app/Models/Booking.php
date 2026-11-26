@@ -463,6 +463,7 @@ class Booking extends Model
             BookingStatus::Declined->value,
             BookingStatus::Cancelled->value,
             BookingStatus::Expired->value,
+            BookingStatus::Completed->value,
         ]);
     }
 }

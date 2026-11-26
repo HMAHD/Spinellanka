@@ -34,8 +34,8 @@ class DriverAssignmentService
      */
     public function resolveTiedDriver(Vehicle $vehicle, Carbon $serviceDate): ?Driver
     {
-        $startOfDay = $serviceDate->copy()->setTimezone('Asia/Colombo')->startOfDay();
-        $endOfDay = $serviceDate->copy()->setTimezone('Asia/Colombo')->endOfDay();
+        $startOfDay = $serviceDate->copy()->setTimezone('Asia/Colombo')->startOfDay()->utc();
+        $endOfDay = $serviceDate->copy()->setTimezone('Asia/Colombo')->endOfDay()->utc();
 
         /** @var VehicleDriverAssignment|null $assignment */
         $assignment = VehicleDriverAssignment::where('vehicle_id', $vehicle->id)
@@ -74,28 +74,55 @@ class DriverAssignmentService
             }
         }
 
-        // Conflict check: ensure driver is not assigned to an overlapping active schedule block on another vehicle
-        $serviceStart = $booking->scheduleBlock ? $booking->scheduleBlock->effective_start : $booking->getServiceStartTime();
-        $serviceEnd = $booking->scheduleBlock ? $booking->scheduleBlock->effective_end : ($serviceStart ? $serviceStart->copy()->addHours(6) : null);
+        return DB::transaction(function () use ($booking, $driver, $staff, $isReplacement, $replacementReason) {
+            // Lock driver to serialize concurrent assignments for the same chauffeur
+            Driver::where('id', $driver->id)->lockForUpdate()->firstOrFail();
 
-        if ($serviceStart && $serviceEnd) {
-            $conflictingBlockExists = VehicleScheduleBlock::query()
-                ->active()
-                ->blocking()
-                ->where('driver_id', $driver->id)
-                ->where('vehicle_id', '!=', $booking->vehicle_id)
-                ->overlapping($serviceStart, $serviceEnd)
-                ->exists();
-
-            if ($conflictingBlockExists) {
-                throw new InvalidArgumentException("Driver {$driver->public_name} is already assigned to another vehicle during this time window.");
-            }
-        }
-
-        return DB::transaction(function () use ($booking, $driver, $staff, $isReplacement, $replacementReason, $serviceEnd) {
-            // Row-level lock on booking
+            // Row-level lock on booking aggregate root
             /** @var Booking $lockedBooking */
             $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
+
+            // Conflict check & service end calculation (supporting multi-leg grouped blocks)
+            $serviceEnd = null;
+            if ($lockedBooking->scheduleBlock?->group_id) {
+                $blocks = VehicleScheduleBlock::query()
+                    ->where('group_id', $lockedBooking->scheduleBlock->group_id)
+                    ->where('status', ScheduleBlockStatus::Active->value)
+                    ->get();
+
+                $serviceEnd = $blocks->max(fn ($b) => $b->effective_end);
+
+                foreach ($blocks as $blk) {
+                    $hasConflict = VehicleScheduleBlock::query()
+                        ->active()
+                        ->blocking()
+                        ->where('driver_id', $driver->id)
+                        ->where('vehicle_id', '!=', $lockedBooking->vehicle_id)
+                        ->overlapping($blk->effective_start, $blk->effective_end)
+                        ->exists();
+
+                    if ($hasConflict) {
+                        throw new InvalidArgumentException("Driver {$driver->public_name} is already assigned to another vehicle during this time window.");
+                    }
+                }
+            } else {
+                $serviceStart = $lockedBooking->scheduleBlock ? $lockedBooking->scheduleBlock->effective_start : $lockedBooking->getServiceStartTime();
+                $serviceEnd = $lockedBooking->scheduleBlock ? $lockedBooking->scheduleBlock->effective_end : ($serviceStart ? $serviceStart->copy()->addHours(6) : null);
+
+                if ($serviceStart && $serviceEnd) {
+                    $conflictingBlockExists = VehicleScheduleBlock::query()
+                        ->active()
+                        ->blocking()
+                        ->where('driver_id', $driver->id)
+                        ->where('vehicle_id', '!=', $lockedBooking->vehicle_id)
+                        ->overlapping($serviceStart, $serviceEnd)
+                        ->exists();
+
+                    if ($conflictingBlockExists) {
+                        throw new InvalidArgumentException("Driver {$driver->public_name} is already assigned to another vehicle during this time window.");
+                    }
+                }
+            }
 
             // Supersede any existing active assignment for this booking
             DriverAssignment::where('booking_id', $lockedBooking->id)
@@ -200,24 +227,36 @@ class DriverAssignmentService
         }
 
         return DB::transaction(function () use ($booking, $staff, $reason) {
+            /** @var Booking $lockedBooking */
+            $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
+
             $now = Carbon::now('Asia/Colombo');
 
-            DriverAccessToken::where('booking_id', $booking->id)
+            DriverAccessToken::where('booking_id', $lockedBooking->id)
                 ->whereNull('revoked_at')
                 ->update([
                     'revoked_at' => $now,
                     'revocation_reason' => "rotated: {$reason}",
                 ]);
 
-            $serviceEnd = $booking->scheduleBlock ? $booking->scheduleBlock->effective_end : ($booking->getServiceStartTime()?->copy()->addHours(6) ?? $now->copy()->addHours(24));
+            if ($lockedBooking->scheduleBlock?->group_id) {
+                $blocks = VehicleScheduleBlock::query()
+                    ->where('group_id', $lockedBooking->scheduleBlock->group_id)
+                    ->where('status', ScheduleBlockStatus::Active->value)
+                    ->get();
+                $serviceEnd = $blocks->max(fn ($b) => $b->effective_end);
+            } else {
+                $serviceEnd = $lockedBooking->scheduleBlock ? $lockedBooking->scheduleBlock->effective_end : ($lockedBooking->getServiceStartTime()?->copy()->addHours(6) ?? $now->copy()->addHours(24));
+            }
+
             $plainToken = bin2hex(random_bytes(32));
             $tokenHash = hash('sha256', $plainToken);
-            $expiresAt = $serviceEnd->copy()->addHours(48);
+            $expiresAt = ($serviceEnd ?? $now->copy()->addHours(24))->copy()->addHours(48);
 
             DriverAccessToken::create([
-                'booking_id' => $booking->id,
-                'driver_assignment_id' => $booking->current_driver_assignment_id,
-                'driver_id' => $booking->assigned_driver_id,
+                'booking_id' => $lockedBooking->id,
+                'driver_assignment_id' => $lockedBooking->current_driver_assignment_id,
+                'driver_id' => $lockedBooking->assigned_driver_id,
                 'token_hash' => $tokenHash,
                 'expires_at' => $expiresAt,
             ]);
@@ -225,13 +264,13 @@ class DriverAssignmentService
             $this->auditService->record(
                 action: 'driver.token_rotated',
                 actor: $staff,
-                summary: "Rotated driver trip link for booking {$booking->reference}",
+                summary: "Rotated driver trip link for booking {$lockedBooking->reference}",
                 metadata: [
-                    'booking_id' => $booking->id,
-                    'driver_assignment_id' => $booking->current_driver_assignment_id,
+                    'booking_id' => $lockedBooking->id,
+                    'driver_assignment_id' => $lockedBooking->current_driver_assignment_id,
                     'reason' => $reason,
                 ],
-                auditable: $booking,
+                auditable: $lockedBooking,
                 actorType: 'staff'
             );
 
@@ -249,31 +288,34 @@ class DriverAssignmentService
         }
 
         DB::transaction(function () use ($booking, $staff, $reason) {
+            /** @var Booking $lockedBooking */
+            $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
+
             $now = Carbon::now('Asia/Colombo');
 
-            DriverAccessToken::where('booking_id', $booking->id)
+            DriverAccessToken::where('booking_id', $lockedBooking->id)
                 ->whereNull('revoked_at')
                 ->update([
                     'revoked_at' => $now,
                     'revocation_reason' => "revoked: {$reason}",
                 ]);
 
-            if ($booking->currentDriverAssignment && ! $booking->currentDriverAssignment->status->isTerminal()) {
-                $booking->currentDriverAssignment->update([
+            if ($lockedBooking->currentDriverAssignment && ! $lockedBooking->currentDriverAssignment->status->isTerminal()) {
+                $lockedBooking->currentDriverAssignment->update([
                     'status' => DriverTripStatus::Cancelled,
                 ]);
             }
 
             // Remove driver from schedule block(s)
-            if ($booking->scheduleBlock?->group_id) {
-                VehicleScheduleBlock::where('group_id', $booking->scheduleBlock->group_id)
+            if ($lockedBooking->scheduleBlock?->group_id) {
+                VehicleScheduleBlock::where('group_id', $lockedBooking->scheduleBlock->group_id)
                     ->where('status', ScheduleBlockStatus::Active->value)
                     ->update(['driver_id' => null]);
-            } elseif ($booking->scheduleBlock) {
-                $booking->scheduleBlock->update(['driver_id' => null]);
+            } elseif ($lockedBooking->scheduleBlock) {
+                $lockedBooking->scheduleBlock->update(['driver_id' => null]);
             }
 
-            $booking->update([
+            $lockedBooking->update([
                 'assigned_driver_id' => null,
                 'current_driver_assignment_id' => null,
             ]);
@@ -281,12 +323,12 @@ class DriverAssignmentService
             $this->auditService->record(
                 action: 'driver.access_revoked',
                 actor: $staff,
-                summary: "Revoked driver access for booking {$booking->reference}",
+                summary: "Revoked driver access for booking {$lockedBooking->reference}",
                 metadata: [
-                    'booking_id' => $booking->id,
+                    'booking_id' => $lockedBooking->id,
                     'reason' => $reason,
                 ],
-                auditable: $booking,
+                auditable: $lockedBooking,
                 actorType: 'staff'
             );
         });

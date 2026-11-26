@@ -141,6 +141,9 @@ class OperationsScheduleProjectionService
      */
     protected function queryBlocks(Carbon $start, Carbon $end, ?int $vehicleId = null): Collection
     {
+        $startUtc = $start->copy()->utc();
+        $endUtc = $end->copy()->utc();
+
         $query = VehicleScheduleBlock::query()
             ->with([
                 'vehicle',
@@ -161,8 +164,8 @@ class OperationsScheduleProjectionService
                 ]),
             ])
             ->where('status', ScheduleBlockStatus::Active->value)
-            ->where('effective_start', '<', $end)
-            ->where('effective_end', '>', $start);
+            ->where('effective_start', '<', $endUtc)
+            ->where('effective_end', '>', $startUtc);
 
         if ($vehicleId !== null) {
             $query->where('vehicle_id', $vehicleId);
@@ -194,10 +197,19 @@ class OperationsScheduleProjectionService
 
         foreach ($blocks as $block) {
             $item = $this->mapBlockToDTO($block, isset($conflictedBlockIds[$block->id]));
-            $blockDate = $block->effective_start->copy()->setTimezone('Asia/Colombo')->format('Y-m-d');
 
-            if (isset($grouped[$blockDate])) {
-                $grouped[$blockDate][] = $item;
+            $cur = $block->effective_start->copy()->setTimezone('Asia/Colombo')->startOfDay();
+            $last = $block->effective_end->copy()->setTimezone('Asia/Colombo');
+            $endDay = ($last->hour === 0 && $last->minute === 0 && $last->second === 0 && $last->gt($cur))
+                ? $last->copy()->subSecond()->startOfDay()
+                : $last->copy()->startOfDay();
+
+            while ($cur->lte($endDay)) {
+                $dateKey = $cur->format('Y-m-d');
+                if (isset($grouped[$dateKey])) {
+                    $grouped[$dateKey][] = $item;
+                }
+                $cur->addDay();
             }
         }
 
@@ -216,6 +228,7 @@ class OperationsScheduleProjectionService
         $byVehicle = $blocks->where('blocks_availability', true)->groupBy('vehicle_id');
 
         foreach ($byVehicle as $vehicleBlocks) {
+            $vehicleBlocks = $vehicleBlocks->values();
             $count = $vehicleBlocks->count();
             for ($i = 0; $i < $count; $i++) {
                 $b1 = $vehicleBlocks[$i];

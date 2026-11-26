@@ -577,6 +577,10 @@ class BookingLifecycleService
             /** @var Booking $lockedBooking */
             $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
 
+            if ($lockedBooking->status !== BookingStatus::Confirmed) {
+                throw new InvalidArgumentException("Booking {$lockedBooking->reference} cannot be completed from status {$lockedBooking->status->value}.");
+            }
+
             $now = Carbon::now('Asia/Colombo');
             $lockedBooking->update([
                 'status' => BookingStatus::Completed,

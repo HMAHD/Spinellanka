@@ -72,6 +72,10 @@
           <span class="status-pill status-declined">
             <span class="status-dot red"></span> Request Declined
           </span>
+        @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Completed)
+          <span class="status-pill status-completed" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;">
+            <span class="status-dot green"></span> Service Completed
+          </span>
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Cancelled)
           <span class="status-pill status-cancelled">
             <span class="status-dot gray"></span> Cancelled
@@ -109,6 +113,8 @@
           Official Dispatch Proposal Ready
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::AwaitingPayment)
           Proposal Accepted — Awaiting Payment Settlement
+        @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Completed)
+          Service Successfully Completed — Thank You
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Declined)
           Reservation Request Declined
         @else
@@ -131,6 +137,8 @@
           Our operations desk has verified route feasibility, turnaround buffers, and allocated fleet capacity. Please review the official proposal, options, and response terms below.
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::AwaitingPayment)
           Thank you for accepting our proposal. Your vehicle hold is secured. Please finalize your advance settlement or security deposit below to complete confirmation.
+        @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Completed)
+          Your journey with Spinellanka has been successfully concluded. We hope you had a pleasant and comfortable journey.
         @elseif($booking->status === \App\Domain\Booking\Enums\BookingStatus::Declined)
           {{ $booking->decline_reason ?? 'Unfortunately, we are unable to accommodate this schedule.' }}
         @else

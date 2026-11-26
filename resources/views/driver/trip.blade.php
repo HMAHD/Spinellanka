@@ -58,10 +58,10 @@
         {{ $trip->pickup_location_text }}
       </div>
       @if ($trip->pickup_navigation_url)
-        <div style="padding-left: 1rem; margin-top: 0.375rem;">
-          <a href="{{ $trip->pickup_navigation_url }}" target="_blank" rel="noreferrer noopener" style="display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #0284c7; text-decoration: none;">
+        <div style="padding-left: 1rem; margin-top: 0.5rem;">
+          <a href="{{ $trip->pickup_navigation_url }}" target="_blank" rel="noreferrer noopener" class="btn-touch" style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; padding: 0.5rem 0.875rem; border-radius: 0.375rem; text-decoration: none; min-height: 48px; box-sizing: border-box;">
             <span>Open in Google Maps</span>
-            <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
           </a>
         </div>
       @endif
@@ -93,10 +93,10 @@
           {{ $trip->destination_text }}
         </div>
         @if ($trip->destination_navigation_url)
-          <div style="padding-left: 1rem; margin-top: 0.375rem;">
-            <a href="{{ $trip->destination_navigation_url }}" target="_blank" rel="noreferrer noopener" style="display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #0284c7; text-decoration: none;">
+          <div style="padding-left: 1rem; margin-top: 0.5rem;">
+            <a href="{{ $trip->destination_navigation_url }}" target="_blank" rel="noreferrer noopener" class="btn-touch" style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; padding: 0.5rem 0.875rem; border-radius: 0.375rem; text-decoration: none; min-height: 48px; box-sizing: border-box;">
               <span>Open in Google Maps</span>
-              <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+              <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
             </a>
           </div>
         @endif
@@ -238,7 +238,7 @@
     @endif
 
     <!-- Secondary: Report Delay / Issue Button -->
-    @if ($trip->current_status->value !== 'completed')
+    @if (! $trip->current_status->isTerminal())
       <button type="button" class="btn-touch" style="width: 100%; background-color: #ffffff; color: #b45309; border: 1px solid #d97706; font-size: 0.9375rem; padding: 0.625rem 1rem;" onclick="document.getElementById('issue-dialog').showModal()">
         Report Delay / Issue
       </button>
@@ -266,7 +266,7 @@
       <textarea id="issue-notes" name="notes" rows="3" required placeholder="e.g. Heavy congestion near expressway exit, estimated 15 min delay." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 0.5rem; padding: 0.625rem; font-size: 0.9375rem; font-family: inherit; box-sizing: border-box;"></textarea>
     </div>
 
-    <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+    <div style="display: flex; gap: 0.75rem; justify-content: flex-end; flex-wrap: wrap; width: 100%;">
       <button type="button" class="btn-touch" style="background: #f1f5f9; color: #475569; border: none; padding: 0 1rem; font-size: 0.9375rem;" onclick="document.getElementById('issue-dialog').close()">
         Cancel
       </button>

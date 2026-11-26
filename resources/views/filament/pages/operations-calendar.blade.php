@@ -17,10 +17,17 @@
       border: 2px solid currentColor;
       background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0, 0, 0, 0.08) 4px, rgba(0, 0, 0, 0.08) 8px);
     }
+    .dark .border-pattern-diagonal_hatch {
+      background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255, 255, 255, 0.12) 4px, rgba(255, 255, 255, 0.12) 8px);
+    }
     .border-pattern-cross_hatch {
       border: 2px solid currentColor;
       background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0, 0, 0, 0.08) 4px, rgba(0, 0, 0, 0.08) 8px),
                         repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0, 0, 0, 0.08) 4px, rgba(0, 0, 0, 0.08) 8px);
+    }
+    .dark .border-pattern-cross_hatch {
+      background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255, 255, 255, 0.12) 4px, rgba(255, 255, 255, 0.12) 8px),
+                        repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(255, 255, 255, 0.12) 4px, rgba(255, 255, 255, 0.12) 8px);
     }
 
     .calendar-grid {
@@ -326,8 +333,12 @@
                       <div>
                         @if ($trip->driver_name)
                           <span>Chauffeur: <strong>{{ $trip->driver_name }}</strong> {{ $trip->is_replacement_driver ? '(Replacement)' : '' }}</span>
-                        @else
+                        @elseif ($trip->service_type === 'rent')
+                          <span class="text-gray-500 font-medium">Self-Drive Rental</span>
+                        @elseif ($trip->booking_reference)
                           <span class="text-rose-600 font-semibold">Chauffeur: Unassigned</span>
+                        @else
+                          <span class="text-gray-400 font-medium">Operational Block</span>
                         @endif
                       </div>
                       @if ($trip->trip_status_label)

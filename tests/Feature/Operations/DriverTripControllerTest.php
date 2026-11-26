@@ -16,6 +16,7 @@ use App\Models\Booking;
 use App\Models\BookingContact;
 use App\Models\Driver;
 use App\Models\DriverAccessToken;
+use App\Models\DriverTripUpdate;
 use App\Models\User;
 use App\Models\Vehicle;
 use Carbon\Carbon;
@@ -116,6 +117,16 @@ test('driver trip show endpoint returns 200 with security headers and neutral pr
 
     $revokedResponse = $this->get(route('driver.trip.show', ['token' => $plainToken]));
     $revokedResponse->assertStatus(404);
+
+    // 4. Naturally expired token returns 404 with neutral privacy shell
+    $tokenRecord->update([
+        'revoked_at' => null,
+        'expires_at' => Carbon::now('Asia/Colombo')->subMinutes(5),
+    ]);
+
+    $expiredResponse = $this->get(route('driver.trip.show', ['token' => $plainToken]));
+    $expiredResponse->assertStatus(404)
+        ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
 });
 
 test('driver trip show strictly time-gates passenger phone and WhatsApp until 24h prior to pickup', function (): void {
@@ -164,6 +175,21 @@ test('driver trip show strictly time-gates passenger phone and WhatsApp until 24
     $content = $response->getContent();
     expect($content)->not->toContain('+447911123456')
         ->and($content)->toContain('Traveler contact channels unlock 24 hours prior');
+
+    // Fast-forward pickup to within 24 hours: contact channels unmask
+    $booking->airportPickupDetail->update([
+        'arrival_time' => Carbon::now('Asia/Colombo')->addHours(6),
+    ]);
+
+    $unmaskedResponse = $this->get(route('driver.trip.show', ['token' => $result['plainToken']]));
+    $unmaskedResponse->assertStatus(200);
+    expect($unmaskedResponse->getContent())->toContain('+447911123456')
+        ->and($unmaskedResponse->getContent())->toContain('wa.me/447911123456');
+
+    // If trip completed, contact channels re-mask
+    $result['assignment']->update(['status' => DriverTripStatus::Completed]);
+    $remaskedResponse = $this->get(route('driver.trip.show', ['token' => $result['plainToken']]));
+    expect($remaskedResponse->getContent())->not->toContain('+447911123456');
 });
 
 test('driver trip milestone status update is monotonic, idempotent, and completes booking', function (): void {
@@ -226,14 +252,30 @@ test('driver trip milestone status update is monotonic, idempotent, and complete
     // 5. Completed milestone completes booking
     $this->post(route('driver.trip.status', ['token' => $token]), [
         'status' => DriverTripStatus::Completed->value,
+        'client_timestamp' => '2026-11-26T16:00:00Z',
     ])->assertRedirect();
 
     expect($result['assignment']->fresh()->status)->toBe(DriverTripStatus::Completed);
     expect($booking->fresh()->status)->toBe(BookingStatus::Completed)
         ->and($booking->fresh()->completed_at)->not->toBeNull();
+
+    // 6. Idempotency: repeating Completed succeeds without throwing an unhandled exception
+    $this->post(route('driver.trip.status', ['token' => $token]), [
+        'status' => DriverTripStatus::Completed->value,
+        'client_timestamp' => '2026-11-26T16:01:00Z',
+    ])->assertRedirect(route('driver.trip.show', ['token' => $token]));
+
+    expect($booking->fresh()->status)->toBe(BookingStatus::Completed);
+
+    // Assert client_timestamp was persisted in updates table
+    $update = DriverTripUpdate::where('driver_assignment_id', $result['assignment']->id)
+        ->where('status', DriverTripStatus::Completed->value)
+        ->first();
+    expect($update)->not->toBeNull()
+        ->and($update->client_device_timestamp)->toBe('2026-11-26T16:00:00Z');
 });
 
-test('driver can report operational issue without disrupting milestone flow', function (): void {
+test('driver can report operational issue rapidly without outbox idempotency key collision', function (): void {
     $vehicle = Vehicle::factory()->create();
     $driver = Driver::factory()->create(['status' => DriverStatus::Active]);
 
@@ -251,12 +293,23 @@ test('driver can report operational issue without disrupting milestone flow', fu
 
     $token = $result['plainToken'];
 
+    // Rapid double submission in the same second
     $this->post(route('driver.trip.issue', ['token' => $token]), [
         'notes' => 'Flight delayed by 45 minutes as per CMB arrivals board.',
+        'client_timestamp' => '2026-11-26T16:15:00Z',
+    ])->assertRedirect(route('driver.trip.show', ['token' => $token]))
+        ->assertSessionHas('status_success', 'Operational note dispatched to fleet desk.');
+
+    $this->post(route('driver.trip.issue', ['token' => $token]), [
+        'notes' => 'Flight delay update: now arriving gate 4.',
+        'client_timestamp' => '2026-11-26T16:15:01Z',
     ])->assertRedirect(route('driver.trip.show', ['token' => $token]))
         ->assertSessionHas('status_success', 'Operational note dispatched to fleet desk.');
 
     $assignment = $result['assignment']->fresh();
-    expect($assignment->issue_reported_notes)->toBe('Flight delayed by 45 minutes as per CMB arrivals board.')
+    expect($assignment->issue_reported_notes)->toBe('Flight delay update: now arriving gate 4.')
         ->and($assignment->issue_reported_at)->not->toBeNull();
+
+    $updates = DriverTripUpdate::where('driver_assignment_id', $assignment->id)->get();
+    expect($updates)->toHaveCount(2);
 });

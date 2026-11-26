@@ -125,7 +125,7 @@ class DriverTripService
             $destinationText = $d->return_location_text;
         }
 
-        // Contact details with strict time-gating (<= 24 hours before pickup and not completed)
+        // Contact details with strict time-gating (<= 24 hours before pickup, not older than 12h, and not terminal)
         $leadContact = $booking->contacts->firstWhere('type', ContactType::LeadTraveler) ?? $booking->contacts->first();
         $leadFirstName = $leadContact ? $leadContact->first_name : 'Guest';
 
@@ -133,10 +133,11 @@ class DriverTripService
         $leadWhatsAppUrl = null;
 
         $nowColombo = Carbon::now('Asia/Colombo');
-        $isWithin24Hours = $nowColombo->diffInHours($pickupTimeColombo, false) <= 24;
-        $isNotCompleted = $assignment->status !== DriverTripStatus::Completed;
+        $diffHours = $nowColombo->diffInHours($pickupTimeColombo, false);
+        $isWithinOperationalWindow = $diffHours <= 24 && $diffHours >= -12;
+        $isNotTerminal = ! $assignment->status->isTerminal();
 
-        if ($leadContact && $isWithin24Hours && $isNotCompleted) {
+        if ($leadContact && $isWithinOperationalWindow && $isNotTerminal) {
             $rawPhone = preg_replace('/[^0-9+]/', '', $leadContact->phone);
             $leadPhoneClean = $rawPhone;
             $whatsAppNumber = ltrim($rawPhone ?: '', '+');
@@ -196,23 +197,37 @@ class DriverTripService
         ?string $clientTimestamp = null,
     ): DriverAssignment {
         return DB::transaction(function () use ($tokenRecord, $newStatus, $notes, $clientTimestamp) {
-            /** @var DriverAssignment $assignment */
-            $assignment = DriverAssignment::where('id', $tokenRecord->driver_assignment_id)
+            /** @var DriverAccessToken|null $activeToken */
+            $activeToken = DriverAccessToken::where('id', $tokenRecord->id)
                 ->lockForUpdate()
+                ->first();
+
+            if (! $activeToken || $activeToken->revoked_at !== null || $activeToken->expires_at->lte(Carbon::now('Asia/Colombo'))) {
+                throw new InvalidArgumentException('Driver access token is invalid, expired, or has been revoked.');
+            }
+
+            /** @var DriverAssignment $assignment */
+            $assignment = DriverAssignment::where('id', $activeToken->driver_assignment_id)
                 ->firstOrFail();
 
+            // 1. Lock parent aggregate root first (consistent hierarchical locking order)
             /** @var Booking $booking */
             $booking = Booking::where('id', $assignment->booking_id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($booking->status !== BookingStatus::Confirmed) {
-                throw new InvalidArgumentException("Cannot update trip milestones for booking in status {$booking->status->value}.");
-            }
+            // 2. Lock child assignment
+            $assignment = DriverAssignment::where('id', $assignment->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
             // Idempotency: if already at the requested milestone, return unchanged
             if ($assignment->status === $newStatus) {
                 return $assignment;
+            }
+
+            if ($booking->status !== BookingStatus::Confirmed) {
+                throw new InvalidArgumentException("Cannot update trip milestones for booking in status {$booking->status->value}.");
             }
 
             // Monotonicity check: target state must be allowed
@@ -292,10 +307,23 @@ class DriverTripService
         }
 
         return DB::transaction(function () use ($tokenRecord, $notes, $clientTimestamp) {
+            /** @var DriverAccessToken|null $activeToken */
+            $activeToken = DriverAccessToken::where('id', $tokenRecord->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $activeToken || $activeToken->revoked_at !== null || $activeToken->expires_at->lte(Carbon::now('Asia/Colombo'))) {
+                throw new InvalidArgumentException('Driver access token is invalid, expired, or has been revoked.');
+            }
+
             /** @var DriverAssignment $assignment */
-            $assignment = DriverAssignment::where('id', $tokenRecord->driver_assignment_id)
+            $assignment = DriverAssignment::where('id', $activeToken->driver_assignment_id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            if ($assignment->status->isTerminal()) {
+                throw new InvalidArgumentException("Cannot report issue on {$assignment->status->label()} trip.");
+            }
 
             $now = Carbon::now('Asia/Colombo');
 
@@ -326,6 +354,7 @@ class DriverTripService
                 actorType: 'driver'
             );
 
+            $uniqueEntropy = bin2hex(random_bytes(4));
             $this->outboxService->record(
                 eventType: 'driver.issue_reported',
                 aggregate: $assignment,
@@ -336,7 +365,7 @@ class DriverTripService
                     'issue_notes' => trim($notes),
                     'reported_at' => $now->toIso8601String(),
                 ],
-                idempotencyKey: "evt_driver_assign_{$assignment->id}_issue_{$now->timestamp}"
+                idempotencyKey: "evt_driver_assign_{$assignment->id}_issue_{$now->timestamp}_{$uniqueEntropy}"
             );
 
             return $assignment;

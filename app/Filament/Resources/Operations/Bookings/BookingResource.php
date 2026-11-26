@@ -906,11 +906,17 @@ class BookingResource extends Resource
                         $tiedDriver = app(DriverAssignmentService::class)->resolveTiedDriver($record->vehicle, $serviceStart);
                         $drivers = Driver::where('status', DriverStatus::Active->value)->orderBy('public_name')->get();
 
+                        $options = [];
+                        foreach ($drivers as $d) {
+                            $suffix = ($tiedDriver && $d->id === $tiedDriver->id) ? ' (Tied Chauffeur)' : '';
+                            $options[$d->id] = $d->public_name.$suffix;
+                        }
+
                         return [
                             Select::make('driver_id')
                                 ->label('Select Fleet Driver')
-                                ->options($drivers->pluck('public_name', 'id'))
-                                ->default($tiedDriver?->id)
+                                ->options($options)
+                                ->default($record->assigned_driver_id ?? $tiedDriver?->id)
                                 ->required()
                                 ->live()
                                 ->helperText($tiedDriver ? "Recommended tied driver: {$tiedDriver->public_name}" : 'Select an active verified driver'),
@@ -918,8 +924,8 @@ class BookingResource extends Resource
                             Textarea::make('replacement_reason')
                                 ->label('Reason for Chauffeur Replacement (Required Governance)')
                                 ->placeholder('e.g. Tied driver on approved annual leave, or language preference requested by guest.')
-                                ->visible(fn (Get $get) => $tiedDriver && ((int) $get('driver_id')) !== $tiedDriver->id)
-                                ->required(fn (Get $get) => $tiedDriver && ((int) $get('driver_id')) !== $tiedDriver->id)
+                                ->visible(fn (Get $get) => ($tiedDriver && ((int) $get('driver_id')) !== $tiedDriver->id) || ($record->assigned_driver_id && ((int) $get('driver_id')) !== (int) $record->assigned_driver_id))
+                                ->required(fn (Get $get) => ($tiedDriver && ((int) $get('driver_id')) !== $tiedDriver->id) || ($record->assigned_driver_id && ((int) $get('driver_id')) !== (int) $record->assigned_driver_id))
                                 ->rows(2),
                         ];
                     })
@@ -927,7 +933,8 @@ class BookingResource extends Resource
                         $driver = Driver::findOrFail((int) $data['driver_id']);
                         $serviceStart = $record->getServiceStartTime() ?? Carbon::now('Asia/Colombo');
                         $tiedDriver = app(DriverAssignmentService::class)->resolveTiedDriver($record->vehicle, $serviceStart);
-                        $isReplacement = $tiedDriver && $driver->id !== $tiedDriver->id;
+                        $isReplacement = ($tiedDriver && $driver->id !== $tiedDriver->id)
+                            || ($record->assigned_driver_id && $driver->id !== (int) $record->assigned_driver_id);
 
                         try {
                             $result = app(DriverAssignmentService::class)->assignDriver(
