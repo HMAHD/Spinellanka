@@ -8,6 +8,8 @@ enum BookingStatus: string
 {
     case Submitted = 'submitted';
     case UnderReview = 'under_review';
+    case ProposalSent = 'proposal_sent';
+    case AwaitingPayment = 'awaiting_payment';
     case Confirmed = 'confirmed';
     case Declined = 'declined';
     case Cancelled = 'cancelled';
@@ -18,6 +20,8 @@ enum BookingStatus: string
         return match ($this) {
             self::Submitted => 'Submitted',
             self::UnderReview => 'Under Review',
+            self::ProposalSent => 'Proposal Sent',
+            self::AwaitingPayment => 'Awaiting Payment',
             self::Confirmed => 'Confirmed',
             self::Declined => 'Declined',
             self::Cancelled => 'Cancelled',
@@ -27,17 +31,17 @@ enum BookingStatus: string
 
     public function isPending(): bool
     {
-        return in_array($this, [self::Submitted, self::UnderReview], true);
+        return in_array($this, [self::Submitted, self::UnderReview, self::ProposalSent], true);
     }
 
     public function canBeConfirmed(): bool
     {
-        return $this->isPending();
+        return in_array($this, [self::Submitted, self::UnderReview, self::ProposalSent, self::AwaitingPayment], true);
     }
 
     public function canBeDeclined(): bool
     {
-        return $this->isPending();
+        return in_array($this, [self::Submitted, self::UnderReview, self::ProposalSent], true);
     }
 
     public function canBeCancelled(): bool
