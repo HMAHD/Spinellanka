@@ -10,10 +10,14 @@ use App\Domain\Availability\Enums\ScheduleBlockStatus;
 use App\Domain\Availability\Services\AvailabilityService;
 use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\Enums\ConfirmationChannel;
+use App\Domain\Booking\Enums\PaymentOption;
+use App\Domain\Booking\Enums\ProposalStatus;
+use App\Domain\Booking\ServiceType;
 use App\Domain\Identity\Permission;
 use App\Domain\Messaging\Services\OutboxService;
 use App\Models\Booking;
 use App\Models\GuestAccessToken;
+use App\Models\Proposal;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleScheduleBlock;
@@ -56,37 +60,166 @@ class BookingLifecycleService
         return $booking;
     }
 
+    public function markProposalSent(Booking $booking, Proposal $proposal, ?User $staff = null): Booking
+    {
+        return DB::transaction(function () use ($booking, $proposal, $staff) {
+            $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
+
+            if ($lockedBooking->status === BookingStatus::Confirmed) {
+                // Confirmed booking remains Confirmed; mark pending_revision = true
+                $lockedBooking->update([
+                    'pending_revision' => true,
+                    'current_proposal_id' => $proposal->id,
+                    'assigned_staff_id' => $staff ? $staff->id : $lockedBooking->assigned_staff_id,
+                ]);
+            } else {
+                $lockedBooking->update([
+                    'status' => BookingStatus::ProposalSent,
+                    'current_proposal_id' => $proposal->id,
+                    'assigned_staff_id' => $staff ? $staff->id : $lockedBooking->assigned_staff_id,
+                ]);
+            }
+
+            $this->auditService->record(
+                action: 'booking.proposal_sent',
+                actor: $staff,
+                summary: "Proposal {$proposal->reference} sent for booking {$lockedBooking->reference}",
+                metadata: [
+                    'booking_id' => $lockedBooking->id,
+                    'proposal_id' => $proposal->id,
+                    'version' => $proposal->version,
+                    'reference' => $proposal->reference,
+                ],
+                auditable: $lockedBooking,
+                actorType: $staff ? 'staff' : 'system'
+            );
+
+            return $lockedBooking;
+        });
+    }
+
+    public function markAwaitingPayment(Booking $booking, Proposal $proposal, PaymentOption $paymentOption): Booking
+    {
+        return DB::transaction(function () use ($booking, $proposal, $paymentOption) {
+            $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
+
+            $lockedBooking->update([
+                'status' => BookingStatus::AwaitingPayment,
+                'pending_revision' => false,
+                'current_proposal_id' => $proposal->id,
+            ]);
+
+            $this->auditService->record(
+                action: 'booking.awaiting_payment',
+                actor: null,
+                summary: "Booking {$lockedBooking->reference} is awaiting payment ({$paymentOption->label()})",
+                metadata: [
+                    'booking_id' => $lockedBooking->id,
+                    'proposal_id' => $proposal->id,
+                    'payment_option' => $paymentOption->value,
+                ],
+                auditable: $lockedBooking,
+                actorType: 'guest'
+            );
+
+            $this->outboxService->record(
+                eventType: 'booking.awaiting_payment',
+                aggregate: $lockedBooking,
+                payload: [
+                    'booking_id' => $lockedBooking->id,
+                    'proposal_id' => $proposal->id,
+                    'reference' => $lockedBooking->reference,
+                    'payment_option' => $paymentOption->value,
+                    'amount_due_minor_units' => $proposal->deposit_required && $paymentOption === PaymentOption::Deposit
+                        ? $proposal->deposit_amount_minor_units
+                        : $proposal->total_amount_minor_units,
+                    'currency' => $proposal->currency,
+                ],
+                idempotencyKey: "evt_booking_{$lockedBooking->id}_awaiting_payment_v{$proposal->version}"
+            );
+
+            return $lockedBooking;
+        });
+    }
+
+    public function hydrateFromProposalSnapshot(Booking $booking, Proposal $proposal): void
+    {
+        $booking->vehicle_id = $proposal->vehicle_id;
+        $booking->total_amount_minor_units = $proposal->total_amount_minor_units;
+        $booking->approximate_lkr_amount_minor_units = $proposal->approximate_lkr_amount_minor_units;
+        $booking->currency = $proposal->currency;
+
+        $snapshot = $proposal->snapshot_data;
+        if (isset($snapshot['service_details']) && is_array($snapshot['service_details'])) {
+            $details = $snapshot['service_details'];
+
+            if ($booking->airportPickupDetail) {
+                $booking->airportPickupDetail->update(array_intersect_key($details, array_flip([
+                    'flight_number', 'arrival_time', 'destination_text', 'passenger_count', 'luggage_count',
+                ])));
+            } elseif ($booking->airportTransferDetail) {
+                $booking->airportTransferDetail->update(array_intersect_key($details, array_flip([
+                    'flight_number', 'departure_time', 'origin_text', 'chosen_pickup_time', 'passenger_count', 'luggage_count',
+                ])));
+            } elseif ($booking->rideDetail) {
+                $booking->rideDetail->update(array_intersect_key($details, array_flip([
+                    'pickup_time', 'origin_text', 'destination_text', 'has_return', 'return_pickup_time', 'passenger_count', 'luggage_count',
+                ])));
+            } elseif ($booking->rentDetail) {
+                $booking->rentDetail->update(array_intersect_key($details, array_flip([
+                    'pickup_datetime', 'return_datetime', 'duration_days', 'extra_hours', 'pickup_location_text', 'return_location_text',
+                    'pickup_location_type', 'return_location_type', 'included_distance_km', 'security_deposit_minor_units', 'insurance_excess_minor_units',
+                ])));
+            }
+        }
+
+        $booking->request_hash = $booking->computeRequestHash();
+        $booking->save();
+    }
+
     public function confirm(
         Booking $booking,
-        User $staff,
+        ?User $staff,
         ConfirmationChannel $channel,
         string $notes,
         ?string $overrideReason = null,
+        ?Proposal $proposal = null,
     ): Booking {
         if (! $booking->canBeConfirmed()) {
             throw new InvalidArgumentException("Booking {$booking->reference} cannot be confirmed from status {$booking->status->value}.");
+        }
+
+        if ($proposal !== null) {
+            if ($proposal->isExpired()) {
+                throw new InvalidArgumentException("Cannot confirm booking from expired proposal {$proposal->reference}.");
+            }
+            if (! in_array($proposal->status, [ProposalStatus::Sent, ProposalStatus::Accepted], true)) {
+                throw new InvalidArgumentException("Cannot confirm booking from proposal with status {$proposal->status->value}.");
+            }
         }
 
         if ($booking->expires_at && $booking->expires_at->isPast() && $booking->status !== BookingStatus::UnderReview) {
             throw new InvalidArgumentException("Booking {$booking->reference} has expired and was not placed under review. Re-estimate required.");
         }
 
-        if (! $staff->can(Permission::BookingConfirm->value) && ! $staff->hasPermissionTo(Permission::BookingConfirm->value)) {
-            throw new InvalidArgumentException('Actor does not have booking.confirm permission.');
+        if ($channel !== ConfirmationChannel::GuestPrivateLink) {
+            if (! $staff || (! $staff->can(Permission::BookingConfirm->value) && ! $staff->hasPermissionTo(Permission::BookingConfirm->value))) {
+                throw new InvalidArgumentException('Actor does not have booking.confirm permission.');
+            }
         }
 
         if (trim($notes) === '') {
             throw new InvalidArgumentException('Confirmation customer-communication notes cannot be empty.');
         }
 
-        return DB::transaction(function () use ($booking, $staff, $channel, $notes, $overrideReason) {
+        return DB::transaction(function () use ($booking, $staff, $channel, $notes, $overrideReason, $proposal) {
             // Lock vehicle row
             Vehicle::where('id', $booking->vehicle_id)->lockForUpdate()->firstOrFail();
 
             $booking->refresh();
 
-            // Unchanged guard: verify request payload hash matches
-            if ($booking->request_hash && ($booking->airportPickupDetail || $booking->airportTransferDetail || $booking->rideDetail || $booking->rentDetail)) {
+            // Unchanged guard: verify request payload hash matches if no proposal override
+            if ($proposal === null && $booking->request_hash && ($booking->airportPickupDetail || $booking->airportTransferDetail || $booking->rideDetail || $booking->rentDetail)) {
                 $currentHash = $booking->computeRequestHash();
                 if (! hash_equals($booking->request_hash, $currentHash)) {
                     throw new InvalidArgumentException('Booking request payload has changed since submission. Re-estimate required.');
@@ -94,7 +227,15 @@ class BookingLifecycleService
             }
 
             // Confirm availability schedule block
-            if ($booking->scheduleBlock) {
+            if ($proposal && $proposal->scheduleBlock) {
+                $this->availabilityService->confirmProposalBlock(
+                    proposalBlock: $proposal->scheduleBlock,
+                    priorConfirmedBlock: $booking->scheduleBlock,
+                    actor: $staff,
+                    overrideReason: $overrideReason,
+                );
+                $booking->schedule_block_id = $proposal->schedule_block_id;
+            } elseif ($booking->scheduleBlock) {
                 $this->availabilityService->confirmSubmittedBlock(
                     block: $booking->scheduleBlock,
                     actor: $staff,
@@ -116,11 +257,16 @@ class BookingLifecycleService
             $now = Carbon::now('Asia/Colombo');
             $booking->update([
                 'status' => BookingStatus::Confirmed,
+                'pending_revision' => false,
                 'confirmed_at' => $now,
                 'confirmation_channel' => $channel,
                 'confirmation_notes' => trim($notes),
-                'assigned_staff_id' => $staff->id,
+                'assigned_staff_id' => $staff ? $staff->id : $booking->assigned_staff_id,
             ]);
+
+            if ($proposal) {
+                $this->hydrateFromProposalSnapshot($booking, $proposal);
+            }
 
             $this->auditService->record(
                 action: 'booking.confirmed',
@@ -131,26 +277,36 @@ class BookingLifecycleService
                     'reference' => $booking->reference,
                     'channel' => $channel->value,
                     'notes' => trim($notes),
-                    'staff_id' => $staff->id,
+                    'staff_id' => $staff?->id,
                     'override_reason' => $overrideReason,
                     'policy_version' => $policyVersion,
+                    'proposal_id' => $proposal?->id,
                 ],
                 auditable: $booking,
-                actorType: 'staff'
+                actorType: $staff ? 'staff' : 'guest'
             );
 
-            $plainGuestToken = bin2hex(random_bytes(32));
-            GuestAccessToken::create([
-                'booking_id' => $booking->id,
-                'token_hash' => GuestAccessToken::hashToken($plainGuestToken),
-                'purpose' => 'guest_access',
-                'expires_at' => Carbon::now('Asia/Colombo')->addDays(30),
-            ]);
+            $activeToken = $booking->guestAccessTokens()
+                ->where('expires_at', '>', Carbon::now('Asia/Colombo'))
+                ->latest()
+                ->first();
 
-            $statusUrl = route('booking.status', [
-                'reference' => $booking->reference,
-                'token' => $plainGuestToken,
-            ]);
+            if (! $activeToken) {
+                $plainGuestToken = bin2hex(random_bytes(32));
+                GuestAccessToken::create([
+                    'booking_id' => $booking->id,
+                    'token_hash' => GuestAccessToken::hashToken($plainGuestToken),
+                    'purpose' => 'guest_access',
+                    'expires_at' => Carbon::now('Asia/Colombo')->addDays(30),
+                ]);
+
+                $statusUrl = route('booking.status', [
+                    'reference' => $booking->reference,
+                    'token' => $plainGuestToken,
+                ]);
+            } else {
+                $statusUrl = url("/booking/{$booking->reference}");
+            }
 
             $this->outboxService->record(
                 eventType: 'booking.confirmed',
@@ -266,6 +422,26 @@ class BookingLifecycleService
                 }
             }
 
+            // Also release any active proposal hold block
+            if ($booking->currentProposal && $booking->currentProposal->scheduleBlock) {
+                if ($booking->currentProposal->scheduleBlock->kind === ScheduleBlockKind::ProposalHold) {
+                    $this->availabilityService->releaseBlock(
+                        block: $booking->currentProposal->scheduleBlock,
+                        reason: "Cancelled: {$reason}",
+                        actor: $actor
+                    );
+                }
+            }
+
+            $isLate = false;
+            $serviceStart = $booking->getServiceStartTime();
+            if ($serviceStart && $actor === null && $booking->status === BookingStatus::Confirmed) {
+                $cutoffHours = $booking->service_type === ServiceType::Rent ? 48 : 24;
+                if (Carbon::now('Asia/Colombo')->diffInHours($serviceStart, false) < $cutoffHours) {
+                    $isLate = true;
+                }
+            }
+
             $booking->update([
                 'status' => BookingStatus::Cancelled,
                 'cancelled_at' => Carbon::now('Asia/Colombo'),
@@ -280,6 +456,7 @@ class BookingLifecycleService
                     'booking_id' => $booking->id,
                     'reference' => $booking->reference,
                     'reason' => trim($reason),
+                    'is_late_cancellation' => $isLate,
                 ],
                 auditable: $booking,
                 actorType: $actor ? 'staff' : 'guest'
@@ -292,6 +469,7 @@ class BookingLifecycleService
                     'booking_id' => $booking->id,
                     'reference' => $booking->reference,
                     'cancellation_reason' => trim($reason),
+                    'is_late_cancellation' => $isLate,
                 ],
                 idempotencyKey: "evt_booking_{$booking->id}_cancelled_v1"
             );
