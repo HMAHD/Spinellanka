@@ -423,3 +423,102 @@ test('rent extension request updates rent_details extension_state and flags pend
         ->and($rentDetail->extension_state[0]['status'])->toBe('requested')
         ->and($rentDetail->extension_state[0]['extra_days'])->toBe(3);
 });
+
+test('terminal booking blocks proposal acceptance, change requests, and rent extensions', function (): void {
+    $vehicle = Vehicle::factory()->create(['status' => VehicleStatus::Active]);
+    $booking = Booking::factory()->create([
+        'status' => BookingStatus::Cancelled,
+        'service_type' => ServiceType::Rent,
+        'vehicle_id' => $vehicle->id,
+    ]);
+
+    $proposal = Proposal::factory()->create([
+        'booking_id' => $booking->id,
+        'status' => ProposalStatus::Sent,
+        'vehicle_id' => $vehicle->id,
+        'payment_choice' => ProposalPaymentChoice::FullOrPayLater,
+    ]);
+    $booking->update(['current_proposal_id' => $proposal->id]);
+
+    $plainToken = GuestAccessToken::generateToken();
+    GuestAccessToken::create([
+        'booking_id' => $booking->id,
+        'token_hash' => GuestAccessToken::hashToken($plainToken),
+        'purpose' => 'guest_access',
+        'expires_at' => Carbon::now('Asia/Colombo')->addDays(30),
+    ]);
+
+    // 1. Accept proposal on terminal booking fails gracefully
+    $acceptResponse = $this->post(route('booking.status.accept', [
+        'reference' => $booking->reference,
+        'token' => $plainToken,
+    ]), [
+        'payment_option' => 'pay_later',
+    ]);
+    $acceptResponse->assertRedirect(route('booking.status', ['reference' => $booking->reference, 'token' => $plainToken]));
+    $acceptResponse->assertSessionHas('error');
+
+    // 2. Request change on terminal booking fails gracefully
+    $changeResponse = $this->post(route('booking.status.change', [
+        'reference' => $booking->reference,
+        'token' => $plainToken,
+    ]), [
+        'notes' => 'Attempting to change a cancelled booking.',
+    ]);
+    $changeResponse->assertRedirect(route('booking.status', ['reference' => $booking->reference, 'token' => $plainToken]));
+    $changeResponse->assertSessionHas('error');
+
+    // 3. Rent extension on terminal booking fails gracefully
+    $extResponse = $this->post(route('booking.status.extension', [
+        'reference' => $booking->reference,
+        'token' => $plainToken,
+    ]), [
+        'extra_days' => 2,
+    ]);
+    $extResponse->assertRedirect(route('booking.status', ['reference' => $booking->reference, 'token' => $plainToken]));
+    $extResponse->assertSessionHas('error');
+});
+
+test('accepting revision proposal with online payment preserves Confirmed status on already-confirmed booking', function (): void {
+    $vehicle = Vehicle::factory()->create(['status' => VehicleStatus::Active]);
+    $booking = Booking::factory()->create([
+        'status' => BookingStatus::Confirmed,
+        'service_type' => ServiceType::AirportPickup,
+        'vehicle_id' => $vehicle->id,
+        'pending_revision' => true,
+    ]);
+
+    $proposal = Proposal::factory()->create([
+        'booking_id' => $booking->id,
+        'status' => ProposalStatus::Sent,
+        'vehicle_id' => $vehicle->id,
+        'payment_choice' => ProposalPaymentChoice::FullOnly,
+        'total_amount_minor_units' => 12000,
+    ]);
+    $booking->update(['current_proposal_id' => $proposal->id]);
+
+    $plainToken = GuestAccessToken::generateToken();
+    GuestAccessToken::create([
+        'booking_id' => $booking->id,
+        'token_hash' => GuestAccessToken::hashToken($plainToken),
+        'purpose' => 'guest_access',
+        'expires_at' => Carbon::now('Asia/Colombo')->addDays(30),
+    ]);
+
+    $response = $this->post(route('booking.status.accept', [
+        'reference' => $booking->reference,
+        'token' => $plainToken,
+    ]), [
+        'payment_option' => 'full',
+    ]);
+
+    $response->assertRedirect(route('booking.status', ['reference' => $booking->reference, 'token' => $plainToken]));
+
+    $booking->refresh();
+    $proposal->refresh();
+
+    // Invariant: Confirmed booking must stay Confirmed (not prematurely AwaitingPayment)
+    expect($booking->status)->toBe(BookingStatus::Confirmed)
+        ->and($booking->pending_revision)->toBeTrue()
+        ->and($proposal->status)->toBe(ProposalStatus::Accepted);
+});

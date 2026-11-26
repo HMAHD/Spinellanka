@@ -422,3 +422,104 @@ test('confirming booking from expired proposal throws exception', function (): v
         proposal: $proposal
     ))->toThrow(InvalidArgumentException::class);
 });
+
+test('sending proposal for under review booking on same vehicle ignores submitted hold self-conflict', function (): void {
+    $vehicle = Vehicle::factory()->create(['status' => VehicleStatus::Active]);
+    $start = Carbon::now('Asia/Colombo')->addDays(3)->setTime(10, 0);
+    $end = (clone $start)->addHours(3);
+
+    $submittedHold = $this->availabilityService->createBlock(
+        vehicle: $vehicle,
+        kind: ScheduleBlockKind::SubmittedRequest,
+        start: $start,
+        end: $end,
+        actor: $this->staff,
+    );
+
+    $booking = Booking::factory()->create([
+        'status' => BookingStatus::UnderReview,
+        'vehicle_id' => $vehicle->id,
+        'service_type' => ServiceType::AirportPickup,
+        'schedule_block_id' => $submittedHold->id,
+    ]);
+
+    $data = new CreateProposalData(
+        vehicleId: $vehicle->id,
+        serviceType: ServiceType::AirportPickup,
+        startsAt: $start,
+        endsAt: $end,
+        currency: 'USD',
+        totalAmountMinorUnits: 9500,
+        approximateLkrAmountMinorUnits: 3000000,
+        depositRequired: false,
+        depositAmountMinorUnits: 0,
+        paymentChoice: ProposalPaymentChoice::FullOrPayLater,
+        expiresAt: Carbon::now('Asia/Colombo')->addHours(24),
+        items: [
+            new EstimateItemData(
+                componentType: PricingComponentType::Base,
+                description: 'Airport Meet & Greet Base Transfer',
+                unit: PricingUnit::Flat,
+                quantity: 1.0,
+                unitPrice: Money::of(9500, 'USD'),
+                totalAmount: Money::of(9500, 'USD'),
+                sortOrder: 1
+            ),
+        ],
+        snapshotData: ['service_type' => 'airport_pickup'],
+        staffNotes: 'VIP greeting.'
+    );
+
+    $draft = $this->proposalService->createDraft($booking, $data, $this->staff);
+    $sent = $this->proposalService->sendProposal($draft, $this->staff);
+
+    expect($sent->status)->toBe(ProposalStatus::Sent)
+        ->and($sent->schedule_block_id)->not->toBeNull()
+        ->and($sent->scheduleBlock->kind)->toBe(ScheduleBlockKind::ProposalHold);
+});
+
+test('cancelling booking voids active proposal', function (): void {
+    $vehicle = Vehicle::factory()->create(['status' => VehicleStatus::Active]);
+    $booking = Booking::factory()->create([
+        'status' => BookingStatus::ProposalSent,
+        'vehicle_id' => $vehicle->id,
+    ]);
+
+    $proposal = Proposal::factory()->create([
+        'booking_id' => $booking->id,
+        'status' => ProposalStatus::Sent,
+        'vehicle_id' => $vehicle->id,
+    ]);
+    $booking->update(['current_proposal_id' => $proposal->id]);
+
+    $this->lifecycleService->cancel($booking, 'Travel plans changed', null);
+
+    $booking->refresh();
+    $proposal->refresh();
+
+    expect($booking->status)->toBe(BookingStatus::Cancelled);
+    expect($proposal->status)->toBe(ProposalStatus::Superseded);
+});
+
+test('declining booking voids active proposal', function (): void {
+    $vehicle = Vehicle::factory()->create(['status' => VehicleStatus::Active]);
+    $booking = Booking::factory()->create([
+        'status' => BookingStatus::ProposalSent,
+        'vehicle_id' => $vehicle->id,
+    ]);
+
+    $proposal = Proposal::factory()->create([
+        'booking_id' => $booking->id,
+        'status' => ProposalStatus::Sent,
+        'vehicle_id' => $vehicle->id,
+    ]);
+    $booking->update(['current_proposal_id' => $proposal->id]);
+
+    $this->lifecycleService->decline($booking, $this->staff, 'Requested dates are fully booked');
+
+    $booking->refresh();
+    $proposal->refresh();
+
+    expect($booking->status)->toBe(BookingStatus::Declined);
+    expect($proposal->status)->toBe(ProposalStatus::Declined);
+});
