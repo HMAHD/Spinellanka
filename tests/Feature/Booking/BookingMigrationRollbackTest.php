@@ -9,7 +9,9 @@ test('booking migrations can be completely rolled back and re-applied without co
     // Ensure all tables are migrated in this connection
     Artisan::call('migrate');
 
-    // Assert booking tables exist
+    // Assert booking & proposal tables exist
+    expect(Schema::hasTable('proposal_items'))->toBeTrue();
+    expect(Schema::hasTable('proposals'))->toBeTrue();
     expect(Schema::hasTable('message_deliveries'))->toBeTrue();
     expect(Schema::hasTable('outbox_events'))->toBeTrue();
     expect(Schema::hasTable('rent_details'))->toBeTrue();
@@ -23,11 +25,13 @@ test('booking migrations can be completely rolled back and re-applied without co
     expect(Schema::hasTable('booking_contacts'))->toBeTrue();
     expect(Schema::hasTable('bookings'))->toBeTrue();
 
-    // Rollback the 12 booking, ride, rent & outbox migration steps
-    $exitCode = Artisan::call('migrate:rollback', ['--step' => 12]);
+    // Rollback the 14 booking, proposal, ride, rent & outbox migration steps
+    $exitCode = Artisan::call('migrate:rollback', ['--step' => 14]);
     expect($exitCode)->toBe(0);
 
-    // Assert all 12 tables dropped cleanly
+    // Assert all 14 tables dropped cleanly
+    expect(Schema::hasTable('proposal_items'))->toBeFalse();
+    expect(Schema::hasTable('proposals'))->toBeFalse();
     expect(Schema::hasTable('message_deliveries'))->toBeFalse();
     expect(Schema::hasTable('outbox_events'))->toBeFalse();
     expect(Schema::hasTable('rent_details'))->toBeFalse();
@@ -49,6 +53,8 @@ test('booking migrations can be completely rolled back and re-applied without co
     $migrateExit = Artisan::call('migrate');
     expect($migrateExit)->toBe(0);
 
+    expect(Schema::hasTable('proposal_items'))->toBeTrue();
+    expect(Schema::hasTable('proposals'))->toBeTrue();
     expect(Schema::hasTable('message_deliveries'))->toBeTrue();
     expect(Schema::hasTable('outbox_events'))->toBeTrue();
 
