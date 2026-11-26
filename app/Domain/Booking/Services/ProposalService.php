@@ -114,6 +114,11 @@ class ProposalService
 
         return DB::transaction(function () use ($proposal, $staff) {
             $proposal->refresh();
+
+            // Consistent lock order across codebase: Vehicle then Booking
+            /** @var Vehicle $vehicle */
+            $vehicle = Vehicle::where('id', $proposal->vehicle_id)->lockForUpdate()->firstOrFail();
+
             /** @var Booking $booking */
             $booking = Booking::where('id', $proposal->booking_id)->lockForUpdate()->firstOrFail();
 
@@ -121,13 +126,10 @@ class ProposalService
                 throw new InvalidArgumentException("Cannot send proposal for booking in status {$booking->status->value}.");
             }
 
-            /** @var Vehicle $vehicle */
-            $vehicle = Vehicle::where('id', $proposal->vehicle_id)->lockForUpdate()->firstOrFail();
-
-            // Self-conflict guard: if this booking already has an active confirmed schedule block on this vehicle,
-            // ignore that block so the proposal hold can overlap safely during revision!
+            // Self-conflict guard: if this booking already has an active schedule block on this vehicle
+            // (e.g. from initial submitted request or prior confirmed booking), ignore that block so the proposal hold can overlap safely!
             $ignoreBlockId = null;
-            if ($booking->status === BookingStatus::Confirmed && $booking->schedule_block_id) {
+            if ($booking->schedule_block_id && $booking->vehicle_id === $proposal->vehicle_id) {
                 $ignoreBlockId = $booking->schedule_block_id;
             }
 
@@ -151,28 +153,16 @@ class ProposalService
 
             $this->lifecycleService->markProposalSent($booking, $proposal, $staff);
 
-            // Ensure active guest access token exists
-            /** @var GuestAccessToken|null $existingToken */
-            $existingToken = $booking->guestAccessTokens()
-                ->whereNull('revoked_at')
-                ->where('expires_at', '>', $now)
-                ->latest()
-                ->first();
+            // Issue a fresh guest access token so outbox notification contains a valid, working status URL
+            $plainToken = GuestAccessToken::generateToken();
+            GuestAccessToken::create([
+                'booking_id' => $booking->id,
+                'token_hash' => GuestAccessToken::hashToken($plainToken),
+                'purpose' => 'proposal_review',
+                'expires_at' => Carbon::now('Asia/Colombo')->addDays(30),
+            ]);
 
-            $plainToken = null;
-            if (! $existingToken) {
-                $plainToken = GuestAccessToken::generateToken();
-                GuestAccessToken::create([
-                    'booking_id' => $booking->id,
-                    'token_hash' => GuestAccessToken::hashToken($plainToken),
-                    'purpose' => 'guest_access',
-                    'expires_at' => Carbon::now('Asia/Colombo')->addDays(30),
-                ]);
-            }
-
-            $statusUrl = $plainToken
-                ? route('booking.status', ['reference' => $booking->reference, 'token' => $plainToken])
-                : url("/booking/{$booking->reference}/manage");
+            $statusUrl = route('booking.status', ['reference' => $booking->reference, 'token' => $plainToken]);
 
             $this->auditService->record(
                 action: 'proposal.sent',
@@ -216,6 +206,8 @@ class ProposalService
     public function reviseProposal(Booking $booking, CreateProposalData $data, ?User $staff = null): Proposal
     {
         return DB::transaction(function () use ($booking, $data, $staff) {
+            // Consistent lock order across codebase: Vehicle then Booking
+            Vehicle::where('id', $data->vehicleId)->lockForUpdate()->firstOrFail();
             $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
 
             // Supersede any active sent proposal and release its temporary hold block

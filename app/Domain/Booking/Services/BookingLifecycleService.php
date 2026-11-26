@@ -103,11 +103,19 @@ class BookingLifecycleService
         return DB::transaction(function () use ($booking, $proposal, $paymentOption) {
             $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
 
-            $lockedBooking->update([
-                'status' => BookingStatus::AwaitingPayment,
-                'pending_revision' => false,
-                'current_proposal_id' => $proposal->id,
-            ]);
+            // Pillar B preservation: if booking is already Confirmed, keep status as Confirmed while marking pending_revision = true
+            if ($lockedBooking->status === BookingStatus::Confirmed) {
+                $lockedBooking->update([
+                    'pending_revision' => true,
+                    'current_proposal_id' => $proposal->id,
+                ]);
+            } else {
+                $lockedBooking->update([
+                    'status' => BookingStatus::AwaitingPayment,
+                    'pending_revision' => false,
+                    'current_proposal_id' => $proposal->id,
+                ]);
+            }
 
             $this->auditService->record(
                 action: 'booking.awaiting_payment',
@@ -286,27 +294,18 @@ class BookingLifecycleService
                 actorType: $staff ? 'staff' : 'guest'
             );
 
-            $activeToken = $booking->guestAccessTokens()
-                ->where('expires_at', '>', Carbon::now('Asia/Colombo'))
-                ->latest()
-                ->first();
+            $plainGuestToken = bin2hex(random_bytes(32));
+            GuestAccessToken::create([
+                'booking_id' => $booking->id,
+                'token_hash' => GuestAccessToken::hashToken($plainGuestToken),
+                'purpose' => 'guest_access',
+                'expires_at' => Carbon::now('Asia/Colombo')->addDays(30),
+            ]);
 
-            if (! $activeToken) {
-                $plainGuestToken = bin2hex(random_bytes(32));
-                GuestAccessToken::create([
-                    'booking_id' => $booking->id,
-                    'token_hash' => GuestAccessToken::hashToken($plainGuestToken),
-                    'purpose' => 'guest_access',
-                    'expires_at' => Carbon::now('Asia/Colombo')->addDays(30),
-                ]);
-
-                $statusUrl = route('booking.status', [
-                    'reference' => $booking->reference,
-                    'token' => $plainGuestToken,
-                ]);
-            } else {
-                $statusUrl = url("/booking/{$booking->reference}");
-            }
+            $statusUrl = route('booking.status', [
+                'reference' => $booking->reference,
+                'token' => $plainGuestToken,
+            ]);
 
             $this->outboxService->record(
                 eventType: 'booking.confirmed',
@@ -361,6 +360,13 @@ class BookingLifecycleService
                 'decline_reason' => trim($reason),
                 'assigned_staff_id' => $staff->id,
             ]);
+
+            // Void any active proposal
+            if ($booking->currentProposal && ! $booking->currentProposal->status->isTerminal()) {
+                $booking->currentProposal->update([
+                    'status' => ProposalStatus::Declined,
+                ]);
+            }
 
             $this->auditService->record(
                 action: 'booking.declined',
@@ -447,6 +453,13 @@ class BookingLifecycleService
                 'cancelled_at' => Carbon::now('Asia/Colombo'),
                 'cancellation_reason' => trim($reason),
             ]);
+
+            // Void any active proposal
+            if ($booking->currentProposal && ! $booking->currentProposal->status->isTerminal()) {
+                $booking->currentProposal->update([
+                    'status' => ProposalStatus::Superseded,
+                ]);
+            }
 
             $this->auditService->record(
                 action: 'booking.cancelled',

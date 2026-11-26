@@ -156,10 +156,15 @@ class BookingStatusController extends Controller
             'notes' => ['required', 'string', 'min:5', 'max:2000'],
         ]);
 
-        $this->guestControlService->requestChange($booking, $validated['notes']);
+        try {
+            $this->guestControlService->requestChange($booking, $validated['notes']);
 
-        return redirect()->route('booking.status', ['reference' => $reference, 'token' => $token])
-            ->with('status_success', 'Your change request has been submitted. Our operations desk will review and dispatch an amended proposal shortly.');
+            return redirect()->route('booking.status', ['reference' => $reference, 'token' => $token])
+                ->with('status_success', 'Your change request has been submitted. Our operations desk will review and dispatch an amended proposal shortly.');
+        } catch (\Throwable $e) {
+            return redirect()->route('booking.status', ['reference' => $reference, 'token' => $token])
+                ->with('error', $e->getMessage());
+        }
     }
 
     public function cancel(Request $request, string $reference, string $token): RedirectResponse

@@ -71,6 +71,10 @@ class GuestControlService
             }
 
             // Invariant guards
+            if ($lockedBooking->status->isTerminal()) {
+                throw new ProposalNotActionableException("Booking {$lockedBooking->reference} is in a terminal state ({$lockedBooking->status->value}) and cannot accept proposals.");
+            }
+
             if ($lockedProposal->id !== $lockedBooking->current_proposal_id || $lockedProposal->status !== ProposalStatus::Sent || $lockedProposal->isExpired()) {
                 throw new ProposalNotActionableException('This proposal is no longer active or actionable.');
             }
@@ -153,6 +157,10 @@ class GuestControlService
                 ? $lockedProposal->deposit_amount_minor_units
                 : $lockedProposal->total_amount_minor_units;
 
+            $targetStatus = $lockedBooking->status === BookingStatus::Confirmed
+                ? BookingStatus::Confirmed
+                : BookingStatus::AwaitingPayment;
+
             return new BookingTransitionResult(
                 booking: $awaitingBooking,
                 proposal: $lockedProposal,
@@ -160,7 +168,7 @@ class GuestControlService
                 paymentOption: $choice,
                 amountDueMinorUnits: $amountDue,
                 currency: $lockedProposal->currency,
-                targetStatus: BookingStatus::AwaitingPayment,
+                targetStatus: $targetStatus,
                 message: 'Proposal accepted! Please proceed with payment settlement.'
             );
         });
@@ -299,6 +307,10 @@ class GuestControlService
             /** @var Booking $lockedBooking */
             $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
 
+            if ($lockedBooking->status->isTerminal()) {
+                throw new InvalidArgumentException("Cannot request changes for booking {$lockedBooking->reference} in terminal state ({$lockedBooking->status->value}).");
+            }
+
             $lockedBooking->update([
                 'pending_revision' => true,
             ]);
@@ -344,6 +356,10 @@ class GuestControlService
         DB::transaction(function () use ($booking, $extraDays, $notes) {
             /** @var Booking $lockedBooking */
             $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
+
+            if ($lockedBooking->status->isTerminal()) {
+                throw new InvalidArgumentException("Cannot request extension for booking {$lockedBooking->reference} in terminal state ({$lockedBooking->status->value}).");
+            }
 
             if ($lockedBooking->rentDetail) {
                 $currentState = $lockedBooking->rentDetail->extension_state ?? [];
