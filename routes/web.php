@@ -68,6 +68,11 @@ Route::prefix('booking')->name('booking.')->middleware('throttle:60,1')->group(f
     Route::post('/rent/submit', [RentBookingController::class, 'submit'])->middleware('throttle:10,1')->name('rent.submit');
 
     Route::get('/{reference}/{token}', [BookingStatusController::class, 'show'])->name('status');
+    Route::post('/{reference}/{token}/accept', [BookingStatusController::class, 'accept'])->middleware('throttle:15,1')->name('status.accept');
+    Route::post('/{reference}/{token}/decline', [BookingStatusController::class, 'decline'])->middleware('throttle:15,1')->name('status.decline');
+    Route::post('/{reference}/{token}/change', [BookingStatusController::class, 'change'])->middleware('throttle:15,1')->name('status.change');
+    Route::post('/{reference}/{token}/cancel', [BookingStatusController::class, 'cancel'])->middleware('throttle:15,1')->name('status.cancel');
+    Route::post('/{reference}/{token}/extension', [BookingStatusController::class, 'extension'])->middleware('throttle:15,1')->name('status.extension');
 });
 
 Route::get('/fleet', function () {

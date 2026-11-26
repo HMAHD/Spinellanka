@@ -5,16 +5,28 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Operations\Bookings;
 
 use App\Domain\Audit\Services\AuditService;
+use App\Domain\Booking\DTOs\CreateProposalData;
 use App\Domain\Booking\Enums\BookingSource;
 use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\Enums\ConfirmationChannel;
+use App\Domain\Booking\Enums\ProposalPaymentChoice;
 use App\Domain\Booking\Services\BookingLifecycleService;
+use App\Domain\Booking\Services\ProposalService;
+use App\Domain\Booking\Services\TokenRotationService;
 use App\Domain\Booking\ServiceType;
+use App\Domain\Catalog\Enums\VehicleStatus;
 use App\Domain\Identity\Permission;
+use App\Domain\Pricing\DTOs\EstimateItemData;
+use App\Domain\Pricing\Enums\PricingComponentType;
+use App\Domain\Pricing\Enums\PricingUnit;
+use App\Domain\Pricing\Services\ExchangeRateService;
+use App\Domain\Pricing\ValueObjects\Money;
 use App\Filament\Resources\Operations\Bookings\Pages\ManageBookings;
 use App\Filament\Resources\Operations\Bookings\RelationManagers\MessageDeliveriesRelationManager;
+use App\Filament\Resources\Operations\Bookings\RelationManagers\ProposalsRelationManager;
 use App\Filament\Resources\Operations\MessageDeliveries\MessageDeliveryResource;
 use App\Models\Booking;
+use App\Models\Vehicle;
 use BackedEnum;
 use Carbon\Carbon;
 use Filament\Actions\Action;
@@ -243,6 +255,8 @@ class BookingResource extends Resource
                     ->color(fn (BookingStatus $state): string => match ($state) {
                         BookingStatus::Submitted => 'warning',
                         BookingStatus::UnderReview => 'info',
+                        BookingStatus::ProposalSent => 'primary',
+                        BookingStatus::AwaitingPayment => 'warning',
                         BookingStatus::Confirmed => 'success',
                         BookingStatus::Declined => 'danger',
                         BookingStatus::Cancelled, BookingStatus::Expired => 'gray',
@@ -291,6 +305,20 @@ class BookingResource extends Resource
                 TextColumn::make('total_amount_minor_units')
                     ->label('Estimate')
                     ->formatStateUsing(fn (?int $state) => $state ? 'USD $'.number_format($state / 100, 2) : 'Custom Quote'),
+
+                TextColumn::make('extension')
+                    ->label('Extension')
+                    ->badge()
+                    ->color('warning')
+                    ->getStateUsing(function (Booking $record): ?string {
+                        if (! $record->rentDetail || empty($record->rentDetail->extension_state)) {
+                            return null;
+                        }
+                        $latest = end($record->rentDetail->extension_state);
+
+                        return isset($latest['extra_days']) ? "+{$latest['extra_days']}d" : 'Req';
+                    })
+                    ->placeholder('—'),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -425,6 +453,298 @@ class BookingResource extends Resource
                         Notification::make()->title("Booking {$record->reference} cancelled.")->warning()->send();
                     }),
 
+                Action::make('create_proposal')
+                    ->label('Create Proposal')
+                    ->icon(Heroicon::OutlinedDocumentPlus)
+                    ->color('primary')
+                    ->visible(fn (Booking $record): bool => $record->status === BookingStatus::UnderReview && (auth()->user()?->can(Permission::BookingReview->value) ?? false))
+                    ->modalHeading('Create & Send Proposal (v1)')
+                    ->modalDescription('Specify vehicle, pricing, and payment choices. A proposal hold schedule block will be created automatically.')
+                    ->form([
+                        Select::make('vehicle_id')
+                            ->label('Fleet Vehicle')
+                            ->options(fn () => Vehicle::where('status', VehicleStatus::Active)->pluck('license_plate', 'id')->map(function ($plate, $id) {
+                                $v = Vehicle::find($id);
+
+                                return $v ? "{$v->make} {$v->model} ({$plate})" : (string) $plate;
+                            }))
+                            ->default(fn (Booking $record) => $record->vehicle_id)
+                            ->required(),
+
+                        TextInput::make('total_amount')
+                            ->label('Total Price (EUR / Base)')
+                            ->numeric()
+                            ->default(fn (Booking $record) => $record->total_amount_minor_units ? $record->total_amount_minor_units / 100 : 75.00)
+                            ->required(),
+
+                        Toggle::make('deposit_required')
+                            ->label('Require Advance Security Deposit')
+                            ->default(fn (Booking $record) => $record->service_type === ServiceType::Rent)
+                            ->reactive(),
+
+                        TextInput::make('deposit_amount')
+                            ->label('Security Deposit Amount')
+                            ->numeric()
+                            ->default(fn (Booking $record) => $record->service_type === ServiceType::Rent ? 250.00 : 0.00)
+                            ->visible(fn ($get) => (bool) $get('deposit_required')),
+
+                        Select::make('payment_choice')
+                            ->label('Permitted Guest Payment Choice')
+                            ->options(collect(ProposalPaymentChoice::cases())->mapWithKeys(fn (ProposalPaymentChoice $c) => [$c->value => $c->label()]))
+                            ->default(fn (Booking $record) => $record->service_type === ServiceType::Rent ? ProposalPaymentChoice::FullOrDeposit->value : ProposalPaymentChoice::FullOrPayLater->value)
+                            ->required(),
+
+                        Select::make('expires_in_hours')
+                            ->label('Guest Response Deadline')
+                            ->options([
+                                '24' => '24 Hours',
+                                '48' => '48 Hours (Recommended)',
+                                '72' => '72 Hours',
+                                '168' => '7 Days',
+                            ])
+                            ->default('48')
+                            ->required(),
+
+                        Textarea::make('staff_notes')
+                            ->label('Notes to Guest (Visible on status page)')
+                            ->placeholder('e.g. Special routing through Southern Expressway included. Chauffeur meets at arrival hall.')
+                            ->rows(3),
+
+                        Textarea::make('internal_notes')
+                            ->label('Internal Dispatch Margin / Strategy Notes (Staff Only - Hidden from Guest)')
+                            ->placeholder('Internal calculation basis, driver commission, or commercial notes.')
+                            ->rows(2),
+                    ])
+                    ->action(function (Booking $record, array $data): void {
+                        $vehicle = Vehicle::findOrFail((int) $data['vehicle_id']);
+                        $startsAt = Carbon::now('Asia/Colombo')->addDays(2);
+                        $endsAt = (clone $startsAt)->addHours(4);
+
+                        if ($record->airportPickupDetail?->arrival_time) {
+                            $startsAt = $record->airportPickupDetail->arrival_time;
+                            $endsAt = (clone $startsAt)->addMinutes(120);
+                        } elseif ($record->airportTransferDetail?->chosen_pickup_time) {
+                            $startsAt = $record->airportTransferDetail->chosen_pickup_time;
+                            $endsAt = (clone $startsAt)->addMinutes(150);
+                        } elseif ($record->rideDetail?->pickup_time) {
+                            $startsAt = $record->rideDetail->pickup_time;
+                            $endsAt = $record->rideDetail->return_pickup_time ?? (clone $startsAt)->addHours(3);
+                        } elseif ($record->rentDetail?->pickup_datetime) {
+                            $startsAt = $record->rentDetail->pickup_datetime;
+                            $endsAt = $record->rentDetail->return_datetime ?? (clone $startsAt)->addDays(1);
+                        }
+
+                        $totalMinor = (int) round(((float) $data['total_amount']) * 100);
+                        $depositMinor = ! empty($data['deposit_required']) ? (int) round(((float) ($data['deposit_amount'] ?? 0)) * 100) : 0;
+                        $approxLkrMoney = app(ExchangeRateService::class)->approximateLkr(Money::of($totalMinor, $record->currency ?: 'USD'));
+                        $approxLkr = $approxLkrMoney !== null ? $approxLkrMoney->amountMinorUnits : (int) round($totalMinor * 308.5);
+
+                        $proposalData = new CreateProposalData(
+                            vehicleId: $vehicle->id,
+                            serviceType: $record->service_type,
+                            startsAt: $startsAt,
+                            endsAt: $endsAt,
+                            currency: $record->currency ?: 'EUR',
+                            totalAmountMinorUnits: $totalMinor,
+                            approximateLkrAmountMinorUnits: $approxLkr,
+                            depositRequired: (bool) ($data['deposit_required'] ?? false),
+                            depositAmountMinorUnits: $depositMinor,
+                            paymentChoice: ProposalPaymentChoice::from($data['payment_choice']),
+                            expiresAt: Carbon::now('Asia/Colombo')->addHours((int) $data['expires_in_hours']),
+                            items: [
+                                new EstimateItemData(
+                                    componentType: PricingComponentType::Base,
+                                    description: "Standard {$record->service_type->label()} Fare",
+                                    unit: PricingUnit::Flat,
+                                    quantity: 1.0,
+                                    unitPrice: Money::of($totalMinor, $record->currency ?: 'EUR'),
+                                    totalAmount: Money::of($totalMinor, $record->currency ?: 'EUR'),
+                                    sortOrder: 1,
+                                    isDeposit: false,
+                                    isTax: false,
+                                    isDiscount: false,
+                                ),
+                            ],
+                            snapshotData: [
+                                'service_type' => $record->service_type->value,
+                                'vehicle_name' => "{$vehicle->make} {$vehicle->model}",
+                                'service_details' => $record->airportPickupDetail?->toArray()
+                                    ?? $record->airportTransferDetail?->toArray()
+                                    ?? $record->rideDetail?->toArray()
+                                    ?? $record->rentDetail?->toArray()
+                                    ?? [],
+                            ],
+                            staffNotes: $data['staff_notes'] ?? null,
+                            internalNotes: $data['internal_notes'] ?? null
+                        );
+
+                        $proposalService = app(ProposalService::class);
+                        $draft = $proposalService->createDraft($record, $proposalData, auth()->user());
+                        $sent = $proposalService->sendProposal($draft, auth()->user());
+
+                        Notification::make()->title("Proposal {$sent->reference} created and dispatched.")->success()->send();
+                    }),
+
+                Action::make('revise_proposal')
+                    ->label('Revise Proposal')
+                    ->icon(Heroicon::OutlinedPencilSquare)
+                    ->color('warning')
+                    ->visible(fn (Booking $record): bool => ($record->status === BookingStatus::ProposalSent || $record->status === BookingStatus::Confirmed) && (auth()->user()?->can(Permission::BookingReview->value) ?? false))
+                    ->modalHeading(fn (Booking $record) => $record->status === BookingStatus::Confirmed ? 'Revise Confirmed Travel Agreement' : 'Revise Proposal')
+                    ->modalDescription(fn (Booking $record) => $record->status === BookingStatus::Confirmed
+                        ? 'Under Pillar B, your confirmed travel agreement remains 100% active and protected until the traveler explicitly accepts this new version. Please confirm staff authorization.'
+                        : 'Creates an incremented proposal version and releases previous temporary holds.')
+                    ->form(function (Booking $record) {
+                        $fields = [];
+
+                        $currProp = $record->currentProposal;
+
+                        if ($record->status === BookingStatus::Confirmed) {
+                            $fields[] = TextInput::make('reauth_password')
+                                ->label('Re-enter Staff Password')
+                                ->password()
+                                ->required()
+                                ->rule('current_password:web')
+                                ->helperText('Password re-authentication required when revising a confirmed travel agreement.');
+                        }
+
+                        $fields[] = Select::make('vehicle_id')
+                            ->label('Fleet Vehicle')
+                            ->options(fn () => Vehicle::where('status', VehicleStatus::Active)->pluck('license_plate', 'id')->map(function ($plate, $id) {
+                                $v = Vehicle::find($id);
+
+                                return $v ? "{$v->make} {$v->model} ({$plate})" : (string) $plate;
+                            }))
+                            ->default($currProp ? $currProp->vehicle_id : $record->vehicle_id)
+                            ->required();
+
+                        $fields[] = TextInput::make('total_amount')
+                            ->label('Total Price (EUR / Base)')
+                            ->numeric()
+                            ->default($currProp ? $currProp->total_amount_minor_units / 100 : ($record->total_amount_minor_units ? $record->total_amount_minor_units / 100 : 75.00))
+                            ->required();
+
+                        $fields[] = Toggle::make('deposit_required')
+                            ->label('Require Advance Security Deposit')
+                            ->default($currProp ? $currProp->deposit_required : ($record->service_type === ServiceType::Rent))
+                            ->reactive();
+
+                        $fields[] = TextInput::make('deposit_amount')
+                            ->label('Security Deposit Amount')
+                            ->numeric()
+                            ->default($currProp ? $currProp->deposit_amount_minor_units / 100 : 0.00)
+                            ->visible(fn ($get) => (bool) $get('deposit_required'));
+
+                        $fields[] = Select::make('payment_choice')
+                            ->label('Permitted Guest Payment Choice')
+                            ->options(collect(ProposalPaymentChoice::cases())->mapWithKeys(fn (ProposalPaymentChoice $c) => [$c->value => $c->label()]))
+                            ->default($currProp ? $currProp->payment_choice->value : ProposalPaymentChoice::FullOrDeposit->value)
+                            ->required();
+
+                        $fields[] = Select::make('expires_in_hours')
+                            ->label('Guest Response Deadline')
+                            ->options([
+                                '24' => '24 Hours',
+                                '48' => '48 Hours',
+                                '72' => '72 Hours',
+                                '168' => '7 Days',
+                            ])
+                            ->default('48')
+                            ->required();
+
+                        $fields[] = Textarea::make('staff_notes')
+                            ->label('Notes to Guest (Visible on status page)')
+                            ->placeholder('Explanation of revision or quote change.')
+                            ->rows(3);
+
+                        $fields[] = Textarea::make('internal_notes')
+                            ->label('Internal Dispatch Notes (Hidden from Guest)')
+                            ->rows(2);
+
+                        return $fields;
+                    })
+                    ->action(function (Booking $record, array $data): void {
+                        $vehicle = Vehicle::findOrFail((int) $data['vehicle_id']);
+                        $currProp = $record->currentProposal;
+                        $startsAt = $currProp ? $currProp->starts_at : Carbon::now('Asia/Colombo')->addDays(2);
+                        $endsAt = $currProp ? $currProp->ends_at : (clone $startsAt)->addHours(4);
+
+                        $totalMinor = (int) round(((float) $data['total_amount']) * 100);
+                        $depositMinor = ! empty($data['deposit_required']) ? (int) round(((float) ($data['deposit_amount'] ?? 0)) * 100) : 0;
+                        $approxLkrMoney = app(ExchangeRateService::class)->approximateLkr(Money::of($totalMinor, $record->currency ?: 'USD'));
+                        $approxLkr = $approxLkrMoney !== null ? $approxLkrMoney->amountMinorUnits : (int) round($totalMinor * 308.5);
+
+                        $proposalData = new CreateProposalData(
+                            vehicleId: $vehicle->id,
+                            serviceType: $record->service_type,
+                            startsAt: $startsAt,
+                            endsAt: $endsAt,
+                            currency: $record->currency ?: 'EUR',
+                            totalAmountMinorUnits: $totalMinor,
+                            approximateLkrAmountMinorUnits: $approxLkr,
+                            depositRequired: (bool) ($data['deposit_required'] ?? false),
+                            depositAmountMinorUnits: $depositMinor,
+                            paymentChoice: ProposalPaymentChoice::from($data['payment_choice']),
+                            expiresAt: Carbon::now('Asia/Colombo')->addHours((int) $data['expires_in_hours']),
+                            items: [
+                                new EstimateItemData(
+                                    componentType: PricingComponentType::Base,
+                                    description: "Amended {$record->service_type->label()} Fare",
+                                    unit: PricingUnit::Flat,
+                                    quantity: 1.0,
+                                    unitPrice: Money::of($totalMinor, $record->currency ?: 'EUR'),
+                                    totalAmount: Money::of($totalMinor, $record->currency ?: 'EUR'),
+                                    sortOrder: 1,
+                                    isDeposit: false,
+                                    isTax: false,
+                                    isDiscount: false,
+                                ),
+                            ],
+                            snapshotData: [
+                                'service_type' => $record->service_type->value,
+                                'vehicle_name' => "{$vehicle->make} {$vehicle->model}",
+                                'service_details' => $record->airportPickupDetail?->toArray()
+                                    ?? $record->airportTransferDetail?->toArray()
+                                    ?? $record->rideDetail?->toArray()
+                                    ?? $record->rentDetail?->toArray()
+                                    ?? [],
+                            ],
+                            staffNotes: $data['staff_notes'] ?? null,
+                            internalNotes: $data['internal_notes'] ?? null
+                        );
+
+                        $revised = app(ProposalService::class)->reviseProposal($record, $proposalData, auth()->user());
+
+                        Notification::make()->title("Proposal revised: version {$revised->reference} dispatched.")->success()->send();
+                    }),
+
+                Action::make('rotate_guest_link')
+                    ->label('Rotate Guest Link')
+                    ->icon(Heroicon::OutlinedArrowPath)
+                    ->color('gray')
+                    ->visible(fn () => auth()->user()?->can(Permission::BookingReview->value) ?? false)
+                    ->form([
+                        TextInput::make('reauth_password')
+                            ->label('Re-enter Staff Password')
+                            ->password()
+                            ->required()
+                            ->rule('current_password:web')
+                            ->helperText('Security policy mandates password re-authentication before regenerating private links.'),
+                    ])
+                    ->modalHeading('Rotate Private Guest Access Link')
+                    ->modalDescription('This will immediately revoke all previously issued links for this booking and generate a fresh 256-bit secure access token.')
+                    ->action(function (Booking $record): void {
+                        $token = app(TokenRotationService::class)->rotateToken($record, 'guest_access', auth()->user());
+                        $url = route('booking.status', ['reference' => $record->reference, 'token' => $token]);
+
+                        Notification::make()
+                            ->title('Guest access link rotated successfully.')
+                            ->body("New link: {$url}")
+                            ->success()
+                            ->persistent()
+                            ->send();
+                    }),
+
                 Action::make('deliveries')
                     ->label('Deliveries')
                     ->icon(Heroicon::OutlinedChatBubbleLeftRight)
@@ -438,6 +758,7 @@ class BookingResource extends Resource
     public static function getRelations(): array
     {
         return [
+            ProposalsRelationManager::class,
             MessageDeliveriesRelationManager::class,
         ];
     }
