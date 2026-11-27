@@ -1,6 +1,9 @@
 <?php
 
 use App\Domain\Booking\ServiceType;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
 
 it('renders the public home page', function (): void {
     $this->get(route('home'))

@@ -48,6 +48,9 @@ class EstimateService
                 'approximate_lkr_amount_minor_units' => $result->approximateLkr?->amountMinorUnits,
                 'rule_version' => $result->ruleVersion ?? 1,
                 'assumptions' => $request->assumptions ?: null,
+                'applied_deal_id' => $result->appliedDealId ?? $request->dealId,
+                'applied_promotion_id' => $result->appliedPromotionId ?? $request->promotionId,
+                'promotion_snapshot' => $result->promotionSnapshot,
                 'expires_at' => $expiresAt,
             ]);
 

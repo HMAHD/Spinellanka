@@ -25,5 +25,7 @@ final class EstimateRequestData
         public readonly array $extraIds = [],
         public readonly array $assumptions = [],
         public readonly ?string $sessionId = null,
+        public readonly ?int $dealId = null,
+        public readonly ?int $promotionId = null,
     ) {}
 }

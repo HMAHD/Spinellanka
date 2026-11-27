@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Domain\Booking\Enums\DealStatus;
+use App\Domain\Booking\Enums\PromotionDiscountType;
+use App\Domain\Booking\Enums\PromotionScope;
+use App\Domain\Booking\Enums\PromotionStatus;
 use App\Domain\Booking\ServiceType;
 use App\Domain\Catalog\Enums\DriverStatus;
 use App\Domain\Catalog\Enums\ExtraPricingType;
@@ -19,9 +23,11 @@ use App\Domain\Pricing\Enums\PricingUnit;
 use App\Domain\Pricing\Services\ExchangeRateService;
 use App\Domain\Pricing\Services\PricingRuleService;
 use App\Domain\Pricing\Services\RentPolicyService;
+use App\Models\Deal;
 use App\Models\Driver;
 use App\Models\Extra;
 use App\Models\PricingRule;
+use App\Models\Promotion;
 use App\Models\Vehicle;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
@@ -330,6 +336,128 @@ class StagingSyntheticFixturesSeeder extends Seeder
                     'components' => $ruleDef['components'],
                 ]);
             }
+        }
+
+        // 7. Synthetic Staging Deals across all 4 services + 1 Deal-scoped Promotion (CHG-003)
+        $dealEffective = Carbon::parse('2026-11-01 00:00:00', 'Asia/Colombo');
+        $dealDefinitions = [
+            [
+                'slug' => 'synth-cmb-colombo-express-pickup',
+                'service_type' => ServiceType::AirportPickup,
+                'title' => 'CMB Airport to Colombo Fort Direct Arrival (Synthetic)',
+                'summary' => 'Flight-monitored meet-and-greet arrival transfer from Bandaranaike International Airport (CMB) directly to central Colombo hotels.',
+                'description_markdown' => "### Included Arrival Workflow\n- Flight-number monitoring at Bandaranaike International Airport (CMB)\n- Direct expressway transfer to central Colombo hotels\n- Live exact vehicle selection on the next step",
+                'preset_payload' => [
+                    'airport' => 'CMB',
+                    'flight_number' => 'UL504',
+                    'destination_text' => 'Colombo Fort Hotel District',
+                    'passenger_count' => 2,
+                    'luggage_count' => 2,
+                ],
+                'image_path' => '/images/deal-airport-pickup.webp',
+                'image_alt' => 'Executive arrival sedan waiting outside coastal Sri Lanka terminal (Staging Synthetic)',
+                'is_featured' => true,
+                'priority' => 40,
+            ],
+            [
+                'slug' => 'synth-galle-cmb-airport-transfer',
+                'service_type' => ServiceType::AirportTransfer,
+                'title' => 'Galle Fort to CMB Departure Transfer (Synthetic)',
+                'summary' => 'Timed Southern Expressway departure transfer from Galle Fort to Bandaranaike International Airport with recommended pickup buffer.',
+                'description_markdown' => "### Included Departure Workflow\n- Calculated highway buffer ahead of check-in cutoff\n- Southern Expressway direct airport routing\n- Pending staff confirmation with exact chauffeur details",
+                'preset_payload' => [
+                    'airport' => 'CMB',
+                    'flight_number' => 'UL505',
+                    'origin_text' => 'Galle Fort Lighthouse',
+                    'passenger_count' => 2,
+                    'luggage_count' => 2,
+                ],
+                'image_path' => '/images/deal-airport-transfer.webp',
+                'image_alt' => 'Chauffeured highway departure cruiser heading toward international airport (Staging Synthetic)',
+                'is_featured' => true,
+                'priority' => 30,
+            ],
+            [
+                'slug' => 'synth-colombo-galle-chauffeured-ride',
+                'service_type' => ServiceType::Ride,
+                'title' => 'Colombo to Galle Coast Chauffeured Charter (Synthetic)',
+                'summary' => 'Private point-to-point chauffeured SUV charter along Sri Lanka’s southern corridor with transparent upfront estimate.',
+                'description_markdown' => "### Included Charter Highlights\n- Dedicated permanent-assigned driver for the selected fleet vehicle\n- Clear pre-calculated distance estimate before booking\n- 15-minute checkout hold upon vehicle selection",
+                'preset_payload' => [
+                    'origin' => 'Colombo Fort',
+                    'destination' => 'Galle Fort',
+                    'passenger_count' => 3,
+                    'luggage_count' => 3,
+                ],
+                'image_path' => '/images/deal-ride.webp',
+                'image_alt' => 'Private touring vehicle on coastal Sri Lankan avenue (Staging Synthetic)',
+                'is_featured' => true,
+                'priority' => 20,
+            ],
+            [
+                'slug' => 'synth-south-coast-self-drive-rent',
+                'service_type' => ServiceType::Rent,
+                'title' => 'Colombo Hub 3-Day Self-Drive Package (Synthetic)',
+                'summary' => 'Three-day self-drive rental collection from our Colombo hub with 100 km daily allowance and documented vehicle handover.',
+                'description_markdown' => "### Included Self-Drive Terms\n- 100 km daily mileage allowance included per rental day\n- Valid international driving permit (IDP) verification\n- Exact vehicle photographic handover at collection",
+                'preset_payload' => [
+                    'duration_days' => 3,
+                    'pickup_location_text' => 'Colombo Hub',
+                    'return_location_text' => 'Colombo Hub',
+                    'driver_age' => 30,
+                ],
+                'image_path' => '/images/deal-rent.webp',
+                'image_alt' => 'Compact touring hatch parked at scenic Sri Lankan viewpoint (Staging Synthetic)',
+                'is_featured' => false,
+                'priority' => 10,
+            ],
+        ];
+
+        $seededDeals = [];
+        foreach ($dealDefinitions as $dDef) {
+            $seededDeals[$dDef['slug']] = Deal::updateOrCreate(
+                ['slug' => $dDef['slug']],
+                [
+                    'service_type' => $dDef['service_type'],
+                    'title' => $dDef['title'],
+                    'summary' => $dDef['summary'],
+                    'description_markdown' => $dDef['description_markdown'],
+                    'preset_payload' => $dDef['preset_payload'],
+                    'image_path' => $dDef['image_path'],
+                    'image_alt' => $dDef['image_alt'],
+                    'image_source' => 'Spinellanka Editorial Staging Art (CHG-003)',
+                    'image_approver' => 'Project Lead',
+                    'image_approved_at' => $dealEffective,
+                    'status' => DealStatus::Published,
+                    'is_featured' => $dDef['is_featured'],
+                    'priority' => $dDef['priority'],
+                    'published_at' => $dealEffective,
+                    'expires_at' => null,
+                ],
+            );
+        }
+
+        $rideDeal = $seededDeals['synth-colombo-galle-chauffeured-ride'];
+        $ridePromo = Promotion::updateOrCreate(
+            ['code' => 'SYNTH-RIDE-10'],
+            [
+                'name' => 'Coastal Charter 10% Staging Offer (Synthetic)',
+                'explanation' => 'Synthetic deal-scoped staging promotion applying 10% off the Colombo–Galle chauffeured charter.',
+                'scope' => PromotionScope::Deal,
+                'service_type' => ServiceType::Ride,
+                'deal_id' => $rideDeal->id,
+                'discount_type' => PromotionDiscountType::PercentageBasisPoints,
+                'discount_value' => 1000,
+                'currency' => 'USD',
+                'status' => PromotionStatus::Active,
+                'priority' => 20,
+                'starts_at' => $dealEffective,
+                'ends_at' => null,
+            ],
+        );
+
+        if ($rideDeal->promotion_id !== $ridePromo->id) {
+            $rideDeal->update(['promotion_id' => $ridePromo->id]);
         }
     }
 }

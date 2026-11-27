@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Pricing\Services;
 
+use App\Domain\Booking\Enums\PromotionDiscountType;
 use App\Domain\Booking\ServiceType;
 use App\Domain\Catalog\Enums\ExtraPricingType;
 use App\Domain\Catalog\Enums\VehicleStatus;
@@ -13,6 +14,7 @@ use App\Domain\Pricing\DTOs\EstimateResult;
 use App\Domain\Pricing\Enums\PricingComponentType;
 use App\Domain\Pricing\Enums\PricingUnit;
 use App\Domain\Pricing\ValueObjects\Money;
+use App\Models\Deal;
 use App\Models\Extra;
 use App\Models\PricingRule;
 use App\Models\PricingRuleComponent;
@@ -22,8 +24,11 @@ use Carbon\Carbon;
 class PricingService
 {
     public function __construct(
-        protected ExchangeRateService $exchangeRateService
-    ) {}
+        protected ExchangeRateService $exchangeRateService,
+        protected ?PromotionResolver $promotionResolver = null,
+    ) {
+        $this->promotionResolver ??= app(PromotionResolver::class);
+    }
 
     /**
      * Resolve the authoritative pricing rule for a service type, vehicle, and date.
@@ -199,10 +204,13 @@ class PricingService
         }
 
         // Pass 2: Discounts (reduce subtotal and taxable base)
+        $hasRuleDiscount = false;
         foreach ($rule->components as $component) {
             if ($component->component_type !== PricingComponentType::Discount) {
                 continue;
             }
+
+            $hasRuleDiscount = true;
 
             $discountAmount = $component->unit === PricingUnit::Percentage
                 ? $subtotal->multiplyByBasisPoints($component->amount_minor_units)
@@ -233,6 +241,56 @@ class PricingService
                 isDiscount: true,
                 ruleComponentId: $component->id
             );
+        }
+
+        // Pass 2b: Non-stacking Promotional Discount (applied only if pricing rule has no discount component)
+        $appliedPromotionResult = null;
+        if (! $hasRuleDiscount && $this->promotionResolver !== null) {
+            $currency = $rule->components->first()->currency;
+            $deal = $request->dealId !== null ? Deal::find($request->dealId) : null;
+            $appliedPromotionResult = $this->promotionResolver->resolve(
+                serviceType: $request->serviceType,
+                deal: $deal,
+                travelDate: $request->serviceDate,
+                currency: $currency,
+                requestedPromotionId: $request->promotionId
+            );
+
+            if ($appliedPromotionResult !== null && $subtotal->isPositive()) {
+                $promoDiscount = $appliedPromotionResult->discountType === PromotionDiscountType::PercentageBasisPoints
+                    ? $subtotal->multiplyByBasisPoints($appliedPromotionResult->discountValue)
+                    : Money::of($appliedPromotionResult->discountValue, $currency);
+
+                // Cap discount at subtotal
+                if ($promoDiscount->isGreaterThan($subtotal)) {
+                    $promoDiscount = $subtotal;
+                }
+
+                if ($promoDiscount->isPositive()) {
+                    $subtotal = $subtotal->subtract($promoDiscount);
+                    if ($promoDiscount->isGreaterThan($taxableBase)) {
+                        $taxableBase = Money::zero();
+                    } else {
+                        $taxableBase = $taxableBase->subtract($promoDiscount);
+                    }
+
+                    $items[] = new EstimateItemData(
+                        componentType: PricingComponentType::Discount,
+                        description: "Promotion: {$appliedPromotionResult->name}",
+                        unit: $appliedPromotionResult->discountType === PromotionDiscountType::PercentageBasisPoints
+                            ? PricingUnit::Percentage
+                            : PricingUnit::Flat,
+                        quantity: 1.00,
+                        unitPrice: $promoDiscount,
+                        totalAmount: $promoDiscount,
+                        sortOrder: $sortOrder++,
+                        isDeposit: false,
+                        isTax: false,
+                        isDiscount: true,
+                        ruleComponentId: null
+                    );
+                }
+            }
         }
 
         // Pass 3: Taxes (calculated on taxable base)
@@ -268,6 +326,17 @@ class PricingService
         // Approximate LKR conversion via ExchangeRateService at quotation time
         $conversion = $this->exchangeRateService->approximateLkrWithBasis($grandTotal, Carbon::now('Asia/Colombo'));
 
+        $promotionSnapshot = $appliedPromotionResult !== null ? [
+            'promotion_id' => $appliedPromotionResult->promotion->id,
+            'name' => $appliedPromotionResult->name,
+            'scope' => $appliedPromotionResult->scope->value,
+            'discount_type' => $appliedPromotionResult->discountType->value,
+            'discount_value' => $appliedPromotionResult->discountValue,
+            'currency' => $appliedPromotionResult->currency,
+            'deal_id' => $appliedPromotionResult->dealId,
+            'service_type' => $appliedPromotionResult->serviceType?->value,
+        ] : null;
+
         return EstimateResult::calculated(
             subtotal: $subtotal,
             taxTotal: $taxTotal,
@@ -277,7 +346,10 @@ class PricingService
             pricingRuleId: $rule->id,
             ruleVersion: $rule->version,
             exchangeRateBasisId: $conversion['basis']?->id,
-            items: $items
+            items: $items,
+            appliedDealId: $request->dealId,
+            appliedPromotionId: $appliedPromotionResult?->promotion->id,
+            promotionSnapshot: $promotionSnapshot,
         );
     }
 

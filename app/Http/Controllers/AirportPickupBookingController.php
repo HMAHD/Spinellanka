@@ -41,6 +41,21 @@ class AirportPickupBookingController extends Controller
     public function create(Request $request): Response
     {
         $criteria = $request->session()->get('airport_pickup_criteria');
+        $dealPreset = $request->session()->get('booking_deal_preset');
+
+        if ($criteria === null && is_array($dealPreset) && ($dealPreset['service_type'] ?? null) === ServiceType::AirportPickup->value) {
+            $travelDate = isset($dealPreset['travel_date']) ? (string) $dealPreset['travel_date'] : Carbon::now('Asia/Colombo')->addDays(2)->format('Y-m-d');
+            $travelTime = isset($dealPreset['travel_time']) ? (string) $dealPreset['travel_time'] : '14:30';
+            $criteria = new AirportPickupCriteria(
+                airport: (string) ($dealPreset['airport'] ?? 'CMB'),
+                flightNumber: (string) ($dealPreset['flight_number'] ?? 'UL504'),
+                arrivalTime: Carbon::parse("{$travelDate} {$travelTime}", 'Asia/Colombo'),
+                destinationText: (string) ($dealPreset['destination'] ?? $dealPreset['destination_text'] ?? 'Galle Fort'),
+                passengerCount: (int) ($dealPreset['passenger_count'] ?? 2),
+                luggageCount: (int) ($dealPreset['luggage_count'] ?? 2),
+            );
+        }
+
         $places = $this->placeSearchService->search('airport');
 
         return response()->view('booking.airport-pickup.create', [
@@ -195,12 +210,16 @@ class AirportPickupBookingController extends Controller
 
         $endsAt = (clone $startsAt)->addMinutes($tripDurationMinutes);
 
+        $dealPreset = $request->session()->get('booking_deal_preset');
+        $dealId = is_array($dealPreset) && isset($dealPreset['deal_id']) ? (int) $dealPreset['deal_id'] : null;
+
         $estimateRequest = new EstimateRequestData(
             serviceType: ServiceType::AirportPickup,
             vehicleId: $vehicle->id,
             serviceDate: $startsAt,
             distanceKm: $criteria->distanceKm,
             durationHours: $criteria->durationHours,
+            dealId: $dealId,
             assumptions: [
                 'airport' => $criteria->airport,
                 'flight_number' => $criteria->flightNumber,

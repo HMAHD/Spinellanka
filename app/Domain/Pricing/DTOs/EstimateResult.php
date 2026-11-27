@@ -11,6 +11,7 @@ final class EstimateResult
 {
     /**
      * @param  array<EstimateItemData>  $items
+     * @param  array<string, mixed>|null  $promotionSnapshot
      */
     public function __construct(
         public readonly EstimateStatus $status,
@@ -25,10 +26,14 @@ final class EstimateResult
         public readonly ?int $ruleVersion = null,
         public readonly ?int $exchangeRateBasisId = null,
         public readonly array $items = [],
+        public readonly ?int $appliedDealId = null,
+        public readonly ?int $appliedPromotionId = null,
+        public readonly ?array $promotionSnapshot = null,
     ) {}
 
     /**
      * @param  array<EstimateItemData>  $items
+     * @param  array<string, mixed>|null  $promotionSnapshot
      */
     public static function calculated(
         Money $subtotal,
@@ -39,7 +44,10 @@ final class EstimateResult
         int $pricingRuleId,
         int $ruleVersion,
         ?int $exchangeRateBasisId,
-        array $items
+        array $items,
+        ?int $appliedDealId = null,
+        ?int $appliedPromotionId = null,
+        ?array $promotionSnapshot = null,
     ): self {
         return new self(
             status: EstimateStatus::Calculated,
@@ -54,6 +62,9 @@ final class EstimateResult
             ruleVersion: $ruleVersion,
             exchangeRateBasisId: $exchangeRateBasisId,
             items: $items,
+            appliedDealId: $appliedDealId,
+            appliedPromotionId: $appliedPromotionId,
+            promotionSnapshot: $promotionSnapshot,
         );
     }
 

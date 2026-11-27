@@ -43,6 +43,26 @@ class AirportTransferBookingController extends Controller
     public function create(Request $request): Response
     {
         $criteria = $request->session()->get('airport_transfer_criteria');
+        $dealPreset = $request->session()->get('booking_deal_preset');
+
+        if ($criteria === null && is_array($dealPreset) && ($dealPreset['service_type'] ?? null) === ServiceType::AirportTransfer->value) {
+            $travelDate = isset($dealPreset['travel_date']) ? (string) $dealPreset['travel_date'] : Carbon::now('Asia/Colombo')->addDays(2)->format('Y-m-d');
+            $travelTime = isset($dealPreset['travel_time']) ? (string) $dealPreset['travel_time'] : '18:00';
+            $departureTime = Carbon::parse("{$travelDate} {$travelTime}", 'Asia/Colombo');
+            $recommendedPickup = (clone $departureTime)->subHours(4);
+
+            $criteria = new AirportTransferCriteria(
+                airport: (string) ($dealPreset['airport'] ?? 'CMB'),
+                flightNumber: (string) ($dealPreset['flight_number'] ?? 'UL505'),
+                departureTime: $departureTime,
+                originText: (string) ($dealPreset['origin'] ?? $dealPreset['origin_text'] ?? 'Galle Fort'),
+                passengerCount: (int) ($dealPreset['passenger_count'] ?? 2),
+                luggageCount: (int) ($dealPreset['luggage_count'] ?? 2),
+                recommendedPickupTime: $recommendedPickup,
+                chosenPickupTime: $recommendedPickup,
+            );
+        }
+
         $places = $this->placeSearchService->search('hotel');
 
         return response()->view('booking.airport-transfer.create', [
@@ -267,12 +287,16 @@ class AirportTransferBookingController extends Controller
 
         $endsAt = (clone $startsAt)->addMinutes($tripDurationMinutes);
 
+        $dealPreset = $request->session()->get('booking_deal_preset');
+        $dealId = is_array($dealPreset) && isset($dealPreset['deal_id']) ? (int) $dealPreset['deal_id'] : null;
+
         $estimateRequest = new EstimateRequestData(
             serviceType: ServiceType::AirportTransfer,
             vehicleId: $vehicle->id,
             serviceDate: $startsAt,
             distanceKm: $criteria->distanceKm,
             durationHours: $criteria->durationHours,
+            dealId: $dealId,
             assumptions: [
                 'airport' => $criteria->airport,
                 'flight_number' => $criteria->flightNumber,

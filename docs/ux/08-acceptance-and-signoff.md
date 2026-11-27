@@ -1,8 +1,8 @@
 # 08 — Acceptance and Sign-off
 
 **Working title:** Sri Lanka Travel Mobility — UX Planning Package  
-**Revision:** Draft 2  
-**Prepared:** 2026-11-23  
+**Revision:** Draft 3  
+**Prepared:** 2026-11-27  
 **Approval applies to:** requirements, information architecture, user flows, screen/state coverage, and low-fidelity wireframe structure—not final visual design or production implementation.
 
 ## 1. Approval options
@@ -203,6 +203,7 @@ Only items entered here modify this draft.
 | CHG-001 | Add a selected-destination map to Ride and an optional, permission-gated current-device marker while the active Ride page is open; no location reaches Spinellanka servers or storage | Give the traveler local visual progress without adding dispatch or vehicle tracking | Sections 3.1, 3.2, 6, 7; Ride booking and active guest Ride map | Project lead / product owner, 2026-11-23 | Approved as browser-local only; privacy copy remains an owner-approved launch input | Draft 2 |
 | CHG-002 | Replace Inter with self-hosted Allo 1.0.3 under SIL OFL 1.1 across the public/customer design system | Adopt the requested friendly screen-optimized type family without adding a second font or third-party runtime request | Production design direction, public shell, customer forms/status surfaces, DESIGN.md and Impeccable records when shipped | Project lead / design owner, 2026-11-23 | Approved; implementation must include license, fallback, performance, and rendered-layout verification | Draft 2 |
 | CHG-003 | Record staging-only synthetic fixtures allowance (`staging_synthetic` configuration packages, synthetic 5-vehicle/rate/driver fixtures, and synthetic placeholder media markers) for Phase 16 reconciliation and end-to-end staging rehearsal while keeping production configuration export and live promotion blocked until real client inputs/imagery are supplied | Unblock Phase 16 reproducible configuration import/rollback testing and four synthetic E2E staging journeys without fabricating client-approved production claims or real imagery | `PRODUCT.md`, `DESIGN.md`, `docs/ux/07-client-input-checklist.md`, Phase 16 staging fixtures & configuration transfer | Project lead / release integrator, 2026-11-27 | Approved for staging rehearsal only (`!app()->isProduction()`); production export remains strictly blocked (`production_approved` rejects synthetic markers) | Draft 2 (Phase 16) |
+| CHG-004 | Add Phase 10A Public Experience (Deals across all four services, single non-stacking Promotions, verified post-trip Reviews with Trustpilot attribution, service-bar header + dropdown, structured footer, curated editorial visuals, and icon-collapsible Admin sidebar) | Provide transparent preconfigured travel packages across Homepage & Service pages and polished navigation without dark patterns | Sections 3.1, 7.11; Navbar, Footer, Homepage, Service pages, `/deals`, `/deals/{slug}`, Offers admin, `AdminPanelProvider` | Project lead, 2026-11-27 | Approved; enforces non-stacking discounts, exact vehicle availability, verified completed-trip reviews, approved editorial/staging visuals (`CHG-003`), and full responsive/accessibility verification | Draft 3 (Phase 10A + UIUX) |
 
 ## 9. Client-input ownership
 
@@ -269,3 +270,5 @@ This is not approval of final legal or financial wording. It confirms ownership 
 | Revision | Date | Summary | Approved |
 |---|---|---|---|
 | Draft 1 | 2026-11-16 | Initial decision-complete UX planning package | Pending |
+| Draft 2 | 2026-11-27 | Recorded CHG-001 (browser-local map), CHG-002 (Allo typography), and CHG-003 (Phase 16 staging fixtures) | Approved |
+| Draft 3 | 2026-11-27 | Recorded CHG-004 (Phase 10A Deals, Promotions, Reviews, and Public UI/UX + Admin sidebar update) | Approved |

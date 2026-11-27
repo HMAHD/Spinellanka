@@ -235,7 +235,9 @@ Required statuses:
 - **PAY-004:** Admin must record gateway, cash, card-terminal, and bank-transfer transactions in one payment history.
 - **PAY-005:** Track amount, currency, method, status, reference, timestamp, collector, allocation, balance, refund, and notes.
 - **PAY-006:** Generate/download an estimate or proposal, payment receipt, and final invoice with appropriate business, customer, currency, tax, fee, and booking data.
-- **PAY-007:** Staff may apply an audited manual discount. Customer-facing promotion systems are excluded.
+- **PAY-007:** Authorized administrators may publish non-stacking promotions (Deal, Service, or Global scope) applying at most one customer-facing discount capped at subtotal before tax; security deposits are strictly excluded from discounts. Staff may also apply audited manual discounts on proposals.
+- **DEAL-001:** Curated, verified deals across all four services pre-fill service booking forms without bypassing exact fleet availability, suitability checks, 15-minute checkout holds, or staff confirmation.
+- **REV-001:** Public reviews require verified completed bookings (BookingStatus::Completed) and admin moderation before publication, displaying authentic star ratings, trip dates, traveler names, and Trustpilot attribution.
 
 ### 7.12 Communications
 

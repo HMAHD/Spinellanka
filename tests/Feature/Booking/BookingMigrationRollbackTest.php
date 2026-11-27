@@ -9,7 +9,10 @@ test('booking migrations can be completely rolled back and re-applied without co
     // Ensure all tables are migrated in this connection
     Artisan::call('migrate');
 
-    // Assert booking & proposal tables exist
+    // Assert offers, booking & proposal tables exist
+    expect(Schema::hasTable('reviews'))->toBeTrue();
+    expect(Schema::hasTable('deals'))->toBeTrue();
+    expect(Schema::hasTable('promotions'))->toBeTrue();
     expect(Schema::hasTable('proposal_items'))->toBeTrue();
     expect(Schema::hasTable('proposals'))->toBeTrue();
     expect(Schema::hasTable('message_deliveries'))->toBeTrue();
@@ -25,11 +28,14 @@ test('booking migrations can be completely rolled back and re-applied without co
     expect(Schema::hasTable('booking_contacts'))->toBeTrue();
     expect(Schema::hasTable('bookings'))->toBeTrue();
 
-    // Rollback the 21 booking, proposal, ride, rent, outbox, payment, driver operations, handover, incident, privacy & config-snapshot migration steps
-    $exitCode = Artisan::call('migrate:rollback', ['--step' => 21]);
+    // Rollback the 24 offers, config-snapshot, booking, proposal, ride, rent, outbox, payment, driver operations, handover, incident & privacy migration steps
+    $exitCode = Artisan::call('migrate:rollback', ['--step' => 24]);
     expect($exitCode)->toBe(0);
 
-    // Assert all 14 tables dropped cleanly
+    // Assert all tables dropped cleanly
+    expect(Schema::hasTable('reviews'))->toBeFalse();
+    expect(Schema::hasTable('deals'))->toBeFalse();
+    expect(Schema::hasTable('promotions'))->toBeFalse();
     expect(Schema::hasTable('proposal_items'))->toBeFalse();
     expect(Schema::hasTable('proposals'))->toBeFalse();
     expect(Schema::hasTable('message_deliveries'))->toBeFalse();
@@ -52,6 +58,10 @@ test('booking migrations can be completely rolled back and re-applied without co
     // Re-apply migrations
     $migrateExit = Artisan::call('migrate');
     expect($migrateExit)->toBe(0);
+
+    expect(Schema::hasTable('reviews'))->toBeTrue();
+    expect(Schema::hasTable('deals'))->toBeTrue();
+    expect(Schema::hasTable('promotions'))->toBeTrue();
 
     expect(Schema::hasTable('proposal_items'))->toBeTrue();
     expect(Schema::hasTable('proposals'))->toBeTrue();
