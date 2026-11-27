@@ -79,7 +79,6 @@ run("ln -sf " . escapeshellarg($sharedEnv) . " " . escapeshellarg("$releaseDir/.
 echo "\n-- Linking shared storage --\n";
 run("rm -rf " . escapeshellarg("$releaseDir/storage"));
 run("ln -sf " . escapeshellarg($sharedStorage) . " " . escapeshellarg("$releaseDir/storage"));
-run("ln -sf " . escapeshellarg("$releaseDir/public") . " " . escapeshellarg("$BASE_DIR/../test.spinellanka.lk"));
 
 // 6. Run migrations
 echo "\n-- Running migrations --\n";
@@ -101,10 +100,19 @@ run("chmod -R 755 " . escapeshellarg($releaseDir));
 run("chmod -R 775 " . escapeshellarg("$releaseDir/bootstrap/cache"));
 
 // 10. Atomic symlink swap
+// If 'current' is still a plain directory (first deploy), remove it first.
 echo "\n-- Activating release --\n";
+if (is_dir($currentLink) && !is_link($currentLink)) {
+    run("rm -rf " . escapeshellarg($currentLink));
+}
 $tmpLink = "$currentLink.tmp.$$";
 run("ln -sfn " . escapeshellarg($releaseDir) . " " . escapeshellarg($tmpLink));
-run("mv -Tf " . escapeshellarg($tmpLink) . " " . escapeshellarg($currentLink));
+// mv -Tf atomically replaces the symlink; fall back to rename() on older coreutils
+exec("mv -Tf " . escapeshellarg($tmpLink) . " " . escapeshellarg($currentLink) . " 2>&1", $mvOut, $mvCode);
+if ($mvCode !== 0) {
+    rename($tmpLink, $currentLink);
+}
+echo "[OK] Symlink activated: current -> $releaseDir\n";
 
 // 11. Prune old releases (keep 2)
 echo "\n-- Pruning old releases --\n";
@@ -119,3 +127,4 @@ run("rm -f " . escapeshellarg($archive) . " " . escapeshellarg($checksum));
 
 echo "\n=== Deploy $releaseId complete ===\n";
 echo "Live at: http://test.spinellanka.lk\n";
+
