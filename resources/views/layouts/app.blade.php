@@ -38,5 +38,6 @@
   </header>
 
   @yield('content')
+  @include('partials.analytics-consent')
 </body>
 </html>

@@ -92,6 +92,91 @@ const revealSections = () => {
   elements.forEach((element) => observer.observe(element));
 };
 
+const setupConsentAwareAnalytics = () => {
+  const bar = document.querySelector("#analytics-consent-bar");
+  if (!(bar instanceof HTMLElement)) {
+    return;
+  }
+
+  const storageKey = "spinellanka_analytics_consent";
+  const domain = bar.dataset.analyticsDomain || "";
+  const scriptSrc = bar.dataset.analyticsSrc || "";
+
+  if (!domain || !scriptSrc) {
+    return;
+  }
+
+  const loadPlausibleScript = () => {
+    if (
+      document.querySelector('script[data-spinellanka-analytics="plausible"]')
+    ) {
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.async = true;
+    script.defer = true;
+    script.setAttribute("fetchpriority", "low");
+    script.setAttribute("data-domain", domain);
+    script.setAttribute("data-spinellanka-analytics", "plausible");
+    script.src = scriptSrc;
+    document.head.appendChild(script);
+  };
+
+  let choice = null;
+  try {
+    choice = window.localStorage.getItem(storageKey);
+  } catch {
+    choice = null;
+  }
+
+  if (choice === "accepted") {
+    loadPlausibleScript();
+  } else if (choice !== "declined") {
+    bar.hidden = false;
+  }
+
+  const manageButtons = document.querySelectorAll("[data-analytics-manage]");
+  manageButtons.forEach((btn) => {
+    if (btn instanceof HTMLButtonElement) {
+      btn.hidden = false;
+      btn.addEventListener("click", () => {
+        bar.hidden = false;
+        const acceptBtn = bar.querySelector("[data-analytics-accept]");
+        if (acceptBtn instanceof HTMLButtonElement) {
+          acceptBtn.focus();
+        }
+      });
+    }
+  });
+
+  const acceptBtn = bar.querySelector("[data-analytics-accept]");
+  const declineBtn = bar.querySelector("[data-analytics-decline]");
+
+  if (acceptBtn instanceof HTMLButtonElement) {
+    acceptBtn.addEventListener("click", () => {
+      try {
+        window.localStorage.setItem(storageKey, "accepted");
+      } catch {
+        // Ignore storage restrictions
+      }
+      bar.hidden = true;
+      loadPlausibleScript();
+    });
+  }
+
+  if (declineBtn instanceof HTMLButtonElement) {
+    declineBtn.addEventListener("click", () => {
+      try {
+        window.localStorage.setItem(storageKey, "declined");
+      } catch {
+        // Ignore storage restrictions
+      }
+      bar.hidden = true;
+    });
+  }
+};
+
 loadPopoverFallback()
   .catch(() => undefined)
   .finally(() => {
@@ -99,3 +184,4 @@ loadPopoverFallback()
     closeMenuAfterNavigation();
   });
 revealSections();
+setupConsentAwareAnalytics();

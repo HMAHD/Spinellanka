@@ -115,6 +115,7 @@ Route::prefix('/driver/trip/{token}')->name('driver.trip.')->group(function (): 
 Route::get('/fleet', function () {
     $vehicles = Vehicle::query()
         ->where('status', VehicleStatus::Active)
+        ->when(app()->isProduction(), fn ($q) => $q->where('internal_fleet_id', 'not like', 'SYNTH-%'))
         ->with('publicApprovedMedia')
         ->orderBy('id')
         ->get();
@@ -126,6 +127,7 @@ Route::get('/fleet', function () {
 
 Route::get('/fleet/{vehicle}', function (Vehicle $vehicle) {
     abort_if($vehicle->status !== VehicleStatus::Active, 404);
+    abort_if(app()->isProduction() && str_starts_with($vehicle->internal_fleet_id, 'SYNTH-'), 404);
 
     $vehicle->load('publicApprovedMedia');
 

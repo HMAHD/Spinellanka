@@ -30,6 +30,18 @@
         <ul>
           <li><a href="{{ route('legal.terms') }}">Terms</a></li>
           <li><a href="{{ route('legal.privacy') }}">Privacy</a></li>
+          @if(
+            config('services.analytics.provider') === 'plausible'
+            && filled(config('services.analytics.plausible_domain'))
+            && request()->route() !== null
+            && request()->routeIs('home', 'services.*', 'fleet.*', 'how-it-works', 'help', 'contact', 'legal.*')
+          )
+            <li>
+              <button type="button" class="footer-consent-reset" data-analytics-manage hidden>
+                Analytics settings
+              </button>
+            </li>
+          @endif
         </ul>
       </nav>
     </div>
