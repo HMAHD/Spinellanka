@@ -7,13 +7,12 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target deployment environment'
+        description: 'Target deployment environment (staging only; production remains disabled)'
         required: false
         default: 'staging'
         type: choice
         options:
           - staging
-          - production
 
 permissions:
   contents: read
@@ -37,7 +36,7 @@ jobs:
       - name: Assert Hosting Capability Gate Passed
         run: |
           echo "Checking hosting acceptance verdict in docs/planning/05-cpanel-deployment-and-operations.md..."
-          if ! grep -q 'Verdict: Accepted' docs/planning/05-cpanel-deployment-and-operations.md; then
+          if ! grep -qE '(\*\*Verdict\*\*|Verdict): Accepted' docs/planning/05-cpanel-deployment-and-operations.md; then
             echo "::error::Deployment blocked! Hosting acceptance gate has not passed. Phase 01 hosting verdict must be Accepted before deployment can be activated."
             exit 1
           fi
