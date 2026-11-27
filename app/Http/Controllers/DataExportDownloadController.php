@@ -24,6 +24,10 @@ class DataExportDownloadController extends Controller
         /** @var DataExport $export */
         $export = DataExport::where('export_uuid', $uuid)->firstOrFail();
 
+        if ($export->isExpired() || $export->file_path === 'purged') {
+            abort(410, 'This data export has expired and been purged.');
+        }
+
         return $this->exportService->downloadExport($export, $user);
     }
 }

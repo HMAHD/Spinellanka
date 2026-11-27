@@ -8,7 +8,7 @@ use App\Domain\Operations\Enums\IncidentSeverity;
 use App\Domain\Operations\Enums\IncidentStatus;
 use App\Domain\Operations\Enums\IncidentType;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -44,9 +44,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Vehicle|null $vehicle
  * @property-read Driver|null $driver
  * @property-read User|null $assignedToUser
- * @property-read \Illuminate\Database\Eloquent\Collection<int, IncidentAction> $actions
- * @property-read \Illuminate\Database\Eloquent\Collection<int, IncidentFinancialEntry> $financialEntries
- * @property-read \Illuminate\Database\Eloquent\Collection<int, IncidentAttachment> $attachments
+ * @property-read Collection<int, IncidentAction> $actions
+ * @property-read Collection<int, IncidentFinancialEntry> $financialEntries
+ * @property-read Collection<int, IncidentAttachment> $attachments
  */
 class Incident extends Model
 {

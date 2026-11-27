@@ -72,12 +72,16 @@ class PrivateMediaPipelineService
         if ($detectedMime === 'image/jpeg' && function_exists('exif_read_data')) {
             $exif = @exif_read_data($realPath);
             if (! empty($exif['Orientation'])) {
-                $image = match ((int) $exif['Orientation']) {
+                $rotated = match ((int) $exif['Orientation']) {
                     3 => imagerotate($image, 180, 0),
                     6 => imagerotate($image, -90, 0),
                     8 => imagerotate($image, 90, 0),
-                    default => $image,
+                    default => null,
                 };
+                if ($rotated !== null && $rotated !== false) {
+                    imagedestroy($image);
+                    $image = $rotated;
+                }
             }
         }
 
@@ -124,11 +128,32 @@ class PrivateMediaPipelineService
             throw new InvalidArgumentException('Invalid document format; file is missing %PDF- signature header.');
         }
 
-        // 2. Scan for malicious executable PDF objects
-        $prohibitedTokens = ['/JavaScript', '/JS', '/Launch', '/Action', '/EmbeddedFiles'];
+        // 2. Normalize hex-encoded names (PDF Spec §3.2.4 name normalization e.g. /Java#53cript)
+        $normalized = (string) preg_replace_callback('/#([0-9a-fA-F]{2})/', fn ($m) => chr((int) hexdec($m[1])), $content);
+
+        // 3. Scan for malicious executable PDF objects across raw and normalized tokens
+        $prohibitedTokens = [
+            '/JavaScript', '/JS', '/Launch', '/Action', '/EmbeddedFiles',
+            '/URI', '/SubmitForm', '/ImportData', '/RichMedia', '/AcroForm',
+        ];
+
         foreach ($prohibitedTokens as $token) {
-            if (stripos($content, $token) !== false) {
+            if (stripos($content, $token) !== false || stripos($normalized, $token) !== false) {
                 throw new InvalidArgumentException(sprintf('Security violation: PDF contains prohibited active element (%s).', $token));
+            }
+        }
+
+        // 4. Scan FlateDecode compressed stream contents for hidden active tokens
+        if (preg_match_all('/<<[^>]*\/FlateDecode[^>]*>>\s*stream[\r\n]+(.*?[\r\n]+)endstream/s', $content, $streamMatches)) {
+            foreach ($streamMatches[1] as $rawStream) {
+                $decompressed = @gzuncompress(trim($rawStream));
+                if ($decompressed !== false) {
+                    foreach ($prohibitedTokens as $token) {
+                        if (stripos($decompressed, $token) !== false) {
+                            throw new InvalidArgumentException(sprintf('Security violation: PDF stream contains compressed active element (%s).', $token));
+                        }
+                    }
+                }
             }
         }
 
@@ -148,6 +173,7 @@ class PrivateMediaPipelineService
 
     /**
      * Store a base64 encoded PNG signature securely as a clean binary file.
+     * Decodes and re-encodes through GD to eliminate polyglots and enforce dimension bounds.
      */
     public function storeSignaturePng(string $base64Data, string $prefix = 'sig'): string
     {
@@ -167,10 +193,44 @@ class PrivateMediaPipelineService
             throw new InvalidArgumentException('Signature must be a valid PNG raster image.');
         }
 
+        // Decode into GD resource to sanitize polyglots and check dimensions
+        $image = @imagecreatefromstring($decoded);
+        if ($image === false) {
+            throw new InvalidArgumentException('Signature raster decoding failed; invalid image data.');
+        }
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        if ($width > 2000 || $height > 1000) {
+            imagedestroy($image);
+            throw new InvalidArgumentException(sprintf('Signature dimensions %dx%d exceed allowable boundaries.', $width, $height));
+        }
+
+        // Create clean canvas preserving PNG alpha channel
+        $clean = imagecreatetruecolor($width, $height);
+        if ($clean === false) {
+            imagedestroy($image);
+            throw new InvalidArgumentException('Failed to allocate signature canvas.');
+        }
+
+        imagealphablending($clean, false);
+        imagesavealpha($clean, true);
+        $transparent = imagecolorallocatealpha($clean, 0, 0, 0, 127);
+        imagefill($clean, 0, 0, (int) $transparent);
+        imagecopy($clean, $image, 0, 0, 0, 0, $width, $height);
+
+        ob_start();
+        imagepng($clean);
+        $cleanBytes = (string) ob_get_clean();
+
+        imagedestroy($clean);
+        imagedestroy($image);
+
         $uuid = (string) Str::uuid();
         $relativePath = sprintf('signatures/%s_%s.png', $prefix, $uuid);
 
-        Storage::disk('local')->put($relativePath, $decoded);
+        Storage::disk('local')->put($relativePath, $cleanBytes);
 
         return $relativePath;
     }

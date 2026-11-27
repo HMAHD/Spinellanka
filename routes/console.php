@@ -31,3 +31,7 @@ Schedule::command('availability:cleanup-stale')
 Schedule::command('payments:reconcile')
     ->hourly()
     ->withoutOverlapping();
+
+Schedule::command('retention:execute')
+    ->daily()
+    ->withoutOverlapping();

@@ -220,6 +220,16 @@ class HandoverService
                 $violations['documents'] = 'Physical original documents have not been verified.';
             }
 
+            // Statutory Foreign Licence IDP/AAC and expiry gate
+            $isForeign = ! in_array(strtoupper(trim((string) $handover->driver_licence_country)), ['LK', 'SRI LANKA'], true);
+            if ($isForeign && ! $handover->idp_or_aac_verified) {
+                $violations['idp'] = 'Statutory violation: Foreign driver licence requires verified IDP or AAC endorsement.';
+            }
+
+            if ($handover->driver_licence_expiry && $handover->driver_licence_expiry->isPast()) {
+                $violations['licence_expiry'] = 'Statutory violation: Driver licence has expired.';
+            }
+
             if (! $handover->conditionRecord) {
                 $violations['condition'] = 'Vehicle collection condition has not been recorded.';
             }
@@ -265,6 +275,10 @@ class HandoverService
     public function authorizeException(Handover $handover, User $authorizer, string $reason): Handover
     {
         // 1. Separation of duties (Four-Eyes Principle): Authorizer cannot be the field staff performing handover
+        if ($handover->staff_user_id === null) {
+            throw new InvalidArgumentException('Cannot authorize exception: Handover must have an assigned field staff member.');
+        }
+
         if ($authorizer->id === $handover->staff_user_id) {
             throw new AuthorizationException('Four-Eyes principle violation: Field staff cannot authorize their own handover exception.');
         }

@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace App\Domain\Operations\Services;
 
 use App\Domain\Operations\DTOs\ConditionComparisonResult;
+use App\Domain\Operations\Enums\IncidentSeverity;
+use App\Domain\Operations\Enums\IncidentStatus;
+use App\Domain\Operations\Enums\IncidentType;
 use App\Domain\Operations\Exceptions\OdometerRollbackAnomalyException;
 use App\Models\Handover;
+use App\Models\Incident;
 use App\Models\IncidentFinancialEntry;
 use App\Models\VehicleConditionRecord;
+use Carbon\Carbon;
 use InvalidArgumentException;
 
 class ConditionComparisonService
@@ -32,6 +37,23 @@ class ConditionComparisonService
 
         // 1. Negative Odometer Detection (Rollback Anomaly / Cluster Swap)
         if ($returnCondition->odometer_km < $collectionCondition->odometer_km) {
+            Incident::create([
+                'incident_number' => Incident::generateIncidentNumber(),
+                'booking_id' => $collectionHandover->booking_id,
+                'vehicle_id' => $collectionHandover->vehicle_id,
+                'type' => IncidentType::Damage,
+                'severity' => IncidentSeverity::Critical,
+                'status' => IncidentStatus::Reported,
+                'occurred_at' => Carbon::now('Asia/Colombo'),
+                'reported_at' => Carbon::now('Asia/Colombo'),
+                'reported_by_name' => 'System Anomaly Detector',
+                'description' => sprintf(
+                    'Odometer rollback anomaly detected: return mileage (%d km) is lower than collection mileage (%d km). Meter tampering or cluster swap suspected.',
+                    $returnCondition->odometer_km,
+                    $collectionCondition->odometer_km
+                ),
+            ]);
+
             throw new OdometerRollbackAnomalyException(
                 collectionKm: $collectionCondition->odometer_km,
                 returnKm: $returnCondition->odometer_km
@@ -42,8 +64,9 @@ class ConditionComparisonService
 
         // 2. Zero-KM Return Verification for multi-day rentals
         $distanceDrivenKm = $returnCondition->odometer_km - $collectionCondition->odometer_km;
-        if ($distanceDrivenKm === 0 && $rentDetail->duration_days >= 1 && ! $returnCondition->is_zero_km_verified) {
-            throw new InvalidArgumentException('Multi-day rental with 0 kilometers driven must have explicit staff verification and reason recorded.');
+        $isZeroKmMissingReason = empty(trim((string) $returnCondition->zero_km_reason));
+        if ($distanceDrivenKm === 0 && $rentDetail->duration_days >= 1 && (! $returnCondition->is_zero_km_verified || $isZeroKmMissingReason)) {
+            throw new InvalidArgumentException('Multi-day rental with 0 kilometers driven must have explicit staff verification and non-empty reason recorded.');
         }
 
         // 3. Excess Mileage Calculation
@@ -95,7 +118,9 @@ class ConditionComparisonService
             ];
         }
 
-        $totalProposedSettlement = $excessMileageCharge + $fuelCostMinorUnits + $smokingPenaltyMinorUnits;
+        $grossSettlement = $excessMileageCharge + $fuelCostMinorUnits + $smokingPenaltyMinorUnits;
+        $totalIncidentBilled = array_sum(array_column($incidentDeductions, 'amount_minor_units'));
+        $totalProposedSettlement = max(0, $grossSettlement - (int) $totalIncidentBilled);
 
         return new ConditionComparisonResult(
             collectionKm: $collectionCondition->odometer_km,

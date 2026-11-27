@@ -8,17 +8,13 @@ use App\Domain\Identity\Permission;
 use App\Domain\Operations\Enums\IncidentFinancialEntryType;
 use App\Domain\Operations\Enums\IncidentSeverity;
 use App\Domain\Operations\Enums\IncidentStatus;
-use App\Domain\Operations\Enums\IncidentType;
 use App\Domain\Operations\Services\IncidentService;
 use App\Filament\Resources\Operations\Bookings\BookingResource;
 use App\Filament\Resources\Operations\Incidents\Pages\ManageIncidents;
 use App\Models\Incident;
 use BackedEnum;
 use Filament\Actions\Action;
-use Filament\Actions\CreateAction;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\Checkbox;
-use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -343,4 +339,3 @@ class IncidentResource extends Resource
         ];
     }
 }
-

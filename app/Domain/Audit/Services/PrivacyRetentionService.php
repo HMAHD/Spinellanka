@@ -13,8 +13,10 @@ use App\Models\DataExport;
 use App\Models\DriverAccessToken;
 use App\Models\GuestAccessToken;
 use App\Models\Handover;
+use App\Models\Incident;
 use App\Models\IncidentAttachment;
 use App\Models\LegalHold;
+use App\Models\RentDetail;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -102,6 +104,23 @@ class PrivacyRetentionService
                                 'email' => sprintf('anonymized_%d@redacted.invalid', $lockedBooking->id),
                                 'phone' => '[REDACTED]',
                                 'is_whatsapp' => false,
+                            ]);
+
+                            // Anonymize rent details PII
+                            RentDetail::where('booking_id', $lockedBooking->id)->update([
+                                'additional_driver_name' => null,
+                                'original_documents_inspection_notes' => '[REDACTED_RETENTION]',
+                                'pickup_location_text' => '[REDACTED]',
+                                'return_location_text' => '[REDACTED]',
+                            ]);
+
+                            // Anonymize incident narratives and reporter names
+                            Incident::where('booking_id', $lockedBooking->id)->update([
+                                'reported_by_name' => 'Anonymized Reporter',
+                                'description' => '[REDACTED_PRIVACY_RETENTION]',
+                                'police_report_number' => null,
+                                'insurance_claim_reference' => null,
+                                'resolution_summary' => '[REDACTED_PRIVACY_RETENTION]',
                             ]);
 
                             // Anonymize handovers signatures and notes
