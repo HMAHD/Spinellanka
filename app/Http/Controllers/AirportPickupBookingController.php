@@ -60,7 +60,7 @@ class AirportPickupBookingController extends Controller
             'destination_text' => ['required', 'string', 'max:500'],
             'passenger_count' => ['required', 'integer', 'min:1', 'max:10'],
             'luggage_count' => ['required', 'integer', 'min:0', 'max:10'],
-            'place_id' => ['nullable', 'string', 'max:64'],
+            'place_id' => ['nullable', 'string', 'max:255'],
             'destination_notes' => ['nullable', 'string', 'max:1000'],
             'meet_and_greet' => ['nullable', 'boolean'],
             'name_board_text' => ['nullable', 'string', 'max:255'],

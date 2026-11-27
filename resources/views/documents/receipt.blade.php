@@ -219,7 +219,7 @@
     <div class="section-grid">
       <div class="info-block">
         <h3>Billed To (Traveler)</h3>
-        <p><strong>{{ $booking->leadTraveler?->full_name ?: ($booking->booker?->full_name ?: 'Valued Guest') }}</strong></p>
+        <p><strong>{{ $booking->leadTraveler?->fullName() ?: ($booking->booker?->fullName() ?: 'Valued Guest') }}</strong></p>
         <p>{{ $booking->leadTraveler?->email ?: $booking->booker?->email }}</p>
         <p>{{ $booking->leadTraveler?->phone ?: $booking->booker?->phone }}</p>
       </div>
