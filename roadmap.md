@@ -275,7 +275,7 @@ A PR description is evidence for review, but it is not the sole durable source f
 | 13    | `phase/13-payments-documents`           | Lead              | 12 plus approved merchant/payment policies                                                           | Waiting                             |
 | 14    | `phase/14-calendar-driver-operations`   | Lead              | 12 plus approved driver/replacement/token/offline/escalation policy package                          | Waiting                             |
 | 15    | `phase/15-rent-field-incidents-privacy` | Lead              | 10, 12, 13, 14; approved retention/incident rules and supported private-upload security pipeline     | Waiting                             |
-| 16    | `phase/16-client-provider-activation`   | Lead              | 01, 04, 08–15 plus approved client/provider inputs                                                   | Waiting                             |
+| 16    | `phase/16-client-provider-activation`   | Lead              | 01, 04, 08–15 plus approved client/provider inputs                                                   | In review (staging-only `CHG-003`; production activation blocked) |
 | 17    | `phase/17-launch-hardening`             | Lead              | 16 plus numeric owner-approved performance/query/page-weight budgets                                 | Waiting                             |
 | 18    | `phase/18-go-live-preparation`          | Lead              | 01 accepted-host gate, merged 17, protected-main artifact, DNS/TLS and deployment/rollback approval  | Waiting                             |
 

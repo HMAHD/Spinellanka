@@ -23,10 +23,10 @@ If the host cannot meet document-root, PHP CLI, or cron requirements, move to a 
 ## Hosting capability assessment verdict
 
 **Assessment Date**: 2026-11-27  
-**Verdict**: Accepted  
-**Deployment Status**: Enabled — cPanel at 198.37.120.210, SSH port 22, DB spinellanka_Test confirmed  
-**Responsible Owner**: Akash (Developer)  
-**Required Action**: None — all gates confirmed. Run first deploy via GitHub Actions.
+**Verdict**: Accepted (Staging Only; Production remains Blocked — hosting)  
+**Deployment Status**: Staging enabled via `staging` GitHub environment secrets; Production remains Disabled until all 11 gates pass for production  
+**Responsible Owner**: Hosting/Technical Owner (Client) for Production; Technical Maintainer for Staging  
+**Required Action**: Keep host IPs, ports, and DB names strictly in GitHub `staging` secrets (`CPANEL_SSH_HOST`, `CPANEL_DEPLOY_PATH`, `.env`). Resolve blocked production gates prior to Phase 18.
 
 ### Capability evaluation status
 
