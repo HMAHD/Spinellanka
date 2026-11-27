@@ -37,6 +37,8 @@ class CpanelCapabilityTest extends TestCase
         $this->assertStringContainsString('Blocked — hosting', $planningDoc);
         $this->assertStringContainsString('Disabled', $planningDoc);
         $this->assertStringContainsString('**Responsible Owner**: Hosting/Technical Owner (Client)', $planningDoc);
+        $this->assertDoesNotMatchRegularExpression('/\b\d{1,3}(?:\.\d{1,3}){3}\b/', $planningDoc);
+        $this->assertStringNotContainsString('spinellanka_Test', $planningDoc);
     }
 
     public function test_roadmap_records_phase_01_blocked_status(): void

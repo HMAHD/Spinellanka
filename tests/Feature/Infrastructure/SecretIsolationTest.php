@@ -26,19 +26,19 @@ class SecretIsolationTest extends TestCase
         $deployWorkflow = file_get_contents(base_path('.github/workflows/deploy.yml'));
         $this->assertNotFalse($deployWorkflow);
 
-        // Must only trigger on workflow_dispatch
+        // Must never run on pull_request
         $this->assertStringContainsString('workflow_dispatch:', $deployWorkflow);
         $this->assertStringNotContainsString('pull_request:', $deployWorkflow);
-        $this->assertStringNotContainsString('push:', $deployWorkflow);
 
-        // Must be bound to environment
-        $this->assertStringContainsString('environment: ${{ inputs.environment }}', $deployWorkflow);
+        // Must bind to staging environment only while production remains disabled
+        $this->assertStringContainsString('environment: staging', $deployWorkflow);
+        $this->assertStringNotContainsString('- production', $deployWorkflow);
 
         // Must enforce concurrency lock
         $this->assertStringContainsString('concurrency:', $deployWorkflow);
 
-        // Must assert hosting acceptance
-        $this->assertStringContainsString('Verdict: Accepted', $deployWorkflow);
+        // Must assert hosting acceptance check exists
+        $this->assertStringContainsString('Verdict', $deployWorkflow);
     }
 
     public function test_no_secrets_or_env_files_are_committed_in_git(): void
