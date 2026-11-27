@@ -2,24 +2,40 @@
 
 use App\Domain\Booking\ServiceType;
 use App\Domain\Catalog\Enums\VehicleStatus;
+use App\Domain\Offers\Services\DealCatalogService;
+use App\Domain\Offers\Services\ReviewService;
 use App\Http\Controllers\AirportPickupBookingController;
 use App\Http\Controllers\AirportTransferBookingController;
 use App\Http\Controllers\BookingStatusController;
 use App\Http\Controllers\DataExportDownloadController;
+use App\Http\Controllers\DealController;
 use App\Http\Controllers\DriverTripController;
 use App\Http\Controllers\FinancialDocumentController;
 use App\Http\Controllers\PaymentCheckoutController;
 use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\PrivateMediaDownloadController;
 use App\Http\Controllers\RentBookingController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\RideBookingController;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 
-Route::get('/', fn () => view('home', [
-    'services' => ServiceType::cases(),
-]))->name('home');
+Route::get('/', function (
+    DealCatalogService $dealCatalog,
+    ReviewService $reviewService
+) {
+    $hasDeals = Schema::hasTable('deals');
+    $hasReviews = Schema::hasTable('reviews');
+
+    return view('home', [
+        'services' => ServiceType::cases(),
+        'featuredDeals' => $hasDeals ? $dealCatalog->getFeaturedDeals(4) : collect(),
+        'dealsByService' => $hasDeals ? $dealCatalog->getPublishedDealsByService(3) : [],
+        'featuredReviews' => $hasReviews ? $reviewService->getFeaturedReviews(3) : collect(),
+    ]);
+})->name('home');
 
 Route::get('/services', function (Request $request) {
     $service = ServiceType::tryFrom((string) $request->query('service'));
@@ -29,14 +45,19 @@ Route::get('/services', function (Request $request) {
     return redirect()->route('services.show', ['service' => $service->value]);
 })->name('services.choose');
 
-Route::get('/services/{service}', function (string $service) {
+Route::get('/services/{service}', function (string $service, DealCatalogService $dealCatalog) {
     $serviceType = ServiceType::tryFrom($service);
 
     abort_if($serviceType === null, 404);
 
+    $serviceDeals = Schema::hasTable('deals')
+        ? $dealCatalog->getPublishedDeals($serviceType)
+        : collect();
+
     return view('services.show', [
         'service' => $serviceType,
         'services' => ServiceType::cases(),
+        'serviceDeals' => $serviceDeals,
     ]);
 })->name('services.show');
 
@@ -142,6 +163,15 @@ Route::view('/help', 'help')->name('help');
 Route::redirect('/faq', '/help', 301);
 
 Route::view('/contact', 'contact')->name('contact');
+
+// Curated Deals and Packages
+Route::get('/deals', [DealController::class, 'index'])->name('deals.index');
+Route::get('/deals/{slug}', [DealController::class, 'show'])->name('deals.show');
+Route::post('/deals/{slug}/book', [DealController::class, 'book'])->middleware('throttle:30,1')->name('deals.book');
+
+// Post-Trip Verified Reviews
+Route::get('/reviews/submit/{token}', [ReviewController::class, 'create'])->name('reviews.submit');
+Route::post('/reviews/submit/{token}', [ReviewController::class, 'store'])->middleware('throttle:10,1')->name('reviews.store');
 
 Route::view('/legal/terms', 'legal.terms')->name('legal.terms');
 Route::view('/legal/privacy', 'legal.privacy')->name('legal.privacy');

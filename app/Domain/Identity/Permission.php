@@ -24,6 +24,7 @@ enum Permission: string
     case ExportCustomerData = 'export.customer_data';
     case ExportFinancialData = 'export.financial_data';
     case ConfigManage = 'config.manage';
+    case OffersManage = 'offers.manage';
 
     public function label(): string
     {
@@ -48,6 +49,7 @@ enum Permission: string
             self::ExportCustomerData => 'Export Traveler Data',
             self::ExportFinancialData => 'Export Financial Ledger',
             self::ConfigManage => 'Manage Settings & Policies',
+            self::OffersManage => 'Manage Offers, Deals & Promotions',
         };
     }
 }

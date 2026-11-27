@@ -302,6 +302,14 @@ class Booking extends Model
     }
 
     /**
+     * @return HasOne<Review, $this>
+     */
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class);
+    }
+
+    /**
      * @return HasMany<Proposal, $this>
      */
     public function proposals(): HasMany

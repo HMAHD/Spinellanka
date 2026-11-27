@@ -270,6 +270,7 @@ A PR description is evidence for review, but it is not the sole durable source f
 | 08    | `phase/08-airport-transfer`             | Guided maintainer | 07 plus verified eligible fleet and Airport Transfer inputs                                          | Waiting                             |
 | 09    | `phase/09-ride`                         | Guided maintainer | 07 plus Phase 05 multi-interval capability, verified eligible fleet, and Ride inputs                 | Waiting                             |
 | 10    | `phase/10-rent`                         | Lead              | 07 plus verified eligible fleet and Rent/legal/insurer inputs                                        | Waiting                             |
+| 10A   | `phase/10a-uiux-integration`            | Lead              | 08–10, 16; approved CHG-004 (Deals, Promotions, Reviews & UI/UX polish)                              | In progress                         |
 | 11    | `phase/11-outbox-notifications`         | Lead              | 07 plus approved messaging accounts for live adapters                                                | Waiting                             |
 | 12    | `phase/12-proposals-guest-control`      | Lead              | 08, 09, 10, 11 plus proposal/change policies                                                         | Waiting                             |
 | 13    | `phase/13-payments-documents`           | Lead              | 12 plus approved merchant/payment policies                                                           | Waiting                             |
@@ -948,6 +949,27 @@ Test approved duration examples/boundaries, timezone, eligibility branches, data
 
 Prepare a PR handoff mapping each implemented rule to approval evidence/test, privacy fields, duration proof, availability window, screenshots, web guidance, Impeccable result, migrations/rollback, and deferred field operations. Review fixes require reproduction and regression proof; never change an approved policy example merely to satisfy code.
 ```
+
+---
+
+## Phase 10A — Public experience, deals, promotions, and post-trip reviews
+
+**Branch:** `phase/10a-uiux-integration`  
+**Owner:** Project lead  
+**Prerequisites:** Phases 08, 09, 10, 16; approved CHG-004  
+**Risk:** Critical; public pricing, financial correctness, customer acquisition, and verified reputation
+
+### Independently usable outcome
+
+Authorized administrators can publish verified deals for all four services (Airport Pickup, Airport Transfer, Ride, Rent), configure deterministic non-stacking promotions (Deal, Service, or Global), and moderate post-trip reviews. Travelers can browse preconfigured popular routes and packages on `/deals`, filter by service on homepage and service detail pages, select travel dates/times on `/deals/{slug}`, pick exact available vehicles, receive immutable promoted estimates, and submit standard pending requests. Completed trips trigger verified review invitations via transactional outbox; moderated reviews display without dark patterns.
+
+### Scope
+
+- Implement `deals`, `promotions`, and `reviews` domain entities, migrations, and model relationships.
+- Add `PromotionResolver` (`Deal > Service > Global`, priority ordering, and ambiguity fail-safe) + single non-stacking discount integration in `PricingService` Pass 2.
+- Build public `/deals` and `/deals/{slug}` flows, homepage service-grouped deals showcase, service-page filtered deals, service-bar header + `More` dropdown navigation, structured footer with proper token contrast, and curated brand hero/service artwork.
+- Dispatch `booking.review_invited` outbox events on `BookingStatus::Completed` alongside existing lifecycle completion.
+- Build `/reviews/submit/{token}` and Filament Offers admin (`DealResource`, `PromotionResource`, `ReviewResource`, gated by `offers.manage`) plus icon-collapsible desktop admin sidebar (`sidebarCollapsibleOnDesktop`).
 
 ---
 

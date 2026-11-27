@@ -69,6 +69,7 @@ test('staff role is granted 8 operational permissions and denied sensitive admin
         Permission::ExportCustomerData->value,
         Permission::ExportFinancialData->value,
         Permission::ConfigManage->value,
+        Permission::OffersManage->value,
     ];
 
     foreach ($denied as $perm) {

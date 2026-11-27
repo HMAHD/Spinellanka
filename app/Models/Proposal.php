@@ -158,6 +158,22 @@ class Proposal extends Model
     }
 
     /**
+     * @return BelongsTo<Deal, $this>
+     */
+    public function appliedDeal(): BelongsTo
+    {
+        return $this->belongsTo(Deal::class, 'applied_deal_id');
+    }
+
+    /**
+     * @return BelongsTo<Promotion, $this>
+     */
+    public function appliedPromotion(): BelongsTo
+    {
+        return $this->belongsTo(Promotion::class, 'applied_promotion_id');
+    }
+
+    /**
      * @return BelongsTo<VehicleScheduleBlock, $this>
      */
     public function scheduleBlock(): BelongsTo

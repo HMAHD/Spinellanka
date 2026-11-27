@@ -68,6 +68,7 @@ class Estimate extends Model
             'approximate_lkr_amount_minor_units' => 'integer',
             'rule_version' => 'integer',
             'assumptions' => 'array',
+            'promotion_snapshot' => 'array',
             'expires_at' => 'datetime',
         ];
     }
@@ -94,6 +95,22 @@ class Estimate extends Model
     public function exchangeRateBasis(): BelongsTo
     {
         return $this->belongsTo(ExchangeRateBasis::class);
+    }
+
+    /**
+     * @return BelongsTo<Deal, $this>
+     */
+    public function appliedDeal(): BelongsTo
+    {
+        return $this->belongsTo(Deal::class, 'applied_deal_id');
+    }
+
+    /**
+     * @return BelongsTo<Promotion, $this>
+     */
+    public function appliedPromotion(): BelongsTo
+    {
+        return $this->belongsTo(Promotion::class, 'applied_promotion_id');
     }
 
     /**

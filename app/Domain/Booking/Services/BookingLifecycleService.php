@@ -12,6 +12,8 @@ use App\Domain\Booking\Enums\BookingStatus;
 use App\Domain\Booking\Enums\ConfirmationChannel;
 use App\Domain\Booking\Enums\PaymentOption;
 use App\Domain\Booking\Enums\ProposalStatus;
+use App\Domain\Booking\Enums\ReviewSource;
+use App\Domain\Booking\Enums\ReviewStatus;
 use App\Domain\Booking\ServiceType;
 use App\Domain\Identity\Permission;
 use App\Domain\Messaging\Services\OutboxService;
@@ -20,6 +22,7 @@ use App\Models\Booking;
 use App\Models\DriverAccessToken;
 use App\Models\GuestAccessToken;
 use App\Models\Proposal;
+use App\Models\Review;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleScheduleBlock;
@@ -570,7 +573,7 @@ class BookingLifecycleService
     public function complete(Booking $booking, ?User $actor = null): Booking
     {
         if ($booking->status !== BookingStatus::Confirmed) {
-            throw new InvalidArgumentException("Booking {$booking->reference} cannot be completed from status {$booking->status->value}.");
+            throw new InvalidArgumentException("Booking {$booking->reference} cannot be completed from status {$booking->status->value}. Must be confirmed.");
         }
 
         return DB::transaction(function () use ($booking, $actor) {
@@ -578,7 +581,7 @@ class BookingLifecycleService
             $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
 
             if ($lockedBooking->status !== BookingStatus::Confirmed) {
-                throw new InvalidArgumentException("Booking {$lockedBooking->reference} cannot be completed from status {$lockedBooking->status->value}.");
+                throw new InvalidArgumentException("Booking {$lockedBooking->reference} cannot be completed from status {$lockedBooking->status->value}. Must be confirmed.");
             }
 
             $now = Carbon::now('Asia/Colombo');
@@ -587,6 +590,28 @@ class BookingLifecycleService
                 'completed_at' => $now,
             ]);
 
+            $contact = $lockedBooking->leadTraveler ?? $lockedBooking->booker ?? $lockedBooking->contacts()->first();
+            $travelerName = $contact ? $contact->fullName() : 'Valued Traveler';
+            $recipient = $contact ? ($contact->phone ?: $contact->email ?: 'traveler') : 'traveler';
+            $invitationToken = bin2hex(random_bytes(24));
+
+            $review = Review::firstOrCreate(
+                ['booking_id' => $lockedBooking->id],
+                [
+                    'traveler_name' => $travelerName,
+                    'traveler_country' => null,
+                    'service_type' => $lockedBooking->service_type,
+                    'rating' => null,
+                    'review_text' => null,
+                    'source' => ReviewSource::Direct,
+                    'status' => ReviewStatus::PendingModeration,
+                    'is_featured' => false,
+                    'verified_trip' => true,
+                    'invitation_token' => $invitationToken,
+                    'invited_at' => $now,
+                ]
+            );
+
             $this->auditService->record(
                 action: 'booking.completed',
                 actor: $actor,
@@ -594,6 +619,7 @@ class BookingLifecycleService
                 metadata: [
                     'booking_id' => $lockedBooking->id,
                     'reference' => $lockedBooking->reference,
+                    'review_id' => $review->id,
                 ],
                 auditable: $lockedBooking,
                 actorType: $actor ? 'staff' : 'driver'
@@ -608,6 +634,20 @@ class BookingLifecycleService
                     'completed_at' => $now->toIso8601String(),
                 ],
                 idempotencyKey: "evt_booking_{$lockedBooking->id}_completed_v1"
+            );
+
+            $this->outboxService->record(
+                eventType: 'booking.review_invited',
+                aggregate: $lockedBooking,
+                payload: [
+                    'booking_id' => $lockedBooking->id,
+                    'reference' => $lockedBooking->reference,
+                    'customer_name' => $travelerName,
+                    'recipient' => $recipient,
+                    'review_url' => route('reviews.submit', ['token' => $review->invitation_token]),
+                    'trustpilot_url' => 'https://www.trustpilot.com/review/spinellanka.com',
+                ],
+                idempotencyKey: "evt_booking_{$lockedBooking->id}_review_invited_v1"
             );
 
             return $lockedBooking;

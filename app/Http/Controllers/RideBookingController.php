@@ -39,6 +39,21 @@ class RideBookingController extends Controller
     {
         $criteria = $request->session()->get('ride_criteria');
         $draft = $request->session()->get('ride_draft');
+        $dealPreset = $request->session()->get('booking_deal_preset');
+
+        if ($criteria === null && is_array($dealPreset) && ($dealPreset['service_type'] ?? null) === ServiceType::Ride->value) {
+            $travelDate = isset($dealPreset['travel_date']) ? (string) $dealPreset['travel_date'] : Carbon::now('Asia/Colombo')->addDays(2)->format('Y-m-d');
+            $travelTime = isset($dealPreset['travel_time']) ? (string) $dealPreset['travel_time'] : '09:00';
+            $pickupTime = Carbon::parse("{$travelDate} {$travelTime}", 'Asia/Colombo');
+
+            $criteria = new RideCriteria(
+                pickupTime: $pickupTime,
+                originText: (string) ($dealPreset['origin'] ?? $dealPreset['origin_text'] ?? 'Colombo Fort'),
+                destinationText: (string) ($dealPreset['destination'] ?? $dealPreset['destination_text'] ?? 'Kandy Temple'),
+                passengerCount: (int) ($dealPreset['passenger_count'] ?? 2),
+                luggageCount: (int) ($dealPreset['luggage_count'] ?? 2),
+            );
+        }
 
         return response()->view('booking.ride.create', [
             'criteria' => $criteria,
@@ -293,6 +308,9 @@ class RideBookingController extends Controller
             $totalDistanceKm = ($criteria->outboundDistanceKm ?? 0.0) + ($criteria->returnDistanceKm ?? 0.0);
             $totalDurationMinutes = $criteria->effectiveOutboundDurationMinutes() + ($criteria->hasReturn ? $criteria->effectiveReturnDurationMinutes() : 0);
 
+            $dealPreset = $request->session()->get('booking_deal_preset');
+            $dealId = is_array($dealPreset) && isset($dealPreset['deal_id']) ? (int) $dealPreset['deal_id'] : null;
+
             $estimateRequest = new EstimateRequestData(
                 serviceType: ServiceType::Ride,
                 vehicleId: $vehicle->id,
@@ -302,6 +320,7 @@ class RideBookingController extends Controller
                 stopCount: count($criteria->stops),
                 waitingHours: (int) ceil($criteria->totalWaitingMinutes() / 60),
                 extraIds: $criteria->extraIds,
+                dealId: $dealId,
                 assumptions: [
                     'origin' => $criteria->originText,
                     'destination' => $criteria->destinationText,

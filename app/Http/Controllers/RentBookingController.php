@@ -39,6 +39,30 @@ class RentBookingController extends Controller
     public function create(Request $request): Response
     {
         $criteria = $request->session()->get('rent_criteria');
+        $dealPreset = $request->session()->get('booking_deal_preset');
+
+        if ($criteria === null && is_array($dealPreset) && ($dealPreset['service_type'] ?? null) === ServiceType::Rent->value) {
+            $travelDate = isset($dealPreset['travel_date']) ? (string) $dealPreset['travel_date'] : Carbon::now('Asia/Colombo')->addDays(2)->format('Y-m-d');
+            $travelTime = isset($dealPreset['travel_time']) ? (string) $dealPreset['travel_time'] : '10:00';
+            $durationDays = (int) ($dealPreset['duration_days'] ?? 3);
+            $pickupDateTime = Carbon::parse("{$travelDate} {$travelTime}", 'Asia/Colombo');
+            $returnDateTime = (clone $pickupDateTime)->addDays($durationDays);
+
+            $criteria = new RentCriteria(
+                pickupDateTime: $pickupDateTime,
+                returnDateTime: $returnDateTime,
+                pickupLocationType: (string) ($dealPreset['pickup_location_type'] ?? 'office'),
+                pickupLocationText: (string) ($dealPreset['pickup_location_text'] ?? 'Colombo Central Hub'),
+                returnLocationType: (string) ($dealPreset['return_location_type'] ?? 'office'),
+                returnLocationText: (string) ($dealPreset['return_location_text'] ?? 'Colombo Central Hub'),
+                driverAge: (int) ($dealPreset['driver_age'] ?? 30),
+                driverLicenceCountry: (string) ($dealPreset['driver_licence_country'] ?? 'LK'),
+                driverLicenceYears: (int) ($dealPreset['driver_licence_years'] ?? 5),
+                hasIdp: (bool) ($dealPreset['has_idp'] ?? false),
+                durationDays: $durationDays,
+            );
+        }
+
         $policy = RentPolicy::current();
 
         return response()->view('booking.rent.create', [
@@ -206,6 +230,9 @@ class RentBookingController extends Controller
             );
 
             // Create immutable Estimate snapshot
+            $dealPreset = $request->session()->get('booking_deal_preset');
+            $dealId = is_array($dealPreset) && isset($dealPreset['deal_id']) ? (int) $dealPreset['deal_id'] : null;
+
             $estimateRequest = new EstimateRequestData(
                 serviceType: ServiceType::Rent,
                 vehicleId: $vehicle->id,
@@ -213,6 +240,7 @@ class RentBookingController extends Controller
                 rentalDays: $criteria->durationDays,
                 durationHours: $criteria->extraHours > 0 ? (float) $criteria->extraHours : null,
                 extraIds: $criteria->extraIds,
+                dealId: $dealId,
                 assumptions: [
                     'pickup_datetime' => $criteria->pickupDateTime->toIso8601String(),
                     'return_datetime' => $criteria->returnDateTime->toIso8601String(),
