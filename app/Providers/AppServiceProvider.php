@@ -6,6 +6,8 @@ use App\Domain\Audit\Services\AuditService;
 use App\Domain\Identity\Role;
 use App\Domain\Location\Contracts\PlaceSearchContract;
 use App\Domain\Location\Contracts\RouteEstimateContract;
+use App\Domain\Location\Services\GoogleMapsPlaceSearchService;
+use App\Domain\Location\Services\GoogleMapsRouteEstimateService;
 use App\Domain\Location\Services\NullPlaceSearchService;
 use App\Domain\Location\Services\NullRouteEstimateService;
 use App\Domain\Messaging\Adapters\FakeTransactionalMailer;
@@ -31,19 +33,32 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->bind(
-            PlaceSearchContract::class,
-            NullPlaceSearchService::class,
-        );
+        $this->app->singleton(NullPlaceSearchService::class);
+        $this->app->singleton(NullRouteEstimateService::class);
 
-        $this->app->bind(
-            RouteEstimateContract::class,
-            NullRouteEstimateService::class,
-        );
+        $this->app->bind(PlaceSearchContract::class, function ($app) {
+            if (config('services.maps.provider') === 'google_maps' && filled(config('services.maps.key'))) {
+                return $app->make(GoogleMapsPlaceSearchService::class);
+            }
+
+            return $app->make(NullPlaceSearchService::class);
+        });
+
+        $this->app->bind(RouteEstimateContract::class, function ($app) {
+            if (config('services.maps.provider') === 'google_maps' && filled(config('services.maps.key'))) {
+                return $app->make(GoogleMapsRouteEstimateService::class);
+            }
+
+            return $app->make(NullRouteEstimateService::class);
+        });
 
         $this->app->singleton(WhatsAppSender::class, function () {
             $provider = config('services.whatsapp.provider', 'fake');
-            if ($provider === 'meta_whatsapp' && config('services.meta_whatsapp.phone_number_id')) {
+            if (
+                $provider === 'meta_whatsapp'
+                && filled(config('services.meta_whatsapp.phone_number_id'))
+                && filled(config('services.meta_whatsapp.system_user_token'))
+            ) {
                 return new MetaWhatsAppSender;
             }
 

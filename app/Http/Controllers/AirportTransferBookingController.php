@@ -62,7 +62,7 @@ class AirportTransferBookingController extends Controller
             'origin_text' => ['required', 'string', 'max:500'],
             'passenger_count' => ['required', 'integer', 'min:1', 'max:10'],
             'luggage_count' => ['required', 'integer', 'min:0', 'max:10'],
-            'place_id' => ['nullable', 'string', 'max:64'],
+            'place_id' => ['nullable', 'string', 'max:255'],
             'origin_notes' => ['nullable', 'string', 'max:1000'],
             'special_instructions' => ['nullable', 'string', 'max:1000'],
             'pickup_timing_mode' => ['nullable', 'string', 'in:recommended,custom'],
@@ -107,7 +107,7 @@ class AirportTransferBookingController extends Controller
                     $routeResult = $this->routeEstimateService->estimateRoute($placeDetails->coordinate, $airportCoord);
                     if ($routeResult) {
                         $distanceKm = $routeResult->distanceKm;
-                        $durationMinutes = $routeResult->durationMinutes;
+                        $durationMinutes = (int) round($routeResult->durationMinutes);
                         $durationHours = round($routeResult->durationMinutes / 60.0, 1);
                     }
                 }

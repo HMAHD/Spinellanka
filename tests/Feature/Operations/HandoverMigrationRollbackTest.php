@@ -23,8 +23,8 @@ test('handover, incident, and privacy migrations can be rolled back and re-appli
         ->and(Schema::hasColumn('vehicles', 'fuel_tank_capacity_litres'))->toBeTrue()
         ->and(Schema::hasColumn('bookings', 'anonymized_at'))->toBeTrue();
 
-    // Rollback the 3 Phase 15 migration steps
-    $exitCode = Artisan::call('migrate:rollback', ['--step' => 3]);
+    // Rollback the 4 Phase 15-16 migration steps (1 Phase 16 + 3 Phase 15)
+    $exitCode = Artisan::call('migrate:rollback', ['--step' => 4]);
     expect($exitCode)->toBe(0);
 
     // Assert Phase 15 tables and added columns are dropped cleanly in reverse dependency order

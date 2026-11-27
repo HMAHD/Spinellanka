@@ -13,6 +13,8 @@ return [
     'maps' => [
         'provider' => env('MAPS_PROVIDER'),
         'key' => env('MAPS_API_KEY'),
+        'allowed_origin' => env('MAPS_ALLOWED_ORIGIN'),
+        'timeout_seconds' => (int) env('MAPS_TIMEOUT_SECONDS', 5),
     ],
     'whatsapp' => [
         'provider' => env('WHATSAPP_PROVIDER', 'fake'),
@@ -28,5 +30,16 @@ return [
         'merchant_id' => env('PAYHERE_MERCHANT_ID'),
         'merchant_secret' => env('PAYHERE_MERCHANT_SECRET'),
         'sandbox' => env('PAYHERE_SANDBOX', true),
+    ],
+    'sentry' => [
+        'dsn' => env('SENTRY_LARAVEL_DSN'),
+    ],
+    'backup' => [
+        'off_host_disk' => env('BACKUP_OFF_HOST_DISK'),
+    ],
+    'analytics' => [
+        'provider' => env('ANALYTICS_PROVIDER', 'none'),
+        'plausible_domain' => env('PLAUSIBLE_DOMAIN'),
+        'plausible_script_url' => env('PLAUSIBLE_SCRIPT_URL', 'https://plausible.io/js/script.js'),
     ],
 ];

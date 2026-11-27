@@ -14,6 +14,15 @@ use Throwable;
 
 class MetaWhatsAppSender implements WhatsAppSender
 {
+    /** @var list<string> */
+    public const APPROVED_TEMPLATES = [
+        'booking_submitted_v1',
+        'booking_confirmed_v1',
+        'booking_declined_v1',
+        'booking_cancelled_v1',
+        'staff_new_booking_alert_v1',
+    ];
+
     private ?string $phoneNumberId;
 
     private ?string $systemUserToken;
@@ -47,6 +56,14 @@ class MetaWhatsAppSender implements WhatsAppSender
             return DeliveryResult::failed(
                 errorCode: 'INVALID_PHONE_NUMBER',
                 errorMessage: 'Recipient phone number contains no valid digits.',
+                isRetryable: false
+            );
+        }
+
+        if (! in_array($message->templateName, self::APPROVED_TEMPLATES, true)) {
+            return DeliveryResult::failed(
+                errorCode: 'UNAPPROVED_TEMPLATE',
+                errorMessage: "WhatsApp template '{$message->templateName}' is not in the approved allowlist.",
                 isRetryable: false
             );
         }

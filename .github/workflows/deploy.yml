@@ -1,44 +1,42 @@
 name: Deploy
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target deployment environment'
-        required: true
+        description: 'Target deployment environment (staging only; production remains disabled)'
+        required: false
         default: 'staging'
         type: choice
         options:
           - staging
-          - production
-      release_sha:
-        description: 'Git commit SHA from main to deploy'
-        required: true
-        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: deployment-${{ inputs.environment }}
+  group: deployment-staging
   cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Deploy to ${{ inputs.environment }}
+    name: Deploy to staging
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+    environment: staging
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.release_sha }}
+          ref: ${{ github.sha }}
 
       - name: Assert Hosting Capability Gate Passed
         run: |
           echo "Checking hosting acceptance verdict in docs/planning/05-cpanel-deployment-and-operations.md..."
-          if ! grep -q 'Verdict: Accepted' docs/planning/05-cpanel-deployment-and-operations.md; then
+          if ! grep -qE '(\*\*Verdict\*\*|Verdict): Accepted' docs/planning/05-cpanel-deployment-and-operations.md; then
             echo "::error::Deployment blocked! Hosting acceptance gate has not passed. Phase 01 hosting verdict must be Accepted before deployment can be activated."
             exit 1
           fi
