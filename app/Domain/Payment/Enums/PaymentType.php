@@ -12,6 +12,9 @@ enum PaymentType: string
     case RentExtension = 'rent_extension';
     case SecurityDeposit = 'security_deposit';
     case Refund = 'refund';
+    case IncidentCharge = 'incident_charge';
+    case ConditionSettlement = 'condition_settlement';
+    case CleaningPenalty = 'cleaning_penalty';
 
     public function label(): string
     {
@@ -22,6 +25,9 @@ enum PaymentType: string
             self::RentExtension => 'Hire Extension',
             self::SecurityDeposit => 'Security Deposit',
             self::Refund => 'Compensating Refund',
+            self::IncidentCharge => 'Incident Charge',
+            self::ConditionSettlement => 'Condition Settlement',
+            self::CleaningPenalty => 'Cleaning Penalty',
         };
     }
 }
