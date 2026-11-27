@@ -53,92 +53,23 @@ jobs:
           cd dist
           sha256sum -c release.tar.gz.sha256
 
-      - name: Upload Release via SFTP
+      - name: Upload Release & Activation Request via SFTP
         env:
           CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
           CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT }}
           CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
-          CPANEL_SSH_KEY:  ${{ secrets.CPANEL_SSH_KEY }}
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
           CPANEL_DEPLOY_PATH: ${{ secrets.CPANEL_DEPLOY_PATH }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$CPANEL_SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-
-          # Upload release archive + checksum via SFTP (no shell needed)
-          sftp -i ~/.ssh/deploy_key \
-            -P "$CPANEL_SSH_PORT" \
-            -o StrictHostKeyChecking=accept-new \
-            -o BatchMode=yes \
-            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" <<SFTP
-          put dist/release.tar.gz $CPANEL_DEPLOY_PATH/.incoming/release.tar.gz
-          put dist/release.tar.gz.sha256 $CPANEL_DEPLOY_PATH/.incoming/release.tar.gz.sha256
-          SFTP
-
-          echo "Archive uploaded successfully"
-
-      - name: Upload Deploy Webhook to public_html
-        env:
-          CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
-          CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT }}
-          CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
-          CPANEL_SSH_KEY:  ${{ secrets.CPANEL_SSH_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$CPANEL_SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-
-          # Inject the webhook secret into the script before uploading
-          WEBHOOK_SECRET="${{ secrets.DEPLOY_WEBHOOK_SECRET }}"
-          sed "s|getenv('DEPLOY_WEBHOOK_SECRET') ?: .*|getenv('DEPLOY_WEBHOOK_SECRET') ?: '$WEBHOOK_SECRET';|" \
-            scripts/deploy-webhook.php > /tmp/deploy-webhook-live.php
-
-          sftp -i ~/.ssh/deploy_key \
-            -P "$CPANEL_SSH_PORT" \
-            -o StrictHostKeyChecking=accept-new \
-            -o BatchMode=yes \
-            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" <<SFTP
-          put /tmp/deploy-webhook-live.php /home/spinellanka/public_html/_deploy.php
-          SFTP
-
-          echo "Webhook uploaded"
-
-      - name: Trigger Deployment via Webhook
-        env:
-          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+          CPANEL_PHP_BIN: ${{ secrets.CPANEL_PHP_BIN }}
         run: |
           RELEASE_ID="${{ github.sha }}"
           RELEASE_ID="${RELEASE_ID:0:14}"
+          PHP_BIN="${CPANEL_PHP_BIN:-/usr/local/bin/ea-php83}"
 
-          echo "Triggering deploy for release $RELEASE_ID ..."
+          cat > /tmp/deploy-request.json <<JSON
+          {"release_id":"$RELEASE_ID","php_bin":"$PHP_BIN","requested_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+          JSON
 
-          RESPONSE=$(curl -sf \
-            -X POST \
-            -H "Authorization: Bearer $DEPLOY_WEBHOOK_SECRET" \
-            -d "release_id=$RELEASE_ID" \
-            --max-time 300 \
-            "http://spinellanka.lk/_deploy.php" 2>&1) || {
-            echo "::error::Webhook call failed. Response: $RESPONSE"
-            exit 1
-          }
-
-          echo "$RESPONSE"
-
-          if echo "$RESPONSE" | grep -q "Deploy.*complete"; then
-            echo "✅ Deployment successful!"
-          else
-            echo "::error::Unexpected webhook response"
-            exit 1
-          fi
-
-      - name: Remove Deploy Webhook
-        if: always()
-        env:
-          CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
-          CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT }}
-          CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
-          CPANEL_SSH_KEY:  ${{ secrets.CPANEL_SSH_KEY }}
-        run: |
           mkdir -p ~/.ssh
           echo "$CPANEL_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
@@ -148,7 +79,64 @@ jobs:
             -o StrictHostKeyChecking=accept-new \
             -o BatchMode=yes \
             "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" <<SFTP
-          rm /home/spinellanka/public_html/_deploy.php
+          -rm $CPANEL_DEPLOY_PATH/.incoming/deploy-result-$RELEASE_ID.json
+          put dist/release.tar.gz $CPANEL_DEPLOY_PATH/.incoming/release.tar.gz
+          put dist/release.tar.gz.sha256 $CPANEL_DEPLOY_PATH/.incoming/release.tar.gz.sha256
+          put scripts/deploy-activate.php $CPANEL_DEPLOY_PATH/shared/deploy-activate.php
+          put /tmp/deploy-request.json $CPANEL_DEPLOY_PATH/.incoming/deploy-request.json
           SFTP
 
-          echo "Webhook removed"
+          echo "Release $RELEASE_ID and activation request queued via SFTP."
+
+      - name: Wait for Cron Activation Result via SFTP
+        env:
+          CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT }}
+          CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+          CPANEL_DEPLOY_PATH: ${{ secrets.CPANEL_DEPLOY_PATH }}
+        run: |
+          RELEASE_ID="${{ github.sha }}"
+          RELEASE_ID="${RELEASE_ID:0:14}"
+          REMOTE_RESULT="$CPANEL_DEPLOY_PATH/.incoming/deploy-result-$RELEASE_ID.json"
+          LOCAL_RESULT="/tmp/deploy-result-$RELEASE_ID.json"
+
+          for i in $(seq 1 30); do
+            rm -f "$LOCAL_RESULT"
+            sftp -i ~/.ssh/deploy_key \
+              -P "$CPANEL_SSH_PORT" \
+              -o StrictHostKeyChecking=accept-new \
+              -o BatchMode=yes \
+              "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" >/dev/null 2>&1 <<SFTP || true
+          -get $REMOTE_RESULT $LOCAL_RESULT
+          SFTP
+
+            if [[ -f "$LOCAL_RESULT" ]]; then
+              php -r '
+                $data = json_decode(file_get_contents($argv[1]), true);
+                if (!is_array($data)) {
+                    fwrite(STDERR, "Invalid deploy-result JSON.\n");
+                    exit(1);
+                }
+                echo ($data["log"] ?? "") . "\n";
+                if (($data["status"] ?? "") !== "ok") {
+                    exit(1);
+                }
+              ' "$LOCAL_RESULT"
+
+              sftp -i ~/.ssh/deploy_key \
+                -P "$CPANEL_SSH_PORT" \
+                -o StrictHostKeyChecking=accept-new \
+                -o BatchMode=yes \
+                "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" >/dev/null 2>&1 <<SFTP || true
+          -rm $REMOTE_RESULT
+          SFTP
+              echo "✅ Deployment successful!"
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "::error::Timed out waiting for cPanel cron activator ($CPANEL_DEPLOY_PATH/shared/deploy-activate.php). Ensure the 1-minute cPanel cron job is configured."
+          exit 1

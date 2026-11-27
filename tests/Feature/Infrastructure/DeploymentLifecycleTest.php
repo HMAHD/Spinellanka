@@ -153,6 +153,65 @@ class DeploymentLifecycleTest extends TestCase
         );
     }
 
+    public function test_cron_activator_verifies_checksum_activates_release_and_writes_result(): void
+    {
+        $projectRoot = base_path();
+        $distDir = $this->tempBaseDir.'/dist';
+
+        exec(sprintf(
+            'bash %s/scripts/package-release --output-dir %s --skip-build 2>&1',
+            escapeshellarg($projectRoot),
+            escapeshellarg($distDir)
+        ), $pkgOutput, $pkgCode);
+        $this->assertSame(0, $pkgCode, implode("\n", $pkgOutput));
+
+        // 1. No-op cleanly when deploy-request.json does not exist
+        exec(sprintf(
+            '%s %s/scripts/deploy-activate.php --base-dir=%s --skip-artisan 2>&1',
+            escapeshellarg(PHP_BINARY),
+            escapeshellarg($projectRoot),
+            escapeshellarg($this->tempBaseDir)
+        ), $noopOut, $noopCode);
+        $this->assertSame(0, $noopCode);
+
+        // 2. Reject corrupt checksum and write error result
+        file_put_contents($this->tempBaseDir.'/.incoming/release.tar.gz', 'corrupted');
+        file_put_contents($this->tempBaseDir.'/.incoming/release.tar.gz.sha256', str_repeat('a', 64)."  release.tar.gz\n");
+        file_put_contents($this->tempBaseDir.'/.incoming/deploy-request.json', json_encode(['release_id' => 'badchecksum001']));
+
+        exec(sprintf(
+            '%s %s/scripts/deploy-activate.php --base-dir=%s --skip-artisan 2>&1',
+            escapeshellarg(PHP_BINARY),
+            escapeshellarg($projectRoot),
+            escapeshellarg($this->tempBaseDir)
+        ), $failOut, $failCode);
+        $this->assertSame(1, $failCode);
+        $failResult = json_decode((string) file_get_contents($this->tempBaseDir.'/.incoming/deploy-result-badchecksum001.json'), true);
+        $this->assertSame('error', $failResult['status']);
+        $this->assertDirectoryDoesNotExist($this->tempBaseDir.'/releases/badchecksum001');
+
+        // 3. Valid archive + checksum activates release cleanly
+        copy($distDir.'/release.tar.gz', $this->tempBaseDir.'/.incoming/release.tar.gz');
+        copy($distDir.'/release.tar.gz.sha256', $this->tempBaseDir.'/.incoming/release.tar.gz.sha256');
+        file_put_contents($this->tempBaseDir.'/.incoming/deploy-request.json', json_encode(['release_id' => 'validrel000001']));
+
+        exec(sprintf(
+            '%s %s/scripts/deploy-activate.php --base-dir=%s --skip-artisan 2>&1',
+            escapeshellarg(PHP_BINARY),
+            escapeshellarg($projectRoot),
+            escapeshellarg($this->tempBaseDir)
+        ), $okOut, $okCode);
+        $this->assertSame(0, $okCode, implode("\n", $okOut));
+
+        $okResult = json_decode((string) file_get_contents($this->tempBaseDir.'/.incoming/deploy-result-validrel000001.json'), true);
+        $this->assertSame('ok', $okResult['status']);
+        $this->assertFileDoesNotExist($this->tempBaseDir.'/.incoming/deploy-request.json');
+        $this->assertSame(
+            realpath($this->tempBaseDir.'/releases/validrel000001'),
+            realpath($this->tempBaseDir.'/current')
+        );
+    }
+
     private function removeDirectory(string $dir): void
     {
         if (! is_dir($dir)) {
