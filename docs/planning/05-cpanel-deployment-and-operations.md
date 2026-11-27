@@ -22,11 +22,11 @@ If the host cannot meet document-root, PHP CLI, or cron requirements, move to a 
 
 ## Hosting capability assessment verdict
 
-**Assessment Date**: 2026-11-23  
-**Verdict**: Blocked — hosting  
-**Deployment Status**: Disabled (activation blocked until gates pass)  
-**Responsible Owner**: Hosting/Technical Owner (Client)  
-**Required Action**: Supply factual capability evidence or upgrade hosting plan to satisfy the 11 gates.
+**Assessment Date**: 2026-11-27  
+**Verdict**: Accepted  
+**Deployment Status**: Enabled — cPanel at 198.37.120.210, SSH port 22, DB spinellanka_Test confirmed  
+**Responsible Owner**: Akash (Developer)  
+**Required Action**: None — all gates confirmed. Run first deploy via GitHub Actions.
 
 ### Capability evaluation status
 
