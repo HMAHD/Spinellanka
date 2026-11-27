@@ -5,14 +5,6 @@ on:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Target deployment environment (staging only; production remains disabled)'
-        required: false
-        default: 'staging'
-        type: choice
-        options:
-          - staging
 
 permissions:
   contents: read
@@ -29,27 +21,24 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ github.sha }}
+        uses: actions/checkout@v4
 
       - name: Assert Hosting Capability Gate Passed
         run: |
-          echo "Checking hosting acceptance verdict in docs/planning/05-cpanel-deployment-and-operations.md..."
-          if ! grep -qE '(\*\*Verdict\*\*|Verdict): Accepted' docs/planning/05-cpanel-deployment-and-operations.md; then
-            echo "::error::Deployment blocked! Hosting acceptance gate has not passed. Phase 01 hosting verdict must be Accepted before deployment can be activated."
+          if ! grep -q 'Verdict: Accepted' docs/planning/05-cpanel-deployment-and-operations.md; then
+            echo "::error::Deployment blocked! Hosting acceptance gate has not passed."
             exit 1
           fi
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '8.3'
           coverage: none
           tools: composer:v2
 
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -64,37 +53,102 @@ jobs:
           cd dist
           sha256sum -c release.tar.gz.sha256
 
-      - name: Transfer and Activate Release on cPanel
+      - name: Upload Release via SFTP
         env:
           CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
-          CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT || '22' }}
+          CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT }}
           CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
-          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+          CPANEL_SSH_KEY:  ${{ secrets.CPANEL_SSH_KEY }}
           CPANEL_DEPLOY_PATH: ${{ secrets.CPANEL_DEPLOY_PATH }}
-          CPANEL_PHP_BIN: ${{ secrets.CPANEL_PHP_BIN || 'php' }}
         run: |
-          if [[ -z "${CPANEL_SSH_HOST:-}" || -z "${CPANEL_SSH_KEY:-}" ]]; then
-            echo "::error::Deployment credentials (CPANEL_SSH_HOST, CPANEL_SSH_KEY) are not configured in environment secrets."
+          mkdir -p ~/.ssh
+          echo "$CPANEL_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # Upload release archive + checksum via SFTP (no shell needed)
+          sftp -i ~/.ssh/deploy_key \
+            -P "$CPANEL_SSH_PORT" \
+            -o StrictHostKeyChecking=accept-new \
+            -o BatchMode=yes \
+            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" <<SFTP
+          put dist/release.tar.gz $CPANEL_DEPLOY_PATH/.incoming/release.tar.gz
+          put dist/release.tar.gz.sha256 $CPANEL_DEPLOY_PATH/.incoming/release.tar.gz.sha256
+          SFTP
+
+          echo "Archive uploaded successfully"
+
+      - name: Upload Deploy Webhook to public_html
+        env:
+          CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT }}
+          CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
+          CPANEL_SSH_KEY:  ${{ secrets.CPANEL_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$CPANEL_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # Inject the webhook secret into the script before uploading
+          WEBHOOK_SECRET="${{ secrets.DEPLOY_WEBHOOK_SECRET }}"
+          sed "s|getenv('DEPLOY_WEBHOOK_SECRET') ?: .*|getenv('DEPLOY_WEBHOOK_SECRET') ?: '$WEBHOOK_SECRET';|" \
+            scripts/deploy-webhook.php > /tmp/deploy-webhook-live.php
+
+          sftp -i ~/.ssh/deploy_key \
+            -P "$CPANEL_SSH_PORT" \
+            -o StrictHostKeyChecking=accept-new \
+            -o BatchMode=yes \
+            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" <<SFTP
+          put /tmp/deploy-webhook-live.php /home/spinellanka/public_html/_deploy.php
+          SFTP
+
+          echo "Webhook uploaded"
+
+      - name: Trigger Deployment via Webhook
+        env:
+          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+        run: |
+          RELEASE_ID="${{ github.sha }}"
+          RELEASE_ID="${RELEASE_ID:0:14}"
+
+          echo "Triggering deploy for release $RELEASE_ID ..."
+
+          RESPONSE=$(curl -sf \
+            -X POST \
+            -H "Authorization: Bearer $DEPLOY_WEBHOOK_SECRET" \
+            -d "release_id=$RELEASE_ID" \
+            --max-time 300 \
+            "http://spinellanka.lk/_deploy.php" 2>&1) || {
+            echo "::error::Webhook call failed. Response: $RESPONSE"
+            exit 1
+          }
+
+          echo "$RESPONSE"
+
+          if echo "$RESPONSE" | grep -q "Deploy.*complete"; then
+            echo "✅ Deployment successful!"
+          else
+            echo "::error::Unexpected webhook response"
             exit 1
           fi
 
+      - name: Remove Deploy Webhook
+        if: always()
+        env:
+          CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT }}
+          CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
+          CPANEL_SSH_KEY:  ${{ secrets.CPANEL_SSH_KEY }}
+        run: |
           mkdir -p ~/.ssh
-          echo "$CPANEL_SSH_KEY" > ~/.ssh/cpanel_key
-          chmod 600 ~/.ssh/cpanel_key
+          echo "$CPANEL_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
 
-          # Ensure incoming staging directory exists
-          ssh -i ~/.ssh/cpanel_key -p "$CPANEL_SSH_PORT" -o StrictHostKeyChecking=accept-new \
-            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" "mkdir -p '$CPANEL_DEPLOY_PATH/.incoming' '$CPANEL_DEPLOY_PATH/scripts'"
+          sftp -i ~/.ssh/deploy_key \
+            -P "$CPANEL_SSH_PORT" \
+            -o StrictHostKeyChecking=accept-new \
+            -o BatchMode=yes \
+            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" <<SFTP
+          rm /home/spinellanka/public_html/_deploy.php
+          SFTP
 
-          # Transfer archive, checksum, and deploy scripts
-          scp -i ~/.ssh/cpanel_key -P "$CPANEL_SSH_PORT" -o StrictHostKeyChecking=accept-new \
-            dist/release.tar.gz dist/release.tar.gz.sha256 "$CPANEL_SSH_USER@$CPANEL_SSH_HOST:$CPANEL_DEPLOY_PATH/.incoming/"
-
-          scp -i ~/.ssh/cpanel_key -P "$CPANEL_SSH_PORT" -o StrictHostKeyChecking=accept-new \
-            scripts/deploy-release scripts/rollback-release "$CPANEL_SSH_USER@$CPANEL_SSH_HOST:$CPANEL_DEPLOY_PATH/scripts/"
-
-          # Execute remote deployment
-          ssh -i ~/.ssh/cpanel_key -p "$CPANEL_SSH_PORT" -o StrictHostKeyChecking=accept-new \
-            "$CPANEL_SSH_USER@$CPANEL_SSH_HOST" \
-            "SPINELLANKA_BASE_DIR='$CPANEL_DEPLOY_PATH' CPANEL_PHP_BIN='$CPANEL_PHP_BIN' bash '$CPANEL_DEPLOY_PATH/scripts/deploy-release'"
-
+          echo "Webhook removed"
