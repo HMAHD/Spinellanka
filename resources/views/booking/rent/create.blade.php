@@ -250,6 +250,7 @@
       </aside>
     </div>
   </div>
+  @include('partials.footer')
 </main>
 
 <script>

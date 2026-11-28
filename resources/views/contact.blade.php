@@ -32,11 +32,10 @@
           <p>Direct phone numbers, WhatsApp contact lines, and operating hours are currently being finalized with the local operator. Verified contact channels will appear here once confirmed.</p>
         </div>
         <p>For questions regarding our four services or vehicle specifications, please review our service overview.</p>
-        <a class="primary-action" href="{{ route('home') }}#services">View available services</a>
+        <a class="primary-action" href="{{ route('home') }}#service-desk">View available services</a>
       </section>
     </div>
-
-    @include('partials.footer')
   </div>
+  @include('partials.footer')
 </main>
 @endsection

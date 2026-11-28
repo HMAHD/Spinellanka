@@ -96,7 +96,13 @@
               <div class="quick-places" aria-label="Suggested popular pickup origins">
                 <span class="quick-label">Popular Pickup Locations:</span>
                 @foreach($places as $place)
-                  <button type="button" class="quick-pill" onclick="document.getElementById('origin_text').value='{{ $place->formattedAddress }}'; document.getElementById('place_id').value='{{ $place->placeId }}';">
+                  <button
+                    type="button"
+                    class="quick-pill"
+                    data-address="{{ $place->formattedAddress }}"
+                    data-place-id="{{ $place->placeId }}"
+                    onclick="document.getElementById('origin_text').value = this.dataset.address; document.getElementById('place_id').value = this.dataset.placeId;"
+                  >
                     {{ $place->mainText }}
                   </button>
                 @endforeach
@@ -218,6 +224,7 @@
       </aside>
     </div>
   </div>
+  @include('partials.footer')
 </main>
 @endsection
 

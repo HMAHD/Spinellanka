@@ -25,8 +25,7 @@
         <a class="text-action" href="{{ route('contact') }}">Contact operations</a>
       </div>
     </div>
-
-    @include('partials.footer')
   </div>
+  @include('partials.footer')
 </main>
 @endsection

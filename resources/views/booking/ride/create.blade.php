@@ -104,14 +104,14 @@
                       {{ $idx + 1 }}
                     </span>
 
-                    <div style="flex: 1; min-width: 200px;">
+                    <div class="stop-loc-wrap">
                       <label for="stop_loc_{{ $idx }}" class="sr-only">Stop {{ $idx + 1 }} Location</label>
-                      <input type="text" id="stop_loc_{{ $idx }}" name="stops[{{ $idx }}][location_text]" value="{{ $stop['location_text'] ?? '' }}" placeholder="Stop address or landmark (e.g. Bentota Beach)" class="form-input" style="width: 100%;" required>
+                      <input type="text" id="stop_loc_{{ $idx }}" name="stops[{{ $idx }}][location_text]" value="{{ $stop['location_text'] ?? '' }}" placeholder="Stop address or landmark (e.g. Bentota Beach)" class="form-input" required>
                     </div>
 
-                    <div style="width: 140px; flex-shrink: 0;">
+                    <div class="stop-wait-wrap">
                       <label for="stop_wait_{{ $idx }}" class="sr-only">Stop {{ $idx + 1 }} Waiting Duration</label>
-                      <select id="stop_wait_{{ $idx }}" name="stops[{{ $idx }}][waiting_minutes]" class="form-input" style="width: 100%;">
+                      <select id="stop_wait_{{ $idx }}" name="stops[{{ $idx }}][waiting_minutes]" class="form-input">
                         <option value="0" {{ ($stop['waiting_minutes'] ?? 0) == 0 ? 'selected' : '' }}>No waiting (Drop/Pickup)</option>
                         <option value="15" {{ ($stop['waiting_minutes'] ?? 0) == 15 ? 'selected' : '' }}>15 min</option>
                         <option value="30" {{ ($stop['waiting_minutes'] ?? 0) == 30 ? 'selected' : '' }}>30 min</option>
@@ -126,13 +126,13 @@
 
                     <!-- Accessible Reorder & Removal Controls -->
                     <div class="stop-actions" style="display: flex; gap: 0.35rem; align-items: center;">
-                      <button type="submit" formnovalidate name="action" value="move_up_{{ $idx }}" class="icon-button stop-move-up js-move-up" aria-label="Move stop {{ $idx + 1 }} up" {{ $idx === 0 ? 'disabled' : '' }} style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--color-border, #cbd5e1); border-radius: 4px; background: white;">
+                      <button type="submit" formnovalidate name="action" value="move_up_{{ $idx }}" class="icon-button stop-move-up js-move-up" aria-label="Move stop {{ $idx + 1 }} up" {{ $idx === 0 ? 'disabled' : '' }}>
                         &uarr;
                       </button>
-                      <button type="submit" formnovalidate name="action" value="move_down_{{ $idx }}" class="icon-button stop-move-down js-move-down" aria-label="Move stop {{ $idx + 1 }} down" {{ $idx === count($stopsList) - 1 ? 'disabled' : '' }} style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--color-border, #cbd5e1); border-radius: 4px; background: white;">
+                      <button type="submit" formnovalidate name="action" value="move_down_{{ $idx }}" class="icon-button stop-move-down js-move-down" aria-label="Move stop {{ $idx + 1 }} down" {{ $idx === count($stopsList) - 1 ? 'disabled' : '' }}>
                         &darr;
                       </button>
-                      <button type="submit" formnovalidate name="action" value="remove_stop_{{ $idx }}" class="icon-button stop-remove js-remove" aria-label="Remove stop {{ $idx + 1 }}" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border: 1px solid #fecaca; border-radius: 4px; background: #fff5f5; color: #dc2626;">
+                      <button type="submit" formnovalidate name="action" value="remove_stop_{{ $idx }}" class="icon-button stop-remove js-remove" aria-label="Remove stop {{ $idx + 1 }}">
                         &times;
                       </button>
                     </div>
@@ -268,6 +268,7 @@
       </aside>
     </div>
   </div>
+  @include('partials.footer')
 </main>
 
 <script>
@@ -299,13 +300,13 @@ document.addEventListener('DOMContentLoaded', function () {
       <span class="stop-badge" aria-label="Stop ${newIndex + 1}" style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--color-brand-surface, #e0f2fe); color: var(--color-brand, #0284c7); font-weight: 700; font-size: 0.8rem; flex-shrink: 0; margin-top: 0.25rem;">
         ${newIndex + 1}
       </span>
-      <div style="flex: 1; min-width: 200px;">
+      <div class="stop-loc-wrap">
         <label for="stop_loc_${newIndex}" class="sr-only">Stop ${newIndex + 1} Location</label>
-        <input type="text" id="stop_loc_${newIndex}" name="stops[${newIndex}][location_text]" placeholder="Stop address or landmark" class="form-input" style="width: 100%;" required>
+        <input type="text" id="stop_loc_${newIndex}" name="stops[${newIndex}][location_text]" placeholder="Stop address or landmark" class="form-input" required>
       </div>
-      <div style="width: 140px; flex-shrink: 0;">
+      <div class="stop-wait-wrap">
         <label for="stop_wait_${newIndex}" class="sr-only">Stop ${newIndex + 1} Waiting Duration</label>
-        <select id="stop_wait_${newIndex}" name="stops[${newIndex}][waiting_minutes]" class="form-input" style="width: 100%;">
+        <select id="stop_wait_${newIndex}" name="stops[${newIndex}][waiting_minutes]" class="form-input">
           <option value="0">No waiting</option>
           <option value="15">15 min</option>
           <option value="30">30 min</option>
@@ -318,9 +319,9 @@ document.addEventListener('DOMContentLoaded', function () {
         </select>
       </div>
       <div class="stop-actions" style="display: flex; gap: 0.35rem; align-items: center;">
-        <button type="button" class="icon-button js-move-up" aria-label="Move stop up" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--color-border, #cbd5e1); border-radius: 4px; background: white;">&uarr;</button>
-        <button type="button" class="icon-button js-move-down" aria-label="Move stop down" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--color-border, #cbd5e1); border-radius: 4px; background: white;">&darr;</button>
-        <button type="button" class="icon-button js-remove" aria-label="Remove stop" style="padding: 0.3rem 0.5rem; font-size: 0.8rem; border: 1px solid #fecaca; border-radius: 4px; background: #fff5f5; color: #dc2626;">&times;</button>
+        <button type="button" class="icon-button js-move-up" aria-label="Move stop up">&uarr;</button>
+        <button type="button" class="icon-button js-move-down" aria-label="Move stop down">&darr;</button>
+        <button type="button" class="icon-button stop-remove js-remove" aria-label="Remove stop">&times;</button>
       </div>
     `;
 

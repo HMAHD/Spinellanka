@@ -100,6 +100,25 @@
 
             <div class="deal-card-content">
               <p>{{ $deal->summary }}</p>
+
+              @if(!empty($deal->preset_payload))
+                <ul class="deal-meta-chips" aria-label="Included preset specifications">
+                  @if(!empty($deal->preset_payload['airport']))
+                    <li>{{ $deal->preset_payload['airport'] }} Airport</li>
+                  @endif
+                  @if(!empty($deal->preset_payload['destination']) || !empty($deal->preset_payload['destination_text']))
+                    <li>To {{ $deal->preset_payload['destination'] ?? $deal->preset_payload['destination_text'] }}</li>
+                  @elseif(!empty($deal->preset_payload['origin']) || !empty($deal->preset_payload['origin_text']))
+                    <li>From {{ $deal->preset_payload['origin'] ?? $deal->preset_payload['origin_text'] }}</li>
+                  @endif
+                  @if(!empty($deal->preset_payload['duration_days']))
+                    <li>{{ $deal->preset_payload['duration_days'] }} Days</li>
+                  @endif
+                  @if(!empty($deal->preset_payload['passenger_count']))
+                    <li>Up to {{ $deal->preset_payload['passenger_count'] }} Guests</li>
+                  @endif
+                </ul>
+              @endif
             </div>
 
             <footer class="deal-card-footer">

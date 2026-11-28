@@ -50,14 +50,37 @@
         fetchpriority="high"
         decoding="async"
       >
-      <figcaption class="home-hero-caption">
+      <div class="hero-visual-scrim" aria-hidden="true"></div>
+
+      <div class="hero-visual-badge">
+        <span class="hero-badge-dot" aria-hidden="true"></span>
+        <span>Island-Wide Advance Desk &bull; Exact Vehicles</span>
+      </div>
+
+      <figcaption class="home-hero-overlay">
+        <div class="hero-quick-routes" aria-label="Direct service shortcuts">
+          <a href="{{ route('services.show', ['service' => 'airport_pickup']) }}">Airport Pickup</a>
+          <a href="{{ route('services.show', ['service' => 'airport_transfer']) }}">Airport Transfer</a>
+          <a href="{{ route('services.show', ['service' => 'ride']) }}">Ride</a>
+          <a href="{{ route('services.show', ['service' => 'rent']) }}">Rent</a>
+        </div>
+
         @if($heroLeadDeal)
-          <a href="{{ route('deals.show', $heroLeadDeal->slug) }}" class="hero-caption-link">
-            <span>Featured Route: {{ $heroLeadDeal->title }}</span>
-            <span aria-hidden="true">&rsaquo;</span>
+          <a href="{{ route('deals.show', $heroLeadDeal->slug) }}" class="hero-spotlight-link">
+            <div>
+              <span class="hero-spotlight-kicker">Featured Curated Package</span>
+              <strong class="hero-spotlight-title">{{ $heroLeadDeal->title }}</strong>
+            </div>
+            <span class="hero-spotlight-arrow" aria-hidden="true">&rsaquo;</span>
           </a>
         @else
-          <span>Dedicated Airport, Intercity &amp; Self-Drive Mobility in Sri Lanka</span>
+          <a href="{{ route('deals.index') }}" class="hero-spotlight-link">
+            <div>
+              <span class="hero-spotlight-kicker">Dedicated Island Mobility</span>
+              <strong class="hero-spotlight-title">Browse Verified Service Packages &amp; Fleet</strong>
+            </div>
+            <span class="hero-spotlight-arrow" aria-hidden="true">&rsaquo;</span>
+          </a>
         @endif
       </figcaption>
     </figure>

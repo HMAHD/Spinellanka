@@ -109,6 +109,25 @@
                     <span class="label">Destination:</span>
                     <span class="val">{{ $deal->preset_payload['destination'] ?? $deal->preset_payload['destination_text'] }}</span>
                   </div>
+                @elseif(!empty($deal->preset_payload['origin']) || !empty($deal->preset_payload['origin_text']))
+                  <div class="deal-highlight-destination">
+                    <span class="label">Origin:</span>
+                    <span class="val">{{ $deal->preset_payload['origin'] ?? $deal->preset_payload['origin_text'] }}</span>
+                  </div>
+                @endif
+
+                @if(!empty($deal->preset_payload))
+                  <ul class="deal-meta-chips" aria-label="Included preset specifications">
+                    @if(!empty($deal->preset_payload['airport']))
+                      <li>{{ $deal->preset_payload['airport'] }} Airport</li>
+                    @endif
+                    @if(!empty($deal->preset_payload['duration_days']))
+                      <li>{{ $deal->preset_payload['duration_days'] }} Days</li>
+                    @endif
+                    @if(!empty($deal->preset_payload['passenger_count']))
+                      <li>Up to {{ $deal->preset_payload['passenger_count'] }} Guests</li>
+                    @endif
+                  </ul>
                 @endif
               </div>
 

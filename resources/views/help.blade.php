@@ -54,8 +54,7 @@
       <p>Our operations desk is available to assist with advance travel planning and custom itineraries.</p>
       <a class="text-action" href="{{ route('contact') }}">Contact operations desk</a>
     </section>
-
-    @include('partials.footer')
   </div>
+  @include('partials.footer')
 </main>
 @endsection

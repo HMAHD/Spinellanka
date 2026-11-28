@@ -85,6 +85,7 @@ const setupSiteNavigation = () => {
         submenu instanceof HTMLElement &&
         dropdownTrigger instanceof HTMLButtonElement
       ) {
+        dropdownTrigger.setAttribute("popovertarget", "more-menu");
         submenu.setAttribute("popover", "auto");
         submenu.hidden = false;
         if (!isPopoverOpen(submenu)) {
@@ -103,6 +104,7 @@ const setupSiteNavigation = () => {
         if (isPopoverOpen(submenu)) {
           submenu.hidePopover();
         }
+        dropdownTrigger.removeAttribute("popovertarget");
         submenu.removeAttribute("popover");
         submenu.style.top = "";
         submenu.style.left = "";
@@ -159,7 +161,7 @@ const setupSiteNavigation = () => {
       if (
         !header.classList.contains("is-wide") ||
         !window.matchMedia("(hover: hover)").matches ||
-        event.pointerType === "touch" ||
+        event.pointerType !== "mouse" ||
         isPopoverOpen(submenu)
       ) {
         return;

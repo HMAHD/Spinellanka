@@ -117,6 +117,14 @@
           <h2 class="sidebar-title">Book This Package</h2>
           <p class="sidebar-desc">Select your intended travel date to proceed into our service desk with this preset pre-loaded.</p>
 
+          @if($errors->any())
+            <div class="alert alert-error" role="alert">
+              @foreach($errors->all() as $error)
+                <div>{{ $error }}</div>
+              @endforeach
+            </div>
+          @endif
+
           <form action="{{ route('deals.book', $deal->slug) }}" method="POST" class="deal-booking-form" novalidate>
             @csrf
 

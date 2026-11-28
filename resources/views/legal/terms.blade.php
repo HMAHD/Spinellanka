@@ -25,9 +25,8 @@
         <a class="text-action" href="{{ route('help') }}">Read Help &amp; FAQ</a>
       </div>
     </div>
-
-    @include('partials.footer')
   </div>
+  @include('partials.footer')
 </main>
 @endsection
 

@@ -87,13 +87,12 @@
         <div class="fleet-empty" role="status">
           <h2>Fleet verification in progress</h2>
           <p>Vehicle records are being verified with the operator. Exact selectable fleet details will appear here once verified.</p>
-          <a class="primary-action" href="{{ route('home') }}#services">View available services</a>
+          <a class="primary-action" href="{{ route('home') }}#service-desk">View available services</a>
         </div>
       @endif
     </section>
-
-    @include('partials.footer')
   </div>
+  @include('partials.footer')
 </main>
 @endsection
 

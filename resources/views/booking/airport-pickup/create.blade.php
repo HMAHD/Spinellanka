@@ -29,6 +29,17 @@
       </div>
     @endif
 
+    @if($errors->any())
+      <div class="alert alert-error" role="alert">
+        <strong>Please check the following details:</strong>
+        <ul>
+          @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+          @endforeach
+        </ul>
+      </div>
+    @endif
+
     <div class="booking-content-grid">
       <div class="booking-form-card">
         <form action="{{ route('booking.airport-pickup.search') }}" method="POST" class="booking-form" novalidate>
@@ -85,7 +96,13 @@
               <div class="quick-places" aria-label="Suggested popular destinations">
                 <span class="quick-label">Popular Destinations:</span>
                 @foreach($places as $place)
-                  <button type="button" class="quick-pill" onclick="document.getElementById('destination_text').value='{{ $place->formattedAddress }}'; document.getElementById('place_id').value='{{ $place->placeId }}';">
+                  <button
+                    type="button"
+                    class="quick-pill"
+                    data-address="{{ $place->formattedAddress }}"
+                    data-place-id="{{ $place->placeId }}"
+                    onclick="document.getElementById('destination_text').value = this.dataset.address; document.getElementById('place_id').value = this.dataset.placeId;"
+                  >
                     {{ $place->mainText }}
                   </button>
                 @endforeach
@@ -135,17 +152,18 @@
 
       <aside class="booking-sidebar">
         <div class="info-card">
-          <h3>The Spinellanka Airport Standard</h3>
+          <h2>The Spinellanka Airport Standard</h2>
           <ul class="benefit-list">
             <li><strong>Exact Vehicle Guarantee:</strong> The exact vehicle model and plate you select is reserved exclusively for you.</li>
             <li><strong>Chauffeured Meet &amp; Greet:</strong> Professional English-speaking driver waiting inside arrivals with your name board.</li>
             <li><strong>Delay Protection:</strong> 90 minutes of complimentary waiting included from actual flight touchdown.</li>
-            <li><strong>Manual Review:</strong> Staff re-checks flight schedule and contacts you directly before confirming.</li>
+            <li><strong>Manual Review:</strong> Staff re-checks flight schedule and contacts you directly before&nbsp;confirming.</li>
           </ul>
         </div>
       </aside>
     </div>
   </div>
+  @include('partials.footer')
 </main>
 @endsection
 
