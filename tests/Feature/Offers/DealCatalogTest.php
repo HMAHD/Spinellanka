@@ -141,9 +141,13 @@ test('synthetic staging fixtures seed deals across all four services rendered on
     $this->get(route('home'))
         ->assertOk()
         ->assertSee('CMB Airport to Colombo Fort Direct Arrival (Synthetic)')
+        ->assertSee('CMB Airport to Galle Fort &amp; Unawatuna Arrival (Synthetic)', false)
         ->assertSee('Galle Fort to CMB Departure Transfer (Synthetic)')
+        ->assertSee('Kandy to CMB Departure Transfer (Synthetic)')
         ->assertSee('Colombo to Galle Coast Chauffeured Charter (Synthetic)')
+        ->assertSee('Colombo to Ella Scenic Hill Country Charter (Synthetic)')
         ->assertSee('Colombo Hub 3-Day Self-Drive Package (Synthetic)')
+        ->assertSee('Coast &amp; Highlands 7-Day Self-Drive Package (Synthetic)', false)
         ->assertSee('Airport Pickup')
         ->assertSee('Airport Transfer')
         ->assertSee('Ride')
@@ -153,19 +157,23 @@ test('synthetic staging fixtures seed deals across all four services rendered on
 
     $this->get(route('services.show', ['service' => ServiceType::AirportPickup->value]))
         ->assertOk()
-        ->assertSee('CMB Airport to Colombo Fort Direct Arrival (Synthetic)');
+        ->assertSee('CMB Airport to Colombo Fort Direct Arrival (Synthetic)')
+        ->assertSee('CMB Airport to Galle Fort &amp; Unawatuna Arrival (Synthetic)', false);
 
     $this->get(route('services.show', ['service' => ServiceType::AirportTransfer->value]))
         ->assertOk()
-        ->assertSee('Galle Fort to CMB Departure Transfer (Synthetic)');
+        ->assertSee('Galle Fort to CMB Departure Transfer (Synthetic)')
+        ->assertSee('Kandy to CMB Departure Transfer (Synthetic)');
 
     $this->get(route('services.show', ['service' => ServiceType::Ride->value]))
         ->assertOk()
-        ->assertSee('Colombo to Galle Coast Chauffeured Charter (Synthetic)');
+        ->assertSee('Colombo to Galle Coast Chauffeured Charter (Synthetic)')
+        ->assertSee('Colombo to Ella Scenic Hill Country Charter (Synthetic)');
 
     $this->get(route('services.show', ['service' => ServiceType::Rent->value]))
         ->assertOk()
-        ->assertSee('Colombo Hub 3-Day Self-Drive Package (Synthetic)');
+        ->assertSee('Colombo Hub 3-Day Self-Drive Package (Synthetic)')
+        ->assertSee('Coast &amp; Highlands 7-Day Self-Drive Package (Synthetic)', false);
 });
 
 test('admin panel configures collapsible desktop sidebar', function (): void {

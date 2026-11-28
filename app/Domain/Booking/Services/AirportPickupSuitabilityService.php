@@ -43,7 +43,7 @@ class AirportPickupSuitabilityService
         /** @var Collection<int, Vehicle> $candidateVehicles */
         $candidateVehicles = Vehicle::where('eligible_for_pickup', true)
             ->where('status', VehicleStatus::Active->value)
-            ->with(['media'])
+            ->with(['media', 'publicApprovedMedia'])
             ->orderBy('passenger_capacity')
             ->get();
 

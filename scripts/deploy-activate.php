@@ -127,6 +127,15 @@ try {
         $phpQuoted = escapeshellarg($phpBin);
         $runCommand("$phpQuoted $artisan migrate --force");
         $runCommand("$phpQuoted $artisan db:seed --class=RoleAndPermissionSeeder --force");
+
+        $envOut = [];
+        $envCode = 0;
+        exec("$phpQuoted $artisan env 2>&1", $envOut, $envCode);
+        $envText = strtolower(implode(' ', $envOut));
+        if ($envCode === 0 && (str_contains($envText, '[staging]') || str_contains($envText, '[local]'))) {
+            $runCommand("$phpQuoted $artisan db:seed --class=StagingSyntheticFixturesSeeder --force");
+        }
+
         $runCommand("$phpQuoted $artisan config:cache");
         $runCommand("$phpQuoted $artisan route:cache");
         $runCommand("$phpQuoted $artisan view:cache");

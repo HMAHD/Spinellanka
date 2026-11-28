@@ -267,7 +267,10 @@ class AirportPickupBookingController extends Controller
                 meetAndGreet: true,
                 nameBoardText: 'Dr. Livingston & Family',
             );
-            $vehicle = Vehicle::where('status', VehicleStatus::Active)->where('eligible_for_pickup', true)->first();
+            $vehicle = Vehicle::with(['media', 'publicApprovedMedia'])
+                ->where('status', VehicleStatus::Active)
+                ->where('eligible_for_pickup', true)
+                ->first();
             $estimate = Estimate::where('service_type', ServiceType::AirportPickup)->latest()->first();
             $holdExpiresAt = Carbon::now('Asia/Colombo')->addMinutes(15);
             if ($vehicle && $estimate) {
@@ -286,7 +289,9 @@ class AirportPickupBookingController extends Controller
                 ->with('error', 'Checkout hold expired. Please reselect your vehicle.');
         }
 
-        $vehicle = Vehicle::where('id', $holdSession['vehicle_id'])->first();
+        $vehicle = Vehicle::with(['media', 'publicApprovedMedia'])
+            ->where('id', $holdSession['vehicle_id'])
+            ->first();
         $estimate = $this->estimateService->findByReference($holdSession['estimate_reference']);
 
         if (! $vehicle || ! $estimate) {

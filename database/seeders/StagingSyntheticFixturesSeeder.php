@@ -338,7 +338,7 @@ class StagingSyntheticFixturesSeeder extends Seeder
             }
         }
 
-        // 7. Synthetic Staging Deals across all 4 services + 1 Deal-scoped Promotion (CHG-003)
+        // 7. Synthetic Staging Deals across all 4 services (2 per service) + 1 Deal-scoped Promotion (CHG-003)
         $dealEffective = Carbon::parse('2026-11-01 00:00:00', 'Asia/Colombo');
         $dealDefinitions = [
             [
@@ -357,7 +357,25 @@ class StagingSyntheticFixturesSeeder extends Seeder
                 'image_path' => '/images/deal-airport-pickup.webp',
                 'image_alt' => 'Executive arrival sedan waiting outside coastal Sri Lanka terminal (Staging Synthetic)',
                 'is_featured' => true,
-                'priority' => 40,
+                'priority' => 80,
+            ],
+            [
+                'slug' => 'synth-cmb-galle-express-pickup',
+                'service_type' => ServiceType::AirportPickup,
+                'title' => 'CMB Airport to Galle Fort & Unawatuna Arrival (Synthetic)',
+                'summary' => 'Seamless Southern Expressway arrival pickup directly from CMB arrivals to coastal resorts in Galle and Unawatuna.',
+                'description_markdown' => "### Included Arrival Workflow\n- Complimentary terminal meet-and-greet with welcome board\n- Express highway routing from Katunayake to Southern Coast hotels\n- Verified passenger & luggage fit checked before vehicle hold",
+                'preset_payload' => [
+                    'airport' => 'CMB',
+                    'flight_number' => 'EK650',
+                    'destination_text' => 'Galle Fort & Unawatuna Coast',
+                    'passenger_count' => 3,
+                    'luggage_count' => 3,
+                ],
+                'image_path' => '/images/deal-airport-pickup.webp',
+                'image_alt' => 'Arrival car prepared for southern expressway airport pickup (Staging Synthetic)',
+                'is_featured' => false,
+                'priority' => 70,
             ],
             [
                 'slug' => 'synth-galle-cmb-airport-transfer',
@@ -375,7 +393,25 @@ class StagingSyntheticFixturesSeeder extends Seeder
                 'image_path' => '/images/deal-airport-transfer.webp',
                 'image_alt' => 'Chauffeured highway departure cruiser heading toward international airport (Staging Synthetic)',
                 'is_featured' => true,
-                'priority' => 30,
+                'priority' => 60,
+            ],
+            [
+                'slug' => 'synth-kandy-cmb-airport-transfer',
+                'service_type' => ServiceType::AirportTransfer,
+                'title' => 'Kandy to CMB Departure Transfer (Synthetic)',
+                'summary' => 'Hill-country to international airport departure transfer timed automatically around Sri Lanka highway buffer guidance.',
+                'description_markdown' => "### Included Departure Workflow\n- Direct pickup from central Kandy hotels or residences\n- Automatic 180-minute check-in & mountain road contingency calculation\n- Exact vehicle selection with verified boot capacity",
+                'preset_payload' => [
+                    'airport' => 'CMB',
+                    'flight_number' => 'QR665',
+                    'origin_text' => 'Kandy Lake City Center',
+                    'passenger_count' => 3,
+                    'luggage_count' => 3,
+                ],
+                'image_path' => '/images/deal-airport-transfer.webp',
+                'image_alt' => 'Passenger departure van cruising Sri Lankan expressway corridor (Staging Synthetic)',
+                'is_featured' => false,
+                'priority' => 50,
             ],
             [
                 'slug' => 'synth-colombo-galle-chauffeured-ride',
@@ -392,7 +428,24 @@ class StagingSyntheticFixturesSeeder extends Seeder
                 'image_path' => '/images/deal-ride.webp',
                 'image_alt' => 'Private touring vehicle on coastal Sri Lankan avenue (Staging Synthetic)',
                 'is_featured' => true,
-                'priority' => 20,
+                'priority' => 40,
+            ],
+            [
+                'slug' => 'synth-colombo-ella-hill-country-ride',
+                'service_type' => ServiceType::Ride,
+                'title' => 'Colombo to Ella Scenic Hill Country Charter (Synthetic)',
+                'summary' => 'Full-day private chauffeured transfer climbing into Sri Lanka’s tea highlands with optional scenic en-route stops.',
+                'description_markdown' => "### Included Charter Highlights\n- Experienced highland chauffeur dedicated to your exact vehicle\n- Flexible en-route stop planning up to 10 waypoints\n- Transparent mileage & waiting breakdown before holding vehicle",
+                'preset_payload' => [
+                    'origin' => 'Colombo Central',
+                    'destination' => 'Ella Town Highlands',
+                    'passenger_count' => 4,
+                    'luggage_count' => 4,
+                ],
+                'image_path' => '/images/deal-ride.webp',
+                'image_alt' => 'Chauffeured SUV driving through emerald Sri Lankan tea hills (Staging Synthetic)',
+                'is_featured' => false,
+                'priority' => 30,
             ],
             [
                 'slug' => 'synth-south-coast-self-drive-rent',
@@ -409,6 +462,23 @@ class StagingSyntheticFixturesSeeder extends Seeder
                 'image_path' => '/images/deal-rent.webp',
                 'image_alt' => 'Compact touring hatch parked at scenic Sri Lankan viewpoint (Staging Synthetic)',
                 'is_featured' => false,
+                'priority' => 20,
+            ],
+            [
+                'slug' => 'synth-island-grand-tour-self-drive-rent',
+                'service_type' => ServiceType::Rent,
+                'title' => 'Coast & Highlands 7-Day Self-Drive Package (Synthetic)',
+                'summary' => 'Week-long independent Sri Lanka itinerary vehicle hire with clear deposit rules, cumulative 700 km allowance, and Colombo handover.',
+                'description_markdown' => "### Included Self-Drive Terms\n- Cumulative 700 km mileage inclusion across 7 × 24-hour hire cycles\n- Comprehensive insurance coverage & transparent excess limit\n- In-person passport, licence & IDP verification at collection",
+                'preset_payload' => [
+                    'duration_days' => 7,
+                    'pickup_location_text' => 'Colombo Hub',
+                    'return_location_text' => 'Colombo Hub',
+                    'driver_age' => 32,
+                ],
+                'image_path' => '/images/deal-rent.webp',
+                'image_alt' => 'Self-drive SUV overlooking Sri Lankan palm bay (Staging Synthetic)',
+                'is_featured' => true,
                 'priority' => 10,
             ],
         ];

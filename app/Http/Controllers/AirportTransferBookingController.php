@@ -351,7 +351,10 @@ class AirportTransferBookingController extends Controller
                 isUnsafeTime: false,
                 warningAccepted: false,
             );
-            $vehicle = Vehicle::where('status', VehicleStatus::Active)->where('eligible_for_transfer', true)->first();
+            $vehicle = Vehicle::with(['media', 'publicApprovedMedia'])
+                ->where('status', VehicleStatus::Active)
+                ->where('eligible_for_transfer', true)
+                ->first();
             $estimate = Estimate::where('service_type', ServiceType::AirportTransfer)->latest()->first();
             $holdExpiresAt = Carbon::now('Asia/Colombo')->addMinutes(15);
             if ($vehicle && $estimate) {
@@ -370,7 +373,9 @@ class AirportTransferBookingController extends Controller
                 ->with('error', 'Checkout hold expired. Please reselect your vehicle.');
         }
 
-        $vehicle = Vehicle::where('id', $holdSession['vehicle_id'])->first();
+        $vehicle = Vehicle::with(['media', 'publicApprovedMedia'])
+            ->where('id', $holdSession['vehicle_id'])
+            ->first();
         $estimate = $this->estimateService->findByReference($holdSession['estimate_reference']);
 
         if (! $vehicle || ! $estimate) {

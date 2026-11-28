@@ -282,7 +282,10 @@ class RentBookingController extends Controller
 
         if ((! $criteria || ! $holdData || ! $estimateReference) && app()->environment('local', 'testing') && $request->has('preview')) {
             $criteria = $this->createPreviewCriteria();
-            $firstVehicle = Vehicle::where('eligible_for_rent', true)->where('status', VehicleStatus::Active)->first();
+            $firstVehicle = Vehicle::with(['media', 'publicApprovedMedia'])
+                ->where('eligible_for_rent', true)
+                ->where('status', VehicleStatus::Active)
+                ->first();
             if ($firstVehicle) {
                 $holdData = [
                     'vehicle_id' => $firstVehicle->id,
@@ -303,7 +306,7 @@ class RentBookingController extends Controller
             return redirect()->route('booking.rent.vehicles')->with('error', 'Your 15-minute checkout hold expired. Please re-select a vehicle.');
         }
 
-        $vehicle = Vehicle::with(['media'])->findOrFail($holdData['vehicle_id']);
+        $vehicle = Vehicle::with(['media', 'publicApprovedMedia'])->findOrFail($holdData['vehicle_id']);
         $estimate = $this->estimateService->findByReference($estimateReference);
         $policy = RentPolicy::current();
 
